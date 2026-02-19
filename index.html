@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MedVoice</title>
+</head>
+<body>
+  <h2>MedVoice</h2>
+  <p id="status">Listo.</p>
+  <button id="btnEnroll">Registrar huella</button>
+  <button id="btnStart">Grabar</button>
+  <button id="btnStop" disabled>Detener</button>
+  <button id="btnSend" disabled>Enviar</button>
+  <textarea id="txt" style="width:100%;height:260px;"></textarea>
+
+<script>
+const qs = new URLSearchParams(location.search);
+const doctor_key = qs.get("doctor_key") || "";
+const target = qs.get("target") || "ZTA915ENP7";
+const patnr = qs.get("patnr") || "";
+const falnr = qs.get("falnr") || "";
+
+const API = "http://localhost:8000"; // cambia al backend real
+
+let mediaRecorder, chunks = [];
+function setStatus(t){ document.getElementById("status").innerText = t; }
+
+async function startRec(){
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  chunks = [];
+  mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+  mediaRecorder.ondataavailable = e => chunks.push(e.data);
+  mediaRecorder.onstop = () => stream.getTracks().forEach(t => t.stop());
+  mediaRecorder.start();
+  setStatus("Grabando...");
+  btnStart.disabled = true; btnStop.disabled = false; btnSend.disabled = true;
+}
+async function stopRec(){
+  mediaRecorder.stop();
+  setStatus("Detenido. Listo para enviar.");
+  btnStart.disabled = false; btnStop.disabled = true; btnSend.disabled = false;
+}
+
+async function sendTo(endpoint){
+  const blob = new Blob(chunks, { type: "audio/webm" });
+  const fd = new FormData();
+  fd.append("doctor_key", doctor_key);
+  fd.append("audio", blob, "audio.webm");
+
+  const res = await fetch(API + endpoint, { method:"POST", body: fd });
+  const data = await res.json();
+  return data;
+}
+
+btnEnroll.onclick = async () => {
+  if(!doctor_key){ setStatus("Falta doctor_key."); return; }
+  setStatus("Enrolando...");
+  const data = await sendTo("/api/voice/enroll");
+  setStatus(data.ok ? "Huella registrada OK." : ("Error: " + (data.message||"")));
+};
+
+btnStart.onclick = startRec;
+btnStop.onclick = stopRec;
+
+btnSend.onclick = async () => {
+  if(!doctor_key){ setStatus("Falta doctor_key."); return; }
+  setStatus("Verificando + transcribiendo...");
+  const data = await sendTo("/api/voice/transcribe");
+
+  if(!data.ok){ setStatus("Error: " + (data.message||"")); return; }
+  if(!data.verified){
+    setStatus("Voz NO autorizada. score=" + data.score);
+    return;
+  }
+  txt.value = data.text || "";
+  setStatus("OK. Enviando a SAP...");
+
+  // Aquí devuelves a SAP. Ejemplo con sapevent:
+  window.location.href = "sapevent:done?text=" + encodeURIComponent(txt.value)
+    + "&target=" + encodeURIComponent(target)
+    + "&patnr=" + encodeURIComponent(patnr)
+    + "&falnr=" + encodeURIComponent(falnr);
+};
+</script>
+</body>
+</html>

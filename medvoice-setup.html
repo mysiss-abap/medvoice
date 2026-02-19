@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MedVoice | Setup</title>
+  <style>
+    :root{
+      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
+      --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
+      --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
+    }
+    body{margin:0;background:var(--sap-bg);font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);}
+    header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:14px 18px;}
+    header .t{font-size:18px;font-weight:600;}
+    header .s{font-size:12px;opacity:.9;margin-top:2px;}
+    .wrap{max-width:980px;margin:18px auto;padding:0 14px;}
+    .card{background:var(--sap-card);border:1px solid var(--sap-border);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);padding:16px;margin-bottom:14px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:860px){.grid{grid-template-columns:1fr}}
+    .btn{
+      border:1px solid var(--sap-blue); background:var(--sap-blue); color:#fff;
+      border-radius:8px; padding:10px 14px; font-size:14px; cursor:pointer; transition:.15s; user-select:none;
+    }
+    .btn:hover{filter:brightness(.95);}
+    .btn:disabled{opacity:.55;cursor:not-allowed;}
+    .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue);}
+    .btn-warn{background:var(--warn);border-color:var(--warn);}
+    .pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;background:#eef2f7;border:1px solid var(--sap-border);color:var(--sap-muted);}
+    .status{margin-top:10px;font-size:13px;}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+    .small{font-size:12px;color:var(--sap-muted);line-height:1.4}
+    .box{border:1px dashed var(--sap-border);border-radius:10px;padding:12px;background:#fcfcfc}
+    .meter{height:10px;border-radius:999px;background:#eaecee;overflow:hidden;border:1px solid var(--sap-border)}
+    .meter > div{height:100%;width:0%;}
+    .mono{font-family:Consolas, monospace;font-size:12px;white-space:pre-wrap;}
+    .hide{display:none !important;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="t">MedVoice | Setup</div>
+  <div class="s">Huella de voz + Ruido (valores vienen desde SAP; usuario no modifica)</div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+      <div class="small">
+        <b>Médico:</b> <span id="doctorLbl">-</span> &nbsp; | &nbsp;
+        <b>API:</b> <span id="apiLbl">-</span>
+      </div>
+      <div class="pill" id="envPill">Validando...</div>
+    </div>
+    <div class="small" style="margin-top:10px">
+      Aquí solo se guarda en el navegador <b>preferencias</b>. La <b>huella</b> queda en backend.
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;font-size:16px;">A) Ruido (consultorio)</h3>
+      <div class="box">
+        <div class="small">Pulsa <b>Iniciar</b>, deja 5–8s de ruido ambiente, y vuelve a pulsar para <b>Detener</b>. Luego <b>Guardar</b>.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn" id="btnNoiseToggle">Iniciar</button>
+          <button class="btn btn-warn" id="btnNoiseSave" disabled>Guardar</button>
+        </div>
+        <div class="status" id="noiseStatus">Estado: listo.</div>
+
+        <div style="margin-top:10px">
+          <div class="small">Nivel estimado (RMS): <span id="noiseRms">0.000</span></div>
+          <div class="meter"><div id="noiseBar" style="background:var(--warn)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;font-size:16px;">B) Huella (enrolamiento)</h3>
+      <div class="box">
+        <div class="small">Pulsa <b>Grabar</b> y lee 20–30s. Pulsa de nuevo para <b>Detener</b>. Luego <b>Enviar a backend</b>.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn" id="btnEnrollToggle">Grabar</button>
+          <button class="btn" id="btnEnrollSend" disabled>Enviar a backend</button>
+        </div>
+        <div class="status" id="enrollStatus">Estado: listo.</div>
+        <div class="small" style="margin-top:10px">
+          Ejemplo: “Paciente con dolor precordial irradiado a miembro superior izquierdo...”
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
+    <div class="mono" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+  const log = (m)=>{ const el=$("log"); el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`; el.scrollTop=el.scrollHeight; };
+
+  function qs(name){
+    const u = new URL(window.location.href);
+    return (u.searchParams.get(name) || "").trim();
+  }
+  function apiBase(){
+    const v = (qs("api") || "").replace(/\/+$/,"");
+    return v || "http://127.0.0.1:8000";
+  }
+  function doctorId(){
+    return qs("doctor_id") || "";
+  }
+
+  function validateEnv(){
+    const ok = !!doctorId() && !!apiBase();
+    $("doctorLbl").textContent = doctorId() || "(SIN doctor_id)";
+    $("apiLbl").textContent = apiBase();
+    $("envPill").textContent = ok ? "OK" : "Falta doctor_id";
+    $("envPill").style.background = ok ? "#e7f4ec" : "#fff3e0";
+    $("envPill").style.color = ok ? "var(--ok)" : "var(--warn)";
+    $("envPill").style.border = "1px solid var(--sap-border)";
+    return ok;
+  }
+
+  // ===== Audio helpers =====
+  async function getMic(){
+    return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+  }
+
+  // ===== A) Ruido =====
+  let noiseRec=null, noiseChunks=[], noiseStream=null, noiseCtx=null, noiseSrc=null, noiseAnalyser=null, noiseTimer=null;
+  let noiseRecording=false;
+
+  $("btnNoiseToggle").onclick = async ()=>{
+    if(!validateEnv()){ $("noiseStatus").innerHTML=`Estado: <span class="err">falta doctor_id</span>`; return; }
+
+    if(!noiseRecording){
+      // start
+      noiseChunks=[];
+      $("noiseStatus").textContent = "Estado: iniciando mic...";
+      noiseStream = await getMic();
+      noiseRec = new MediaRecorder(noiseStream, { mimeType:"audio/webm" });
+      noiseRec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) noiseChunks.push(e.data); };
+      noiseRec.onstop=()=>log("Ruido: grabación detenida.");
+
+      noiseCtx = new (window.AudioContext || window.webkitAudioContext)();
+      noiseSrc = noiseCtx.createMediaStreamSource(noiseStream);
+      noiseAnalyser = noiseCtx.createAnalyser();
+      noiseAnalyser.fftSize = 2048;
+      noiseSrc.connect(noiseAnalyser);
+      const buf = new Float32Array(noiseAnalyser.fftSize);
+
+      noiseTimer = setInterval(()=>{
+        noiseAnalyser.getFloatTimeDomainData(buf);
+        let sum=0; for(let i=0;i<buf.length;i++) sum += buf[i]*buf[i];
+        const rms = Math.sqrt(sum/buf.length);
+        $("noiseRms").textContent = rms.toFixed(3);
+        const pct = Math.min(100, Math.round(rms*400));
+        $("noiseBar").style.width = pct + "%";
+      }, 200);
+
+      noiseRec.start(250);
+      noiseRecording=true;
+      $("btnNoiseToggle").textContent="Detener";
+      $("btnNoiseSave").disabled=true;
+      $("noiseStatus").textContent="Estado: grabando ruido (5–8s)...";
+      log("Ruido: grabación iniciada.");
+      return;
+    }
+
+    // stop
+    if(noiseRec && noiseRec.state!=="inactive") noiseRec.stop();
+    if(noiseStream) noiseStream.getTracks().forEach(t=>t.stop());
+    if(noiseTimer) clearInterval(noiseTimer);
+    if(noiseCtx) noiseCtx.close();
+
+    noiseRecording=false;
+    $("btnNoiseToggle").textContent="Iniciar";
+    $("btnNoiseSave").disabled = (noiseChunks.length===0);
+    $("noiseStatus").textContent="Estado: listo para guardar.";
+  };
+
+  $("btnNoiseSave").onclick = async ()=>{
+    const rms = $("noiseRms").textContent;
+    try{ localStorage.setItem("mv_noiseRms", rms); }catch(e){}
+    log(`Ruido: guardado RMS=${rms} (localStorage).`);
+    $("noiseStatus").innerHTML = `Estado: <span class="ok">guardado</span> (RMS=${rms})`;
+    $("btnNoiseSave").disabled=true;
+
+    // Opcional backend
+    try{
+      const blob = new Blob(noiseChunks, { type:"audio/webm" });
+      const fd = new FormData();
+      fd.append("doctor_id", doctorId());
+      fd.append("audio", blob, "noise.webm");
+      const r = await fetch(apiBase()+"/api/noise-profile", { method:"POST", body: fd });
+      if(r.ok) log("Ruido: perfil enviado a backend.");
+      else log("Ruido: backend respondió pero no OK (no es crítico).");
+    }catch(e){
+      log("Ruido: backend no disponible o endpoint no implementado (ok).");
+    }
+  };
+
+  // ===== B) Huella =====
+  let enrollRec=null, enrollChunks=[], enrollStream=null;
+  let enrollRecording=false;
+
+  $("btnEnrollToggle").onclick = async ()=>{
+    if(!validateEnv()){ $("enrollStatus").innerHTML=`Estado: <span class="err">falta doctor_id</span>`; return; }
+
+    if(!enrollRecording){
+      enrollChunks=[];
+      $("enrollStatus").textContent="Estado: iniciando mic...";
+      enrollStream = await getMic();
+      enrollRec = new MediaRecorder(enrollStream, { mimeType:"audio/webm" });
+      enrollRec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) enrollChunks.push(e.data); };
+      enrollRec.onstop=()=>log("Enrolamiento: grabación detenida.");
+
+      enrollRec.start(250);
+      enrollRecording=true;
+      $("btnEnrollToggle").textContent="Detener";
+      $("btnEnrollSend").disabled=true;
+      $("enrollStatus").textContent="Estado: grabando 20–30s...";
+      log("Enrolamiento: grabación iniciada.");
+      return;
+    }
+
+    // stop
+    if(enrollRec && enrollRec.state!=="inactive") enrollRec.stop();
+    if(enrollStream) enrollStream.getTracks().forEach(t=>t.stop());
+    enrollRecording=false;
+    $("btnEnrollToggle").textContent="Grabar";
+    $("btnEnrollSend").disabled = (enrollChunks.length===0);
+    $("enrollStatus").textContent="Estado: listo para enviar.";
+  };
+
+  $("btnEnrollSend").onclick = async ()=>{
+    try{
+      const blob = new Blob(enrollChunks, { type:"audio/webm" });
+      const fd = new FormData();
+      fd.append("doctor_id", doctorId());
+      fd.append("audio", blob, "enroll.webm");
+
+      $("enrollStatus").textContent="Estado: enviando a backend...";
+      log(`POST ${apiBase()}/api/enroll (doctor_id=${doctorId()})`);
+
+      const r = await fetch(apiBase()+"/api/enroll", { method:"POST", body: fd });
+      const j = await r.json().catch(()=>({ok:false,message:"Respuesta inválida"}));
+
+      if(r.ok && j.ok){
+        $("enrollStatus").innerHTML = `Estado: <span class="ok">huella registrada</span>`;
+        log("Enrolamiento: OK (embedding guardado en backend).");
+      }else{
+        $("enrollStatus").innerHTML = `Estado: <span class="err">falló</span> ${j.message||""}`;
+        log("Enrolamiento: FALLÓ -> "+(j.message||""));
+      }
+      $("btnEnrollSend").disabled=true;
+    }catch(e){
+      $("enrollStatus").innerHTML = `Estado: <span class="err">error</span> backend no responde`;
+      log("Enrolamiento: error -> "+e.message);
+    }
+  };
+
+  validateEnv();
+</script>
+</body>
+</html>

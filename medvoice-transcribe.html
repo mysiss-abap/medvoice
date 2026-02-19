@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MedVoice | Transcripción</title>
+  <style>
+    :root{
+      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
+      --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
+      --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
+    }
+    body{margin:0;background:var(--sap-bg);font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);}
+    header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:14px 18px;}
+    header .t{font-size:18px;font-weight:600;}
+    header .s{font-size:12px;opacity:.9;margin-top:2px;}
+    .wrap{max-width:980px;margin:18px auto;padding:0 14px;}
+    .card{background:var(--sap-card);border:1px solid var(--sap-border);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);padding:16px;margin-bottom:14px;}
+    .btn{
+      border:1px solid var(--sap-blue); background:var(--sap-blue); color:#fff;
+      border-radius:8px; padding:10px 14px; font-size:14px; cursor:pointer; transition:.15s; user-select:none;
+    }
+    .btn:hover{filter:brightness(.95);}
+    .btn:disabled{opacity:.55;cursor:not-allowed;}
+    .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue);}
+    .btn-warn{background:var(--warn);border-color:var(--warn);}
+    textarea{
+      border:1px solid var(--sap-border);border-radius:8px;padding:10px 10px;font-size:14px;outline:none;background:#fff;
+      width:100%;min-height:320px;resize:vertical;line-height:1.4
+    }
+    textarea:focus{border-color:var(--sap-blue);}
+    .pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;background:#eef2f7;border:1px solid var(--sap-border);color:var(--sap-muted);}
+    .status{margin-top:10px;font-size:13px;}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+    .small{font-size:12px;color:var(--sap-muted);line-height:1.4}
+    .mono{font-family:Consolas, monospace;font-size:12px;white-space:pre-wrap;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="t">MedVoice | Transcripción</div>
+  <div class="s">Dictado → MedASR (backend) → Verificación huella → Guardar en PMD</div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+      <div class="small">
+        <b>Médico:</b> <span id="doctorLbl">-</span> &nbsp; | &nbsp;
+        <b>API:</b> <span id="apiLbl">-</span> &nbsp; | &nbsp;
+        <b>Campo:</b> <span id="fieldLbl">-</span>
+      </div>
+      <div class="pill" id="envPill">Validando...</div>
+    </div>
+    <div class="small" style="margin-top:10px">
+      Si corre embebido, el retorno a SAP se hace con <b>sapevent</b>.
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn" id="btnRecToggle">Iniciar dictado</button>
+      <button class="btn btn-warn" id="btnProcess" disabled>Procesar (Transcribir → Enviar SAP → Limpiar)</button>
+      <button class="btn btn-ghost" id="btnClear">Limpiar</button>
+    </div>
+
+    <div class="status" id="status">Estado: listo.</div>
+
+    <div style="margin-top:12px">
+      <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
+    </div>
+
+    <div class="small" style="margin-top:10px">
+      Seguridad: si el backend devuelve <b>verify_ok=false</b>, NO se envía a SAP.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
+    <div class="mono" id="log"></div>
+  </div>
+</div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+  const log = (m)=>{ const el=$("log"); el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`; el.scrollTop=el.scrollHeight; };
+
+  function qs(name){
+    const u = new URL(window.location.href);
+    return (u.searchParams.get(name) || "").trim();
+  }
+  function apiBase(){
+    const v = (qs("api") || "").replace(/\/+$/,"");
+    return v || "http://127.0.0.1:8000";
+  }
+  function doctorId(){ return qs("doctor_id") || ""; }
+  function pmdField(){ return qs("field") || "ZTA915ENP7"; }
+
+  function validateEnv(){
+    const ok = !!doctorId() && !!apiBase() && !!pmdField();
+    $("doctorLbl").textContent = doctorId() || "(SIN doctor_id)";
+    $("apiLbl").textContent = apiBase();
+    $("fieldLbl").textContent = pmdField();
+
+    $("envPill").textContent = ok ? "OK" : "Falta doctor_id";
+    $("envPill").style.background = ok ? "#e7f4ec" : "#fff3e0";
+    $("envPill").style.color = ok ? "var(--ok)" : "var(--warn)";
+    $("envPill").style.border = "1px solid var(--sap-border)";
+    return ok;
+  }
+
+  async function getMic(){
+    return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+  }
+
+  let rec=null, chunks=[], stream=null, recording=false;
+
+  $("btnRecToggle").onclick = async ()=>{
+    if(!validateEnv()){ $("status").innerHTML=`Estado: <span class="err">falta doctor_id</span>`; return; }
+
+    if(!recording){
+      chunks=[];
+      $("status").textContent="Estado: iniciando mic...";
+      stream = await getMic();
+      rec = new MediaRecorder(stream, { mimeType:"audio/webm" });
+      rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+      rec.onstop=()=>log("Grabación: detenida.");
+      rec.start(250);
+
+      recording=true;
+      $("btnRecToggle").textContent="Detener dictado";
+      $("btnProcess").disabled=true;
+      $("status").textContent="Estado: grabando...";
+      log("Grabación: iniciada.");
+      return;
+    }
+
+    // stop
+    if(rec && rec.state!=="inactive") rec.stop();
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+
+    recording=false;
+    $("btnRecToggle").textContent="Iniciar dictado";
+    $("btnProcess").disabled = (chunks.length===0);
+    $("status").textContent="Estado: listo para procesar.";
+  };
+
+  async function transcribeBackend(){
+    const blob = new Blob(chunks, { type:"audio/webm" });
+    const fd = new FormData();
+    fd.append("doctor_id", doctorId());
+    fd.append("audio", blob, "dictation.webm");
+    fd.append("target_field", pmdField());
+
+    log(`POST ${apiBase()}/api/transcribe (doctor_id=${doctorId()}, field=${pmdField()})`);
+    const r = await fetch(apiBase()+"/api/transcribe", { method:"POST", body: fd });
+    const j = await r.json().catch(()=>({ok:false,message:"Respuesta inválida"}));
+    return { r, j };
+  }
+
+  function returnSap(text){
+    const payload = encodeURIComponent(text || "");
+    const field = encodeURIComponent(pmdField());
+
+    // SAP embedded
+    try{
+      window.location.href = `sapevent:done?field=${field}&text=${payload}`;
+      log("Return: sapevent:done disparado.");
+      return true;
+    }catch(e){}
+
+    // External browser fallback
+    navigator.clipboard?.writeText(text).catch(()=>{});
+    $("status").innerHTML = `Estado: <span class="warn">sapevent no disponible</span>. Texto copiado, pégalo en SAP.`;
+    log("Return: sapevent no disponible (modo navegador externo).");
+    return false;
+  }
+
+  $("btnProcess").onclick = async ()=>{
+    try{
+      $("btnProcess").disabled=true;
+      $("status").textContent="Estado: transcribiendo en backend...";
+      const { r, j } = await transcribeBackend();
+
+      if(!(r.ok && j.ok)){
+        $("status").innerHTML = `Estado: <span class="err">falló</span> ${j.message||""}`;
+        log("Transcripción FALLÓ -> "+(j.message||""));
+        $("btnProcess").disabled=false;
+        return;
+      }
+
+      $("txt").value = j.text || "";
+      const vOk = (j.verify_ok === true);
+
+      if(!vOk){
+        $("status").innerHTML = `Estado: <span class="warn">transcripción OK</span> | <span class="err">huella NO válida</span>`;
+        log(`verify_ok=false score=${j.verify_score ?? "?"} -> NO se envía a SAP`);
+        $("btnProcess").disabled=false;
+        return;
+      }
+
+      $("status").innerHTML = `Estado: <span class="ok">OK</span> | enviando a SAP...`;
+      log(`verify_ok=true score=${j.verify_score ?? "?"} -> enviando a SAP`);
+
+      // Enviar a SAP
+      const ok = returnSap($("txt").value);
+
+      // Limpiar SOLO si “envié” (en embedded se dispara navegación)
+      if(ok){
+        $("txt").value="";
+      }
+    }catch(e){
+      $("status").innerHTML = `Estado: <span class="err">error</span> backend no responde`;
+      log("Error -> "+e.message);
+      $("btnProcess").disabled=false;
+    }
+  };
+
+  $("btnClear").onclick = ()=>{
+    $("txt").value="";
+    $("status").textContent="Estado: listo.";
+    log("Texto limpiado.");
+  };
+
+  validateEnv();
+</script>
+</body>
+</html>
