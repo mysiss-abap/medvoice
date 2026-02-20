@@ -34,7 +34,6 @@
     .meter{height:10px;border-radius:999px;background:#eaecee;overflow:hidden;border:1px solid var(--sap-border)}
     .meter > div{height:100%;width:0%;}
     .mono{font-family:Consolas, monospace;font-size:12px;white-space:pre-wrap;}
-    .hide{display:none !important;}
   </style>
 </head>
 <body>
@@ -49,7 +48,8 @@
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
       <div class="small">
         <b>Médico:</b> <span id="doctorLbl">-</span> &nbsp; | &nbsp;
-        <b>API:</b> <span id="apiLbl">-</span>
+        <b>API:</b> <span id="apiLbl">-</span> &nbsp; | &nbsp;
+        <b>Campo:</b> <span id="fieldLbl">-</span>
       </div>
       <div class="pill" id="envPill">Validando...</div>
     </div>
@@ -111,19 +111,31 @@
     const v = (qs("api") || "").replace(/\/+$/,"");
     return v || "http://127.0.0.1:8000";
   }
-  function doctorId(){
-    return qs("doctor_id") || "";
-  }
+  function doctorId(){ return qs("doctor_id") || ""; }
+  function pmdField(){ return qs("field") || "ZTA915ENP7"; }
 
   function validateEnv(){
-    const ok = !!doctorId() && !!apiBase();
+    const ok = !!doctorId() && !!apiBase() && !!pmdField();
     $("doctorLbl").textContent = doctorId() || "(SIN doctor_id)";
     $("apiLbl").textContent = apiBase();
+    $("fieldLbl").textContent = pmdField();
+
     $("envPill").textContent = ok ? "OK" : "Falta doctor_id";
     $("envPill").style.background = ok ? "#e7f4ec" : "#fff3e0";
     $("envPill").style.color = ok ? "var(--ok)" : "var(--warn)";
     $("envPill").style.border = "1px solid var(--sap-border)";
     return ok;
+  }
+
+  function gotoTranscribe(){
+    const base = window.location.href.replace(/medvoice-setup\.html.*$/,"");
+    const next =
+      `${base}medvoice-transcribe.html?doctor_id=${encodeURIComponent(doctorId())}` +
+      `&api=${encodeURIComponent(apiBase())}` +
+      `&field=${encodeURIComponent(pmdField())}`;
+
+    log("Redirect -> " + next);
+    window.location.replace(next);
   }
 
   // ===== Audio helpers =====
@@ -139,7 +151,6 @@
     if(!validateEnv()){ $("noiseStatus").innerHTML=`Estado: <span class="err">falta doctor_id</span>`; return; }
 
     if(!noiseRecording){
-      // start
       noiseChunks=[];
       $("noiseStatus").textContent = "Estado: iniciando mic...";
       noiseStream = await getMic();
@@ -172,7 +183,6 @@
       return;
     }
 
-    // stop
     if(noiseRec && noiseRec.state!=="inactive") noiseRec.stop();
     if(noiseStream) noiseStream.getTracks().forEach(t=>t.stop());
     if(noiseTimer) clearInterval(noiseTimer);
@@ -191,7 +201,6 @@
     $("noiseStatus").innerHTML = `Estado: <span class="ok">guardado</span> (RMS=${rms})`;
     $("btnNoiseSave").disabled=true;
 
-    // Opcional backend
     try{
       const blob = new Blob(noiseChunks, { type:"audio/webm" });
       const fd = new FormData();
@@ -229,7 +238,6 @@
       return;
     }
 
-    // stop
     if(enrollRec && enrollRec.state!=="inactive") enrollRec.stop();
     if(enrollStream) enrollStream.getTracks().forEach(t=>t.stop());
     enrollRecording=false;
@@ -254,10 +262,15 @@
       if(r.ok && j.ok){
         $("enrollStatus").innerHTML = `Estado: <span class="ok">huella registrada</span>`;
         log("Enrolamiento: OK (embedding guardado en backend).");
-      }else{
-        $("enrollStatus").innerHTML = `Estado: <span class="err">falló</span> ${j.message||""}`;
-        log("Enrolamiento: FALLÓ -> "+(j.message||""));
+        $("btnEnrollSend").disabled=true;
+
+        // ===== REDIRECCIÓN AUTOMÁTICA =====
+        setTimeout(gotoTranscribe, 600);
+        return;
       }
+
+      $("enrollStatus").innerHTML = `Estado: <span class="err">falló</span> ${j.message||""}`;
+      log("Enrolamiento: FALLÓ -> "+(j.message||""));
       $("btnEnrollSend").disabled=true;
     }catch(e){
       $("enrollStatus").innerHTML = `Estado: <span class="err">error</span> backend no responde`;

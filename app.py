@@ -1,31 +1,62 @@
 # app.py
-from fastapi import FastAPI, UploadFile, File, Form, Query
-from fastapi.responses import JSONResponse
-import numpy as np
-import soundfile as sf
+from __future__ import annotations
+
 import io
 import json
 from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import soundfile as sf
+from fastapi import FastAPI, UploadFile, File, Form, Query
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from resemblyzer import VoiceEncoder, preprocess_wav
 from faster_whisper import WhisperModel
 
 # =========================
+# Config
+# =========================
+APP_TITLE = "MedVoice Backend"
+DEFAULT_MODEL = "small"  # small / medium / large-v3 (según máquina)
+DEVICE = "cpu"
+COMPUTE_TYPE = "int8"
+
+# GitHub Pages origin (tu repo)
+GHP_ORIGIN = "https://mysiss-abap.github.io"
+
+# =========================
 # Init models
 # =========================
 encoder = VoiceEncoder()
-whisper = WhisperModel("small", device="cpu", compute_type="int8")
+whisper = WhisperModel(DEFAULT_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
 
-app = FastAPI(title="MedVoice Backend")
+app = FastAPI(title=APP_TITLE)
+
+# CORS para que el HTML en GitHub Pages pueda llamar tu API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        GHP_ORIGIN,
+        "http://127.0.0.1",
+        "http://127.0.0.1:8000",
+        "http://localhost",
+        "http://localhost:8000",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # =========================
-# Simple file persistence
+# Persistencia (archivos)
 # =========================
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-# In-memory cache (speed only)
+# cache RAM (solo performance, la verdad está en archivo)
 VOICEPRINTS: dict[str, np.ndarray] = {}  # doctor_id -> embedding
 
 
@@ -43,7 +74,7 @@ def _save_emb(doctor_id: str, emb: np.ndarray) -> None:
     f.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
 
-def _load_emb(doctor_id: str):
+def _load_emb(doctor_id: str) -> Optional[np.ndarray]:
     f = _voiceprint_path(doctor_id)
     if not f.exists():
         return None
@@ -68,7 +99,7 @@ def _delete_emb(doctor_id: str) -> None:
         f.unlink()
 
 
-def _get_emb(doctor_id: str):
+def _get_emb(doctor_id: str) -> Optional[np.ndarray]:
     if doctor_id in VOICEPRINTS:
         return VOICEPRINTS[doctor_id]
     emb = _load_emb(doctor_id)
@@ -77,28 +108,23 @@ def _get_emb(doctor_id: str):
     return emb
 
 
-def read_audio(file_bytes: bytes):
+# =========================
+# Audio helpers
+# =========================
+def read_audio(file_bytes: bytes) -> tuple[np.ndarray, int]:
     """
-    Reads WAV/OGG/FLAC/WEBM if SoundFile can decode it.
-    If your browser records WEBM/OPUS and SoundFile fails,
-    you'll need ffmpeg later.
+    Lee WAV/OGG/FLAC/WEBM si soundfile lo soporta en tu Windows.
+    Si algún día falla WEBM/OPUS, lo cambiamos a ffmpeg.
     """
-    try:
-        data, sr = sf.read(io.BytesIO(file_bytes))
-    except Exception as e:
-        raise RuntimeError(
-            "No pude decodificar el audio (probable WEBM/OPUS). "
-            "Solución: cambiar a WAV en el browser o usar ffmpeg en backend."
-        ) from e
-
+    data, sr = sf.read(io.BytesIO(file_bytes))
     if isinstance(data, np.ndarray) and data.ndim > 1:
         data = np.mean(data, axis=1)
     return data.astype(np.float32), sr
 
 
-def cosine(a, b) -> float:
-    a = a / np.linalg.norm(a)
-    b = b / np.linalg.norm(b)
+def cosine(a: np.ndarray, b: np.ndarray) -> float:
+    a = a / (np.linalg.norm(a) + 1e-12)
+    b = b / (np.linalg.norm(b) + 1e-12)
     return float(np.dot(a, b))
 
 
@@ -116,10 +142,11 @@ def api_health():
 
 
 # =========================
-# Voiceprint management (para index.html)
+# Voiceprint management
 # =========================
 @app.get("/api/voiceprint/exists")
 def voiceprint_exists(doctor_id: str = Query(..., min_length=1)):
+    # VERDAD por archivo, no por memoria
     return {"ok": True, "exists": bool(_exists_emb(doctor_id))}
 
 
@@ -130,64 +157,55 @@ def voiceprint_delete(doctor_id: str = Query(..., min_length=1)):
     return {"ok": True, "deleted": True}
 
 
-# (si tu HTML o pruebas llaman esto)
+# Compat: tu HTML setup lo etiqueta como /api/voice/exists a veces
 @app.get("/api/voice/exists")
 def voice_exists(doctor_id: str = Query(..., min_length=1)):
     return {"ok": True, "exists": bool(_exists_emb(doctor_id))}
 
 
 # =========================
-# ENROLL (setup)  => tu HTML llama /api/enroll
+# (Opcional) Noise profile
+# =========================
+@app.post("/api/noise-profile")
+async def noise_profile(
+    doctor_id: str = Form(...),
+    audio: UploadFile = File(...),
+):
+    # No bloquea nada: lo dejamos como stub (puedes evolucionarlo luego)
+    _ = await audio.read()
+    return {"ok": True, "message": "Noise profile received", "doctor_id": doctor_id}
+
+
+# =========================
+# Enroll / Transcribe
 # =========================
 @app.post("/api/enroll")
-async def api_enroll(
+async def enroll(
     doctor_id: str = Form(...),
     audio: UploadFile = File(...),
 ):
     raw = await audio.read()
-    try:
-        wav, sr = read_audio(raw)
-        wav_rs = preprocess_wav(wav, source_sr=sr)
-        emb = encoder.embed_utterance(wav_rs)
-    except Exception as e:
-        return JSONResponse(
-            {"ok": False, "message": str(e)},
-            status_code=400,
-        )
+    wav, sr = read_audio(raw)
+    wav_rs = preprocess_wav(wav, source_sr=sr)
 
+    emb = encoder.embed_utterance(wav_rs)
     VOICEPRINTS[doctor_id] = emb
     _save_emb(doctor_id, emb)
+
     return {"ok": True, "message": "Voice enrolled", "doctor_id": doctor_id}
 
 
-# Alias (por si en algún punto llamas /api/voice/enroll)
-@app.post("/api/voice/enroll")
-async def voice_enroll_alias(
-    doctor_id: str = Form(...),
-    audio: UploadFile = File(...),
-):
-    return await api_enroll(doctor_id=doctor_id, audio=audio)
-
-
-# =========================
-# TRANSCRIBE (transcribe) => tu HTML llama /api/transcribe
-# Retorna: ok, text, verify_ok, verify_score
-# =========================
 @app.post("/api/transcribe")
-async def api_transcribe(
+async def transcribe(
     doctor_id: str = Form(...),
     audio: UploadFile = File(...),
     target_field: str = Form(""),
     verify_threshold: float = Form(0.75),
 ):
     raw = await audio.read()
-    try:
-        wav, sr = read_audio(raw)
-        wav_rs = preprocess_wav(wav, source_sr=sr)
-    except Exception as e:
-        return JSONResponse({"ok": False, "message": str(e)}, status_code=400)
+    wav, sr = read_audio(raw)
+    wav_rs = preprocess_wav(wav, source_sr=sr)
 
-    # 1) verify speaker
     emb_saved = _get_emb(doctor_id)
     if emb_saved is None:
         return JSONResponse(
@@ -199,54 +217,24 @@ async def api_transcribe(
     score = cosine(emb_saved, emb_now)
     verify_ok = score >= float(verify_threshold)
 
-    # 2) transcribe (solo si verify_ok)
     if not verify_ok:
         return {
             "ok": True,
-            "text": "",
+            "doctor_id": doctor_id,
+            "target_field": target_field,
             "verify_ok": False,
             "verify_score": score,
-            "field": target_field,
+            "text": "",
         }
 
-    try:
-        segments, _info = whisper.transcribe(wav, language="es")
-        text = "".join([seg.text for seg in segments]).strip()
-    except Exception as e:
-        return JSONResponse({"ok": False, "message": f"Whisper error: {e}"}, status_code=500)
+    segments, _info = whisper.transcribe(wav, language="es")
+    text = "".join([seg.text for seg in segments]).strip()
 
     return {
         "ok": True,
-        "text": text,
+        "doctor_id": doctor_id,
+        "target_field": target_field,
         "verify_ok": True,
         "verify_score": score,
-        "field": target_field,
+        "text": text,
     }
-
-
-# Alias (por si en algún punto llamas /api/voice/transcribe)
-@app.post("/api/voice/transcribe")
-async def voice_transcribe_alias(
-    doctor_id: str = Form(...),
-    audio: UploadFile = File(...),
-    verify_threshold: float = Form(0.75),
-):
-    return await api_transcribe(
-        doctor_id=doctor_id,
-        audio=audio,
-        target_field="",
-        verify_threshold=verify_threshold,
-    )
-
-
-# =========================
-# (Opcional) noise-profile para evitar warning en setup
-# =========================
-@app.post("/api/noise-profile")
-async def noise_profile(
-    doctor_id: str = Form(...),
-    audio: UploadFile = File(...),
-):
-    # Por ahora no lo guardamos, pero devolvemos OK para que el HTML no “asuste”
-    _ = await audio.read()
-    return {"ok": True, "message": "Noise profile received", "doctor_id": doctor_id}

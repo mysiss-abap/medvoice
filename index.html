@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MedVoice</title>
+  <title>MedVoice | Router</title>
 </head>
 <body>
 <script>
@@ -15,35 +15,35 @@
     const v = (qs("api") || "").replace(/\/+$/,"");
     return v || "http://127.0.0.1:8000";
   }
-  const doctor_id = qs("doctor_id");
-  const field = qs("field") || "ZTA915ENP7";
-  const api = apiBase();
+  function doctorId(){ return qs("doctor_id") || ""; }
+  function field(){ return qs("field") || "ZTA915ENP7"; } // tu default
 
-  function go(page){
-    const url = `${page}?doctor_id=${encodeURIComponent(doctor_id)}&api=${encodeURIComponent(api)}&field=${encodeURIComponent(field)}`;
-    window.location.replace(url);
-  }
-
-  (async ()=>{
-    if(!doctor_id){
-      // Sin doctor_id no se puede operar
+  async function go(){
+    const d = doctorId();
+    if(!d){
       document.body.innerText = "Falta doctor_id en la URL.";
       return;
     }
 
+    const api = apiBase();
+    const urlExists = `${api}/api/voiceprint/exists?doctor_id=${encodeURIComponent(d)}`;
+
     try{
-      const r = await fetch(`${api}/api/voiceprint/exists?doctor_id=${encodeURIComponent(doctor_id)}`);
+      const r = await fetch(urlExists);
       const j = await r.json();
-      if(r.ok && j.ok && j.exists === true){
-        go("medvoice-transcribe.html");
-      }else{
-        go("medvoice-setup.html");
-      }
+      const exists = !!(r.ok && j.ok && j.exists);
+
+      const base = window.location.href.replace(/index\.html.*$/,"");
+      const target = exists ? "medvoice-transcribe.html" : "medvoice-setup.html";
+
+      const next = `${base}${target}?doctor_id=${encodeURIComponent(d)}&api=${encodeURIComponent(api)}&field=${encodeURIComponent(field())}`;
+      window.location.replace(next);
     }catch(e){
-      // Si el backend no responde, al menos abre transcribe para que el usuario vea el error allá
-      go("medvoice-transcribe.html");
+      document.body.innerText = "No se pudo contactar el backend (api).";
     }
-  })();
+  }
+
+  go();
 </script>
 </body>
 </html>
