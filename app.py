@@ -12,27 +12,34 @@ from fastapi import FastAPI, UploadFile, File, Form, Query
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+# =========================
+# BIOMETRÍA (COMENTADA PERO CONSERVADA)
+# =========================
 # from resemblyzer import VoiceEncoder, preprocess_wav
+
 from faster_whisper import WhisperModel
 
 # =========================
 # Config
 # =========================
 APP_TITLE = "MedVoice Backend"
-DEFAULT_MODEL = "small"
+DEFAULT_MODEL = "small"  # small / medium / large-v3 (según máquina)
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 
+# GitHub Pages origin (tu repo)
 GHP_ORIGIN = "https://mysiss-abap.github.io"
 
 # =========================
 # Init models
 # =========================
-# encoder = VoiceEncoder()   # ← DESACTIVADO
+# encoder = VoiceEncoder()   # ← COMENTADO PARA QUE NO GENERE ERROR
+
 whisper = WhisperModel(DEFAULT_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
 
 app = FastAPI(title=APP_TITLE)
 
+# CORS para que el HTML en GitHub Pages pueda llamar tu API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -54,7 +61,8 @@ BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-VOICEPRINTS: dict[str, np.ndarray] = {}
+# cache RAM (solo performance, la verdad está en archivo)
+VOICEPRINTS: dict[str, np.ndarray] = {}  # doctor_id -> embedding
 
 
 def _safe_key(k: str) -> str:
@@ -109,6 +117,10 @@ def _get_emb(doctor_id: str) -> Optional[np.ndarray]:
 # Audio helpers
 # =========================
 def read_audio(file_bytes: bytes) -> tuple[np.ndarray, int]:
+    """
+    Lee WAV/OGG/FLAC/WEBM si soundfile lo soporta en tu Windows.
+    Si algún día falla WEBM/OPUS, lo cambiamos a ffmpeg.
+    """
     data, sr = sf.read(io.BytesIO(file_bytes))
     if isinstance(data, np.ndarray) and data.ndim > 1:
         data = np.mean(data, axis=1)
@@ -155,7 +167,7 @@ def voice_exists(doctor_id: str = Query(..., min_length=1)):
 
 
 # =========================
-# Noise profile
+# (Opcional) Noise profile
 # =========================
 @app.post("/api/noise-profile")
 async def noise_profile(
@@ -174,23 +186,25 @@ async def enroll(
     doctor_id: str = Form(...),
     audio: UploadFile = File(...),
 ):
-    raw = await audio.read()
-    wav, sr = read_audio(raw)
+    return {
+        "ok": False,
+        "message": "Voice enrollment disabled (resemblyzer commented)"
+    }
 
+    # === CÓDIGO ORIGINAL CONSERVADO ===
+    # raw = await audio.read()
+    # wav, sr = read_audio(raw)
     # wav_rs = preprocess_wav(wav, source_sr=sr)
+    #
     # emb = encoder.embed_utterance(wav_rs)
     # VOICEPRINTS[doctor_id] = emb
     # _save_emb(doctor_id, emb)
-
-    return {
-        "ok": False,
-        "message": "Voice enrollment disabled (resemblyzer commented)",
-        "doctor_id": doctor_id,
-    }
+    #
+    # return {"ok": True, "message": "Voice enrolled", "doctor_id": doctor_id}
 
 
 # =========================
-# Transcribe
+# Transcribe (SIN BIOMETRÍA ACTIVA)
 # =========================
 @app.post("/api/transcribe")
 async def transcribe(
@@ -202,10 +216,10 @@ async def transcribe(
     raw = await audio.read()
     wav, sr = read_audio(raw)
 
+    # === BIOMETRÍA COMENTADA PERO CONSERVADA ===
     # wav_rs = preprocess_wav(wav, source_sr=sr)
-    emb_saved = _get_emb(doctor_id)
-
-    # BIOMETRÍA DESACTIVADA
+    #
+    # emb_saved = _get_emb(doctor_id)
     # if emb_saved is None:
     #     return JSONResponse(
     #         {"ok": False, "message": "No voice enrolled for doctor_id"},
@@ -233,7 +247,7 @@ async def transcribe(
         "ok": True,
         "doctor_id": doctor_id,
         "target_field": target_field,
-        "verify_ok": True,
+        "verify_ok": True,  # forzado mientras biometría está desactivada
         "verify_score": 1.0,
         "text": text,
     }
