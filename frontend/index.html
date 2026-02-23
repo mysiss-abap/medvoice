@@ -7,36 +7,40 @@
 </head>
 <body>
 <script>
-(function(){
-  const url = new URL(window.location.href);
-  const qs = url.searchParams;
+(function () {
+  const u = new URL(window.location.href);
+  const qs = u.searchParams;
 
-  const setSS = (k,v)=>{ if(v) sessionStorage.setItem("medvoice."+k, v); };
-  const setLS = (k,v)=>{ if(v) localStorage.setItem("medvoice."+k, v); };
+  const pick = (k) => (qs.get(k) || "").trim();
 
-  const doctor_id = (qs.get("doctor_id")||"").trim();
-  const api       = (qs.get("api")||"").trim();
-  const field     = (qs.get("field")||"").trim();
-  const patnr     = (qs.get("patnr")||"").trim();
-  const falnr     = (qs.get("falnr")||"").trim();
-  const wake_word = (qs.get("wake_word")||qs.get("wake")||"").trim();
+  // Contexto que llega desde SAP
+  const ctx = {
+    doctor_id: pick("doctor_id"),
+    api:       pick("api"),
+    field:     pick("field"),
+    patnr:     pick("patnr"),
+    falnr:     pick("falnr"),
+    wake_word: pick("wake_word") || pick("wake") || "SAP"
+  };
 
-  // Persistir contexto (SAP -> UI)
-  setSS("doctor_id", doctor_id); setLS("doctor_id", doctor_id);
-  setSS("api", api);             setLS("api", api);
-  setSS("field", field);         setLS("field", field);
-  setSS("patnr", patnr);         setLS("patnr", patnr);
-  setSS("falnr", falnr);         setLS("falnr", falnr);
-  setSS("wake_word", wake_word); setLS("wake_word", wake_word);
+  // Persistencia (session + local) para que cualquier pantalla lo lea
+  for (const [k, v] of Object.entries(ctx)) {
+    if (v) {
+      sessionStorage.setItem("medvoice." + k, v);
+      localStorage.setItem("medvoice." + k, v);
+    }
+  }
 
-  // Limpiar URL: dejar solo .../static/index.html (sin querystring)
-  if (url.search) window.history.replaceState({}, document.title, url.pathname);
+  // LIMPIAR la barra: dejar SOLO .../static/index.html
+  if (u.search) {
+    history.replaceState({}, document.title, u.pathname);
+  }
 
-  // Router local (sin backend)
+  // Router
   const hasVoice = localStorage.getItem("medvoice.has_voiceprint") === "1";
-  const base = url.pathname.replace(/index\.html$/i,"");
+  const basePath = u.pathname.replace(/index\.html$/i, "");
   const next = hasVoice ? "medvoice-transcribe.html" : "medvoice-setup.html";
-  window.location.replace(base + next);
+  window.location.replace(basePath + next);
 })();
 </script>
 </body>

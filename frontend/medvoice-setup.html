@@ -6,448 +6,392 @@
   <title>MedVoice | Setup</title>
   <style>
     :root{
-      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
-      --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
+      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --bg:#f7f7f7; --card:#fff;
+      --text:#1d2d3e; --muted:#6a6d70; --border:#d9d9d9;
       --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
     }
-    *{ box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body{ margin:0; background:var(--sap-bg); color:var(--sap-text); }
-    header{
-      background: linear-gradient(90deg, var(--sap-blue), var(--sap-blue-2));
-      color:#fff; padding:18px 16px;
-    }
-    header h1{ margin:0; font-size:20px; letter-spacing:.2px; }
-    header p{ margin:6px 0 0 0; opacity:.9; font-size:13px; }
+    *{ box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+    body{ margin:0; background:var(--bg); color:var(--text); }
+    header{ background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2)); color:#fff; padding:18px 16px; }
+    header h1{ margin:0; font-size:20px; }
+    header p{ margin:6px 0 0; opacity:.92; font-size:13px; }
 
     .wrap{ max-width:1100px; margin:18px auto; padding:0 14px; }
-    .card{
-      background:var(--sap-card);
-      border:1px solid var(--sap-border);
-      border-radius:14px;
-      padding:16px;
-      box-shadow:0 6px 20px rgba(0,0,0,.06);
-    }
-    .row{ display:flex; gap:14px; flex-wrap:wrap; }
-    .row > .col{ flex:1 1 420px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 6px 20px rgba(0,0,0,.06); }
+    .meta{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .meta .line{ color:var(--muted); font-size:14px; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; border:1px solid #cfe9d7; background:#eaf7ef; color:var(--ok); padding:6px 10px; border-radius:999px; font-size:12px; }
 
-    .meta{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:14px 16px; border-radius:12px; border:1px solid var(--sap-border);
-      background:#fff;
-      margin-bottom:14px;
-    }
-    .meta .small{ font-size:13px; color:var(--sap-muted); }
-    .pill{
-      border-radius:999px; padding:6px 10px; font-size:12px; font-weight:600;
-      border:1px solid var(--sap-border); background:#fff;
-    }
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+    @media (max-width: 900px){ .grid{ grid-template-columns:1fr; } }
 
-    h2{ margin:0 0 10px 0; font-size:18px; }
-    p{ margin:6px 0; color:var(--sap-muted); font-size:13px; }
+    .panel{ border:1px solid var(--border); border-radius:14px; padding:16px; background:#fff; min-height:240px; }
+    .panel h2{ margin:0 0 10px; font-size:18px; }
+    .panel p{ margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.35; }
 
-    .box{
-      border:1px dashed #cfd3d7;
-      border-radius:12px;
-      padding:14px;
-      background:#fbfbfb;
-    }
-
-    .btn{
-      border:none; border-radius:10px;
-      padding:10px 14px;
-      cursor:pointer;
-      font-weight:700;
-      font-size:14px;
-    }
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+    button{ border:0; cursor:pointer; padding:10px 18px; border-radius:10px; font-weight:700; font-size:14px; }
     .btn-primary{ background:var(--sap-blue); color:#fff; }
-    .btn-warn{ background:#f3b37a; color:#fff; }
-    .btn-soft{ background:#6fa7e8; color:#fff; }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .btn-secondary{ background:#f3b37a; color:#fff; }
+    .btn-ghost{ background:#d3e7fb; color:#0b3c74; }
 
-    .status{ margin-top:10px; font-size:13px; }
-    .ok{ color:var(--ok); font-weight:700; }
-    .err{ color:var(--err); font-weight:700; }
-    .warn{ color:var(--warn); font-weight:700; }
+    .status{ margin-top:8px; font-size:13px; color:var(--muted); }
+    .status .ok{ color:var(--ok); font-weight:800; }
+    .status .err{ color:var(--err); font-weight:800; }
 
-    .meter{
-      margin-top:8px;
-      height:14px;
-      border-radius:999px;
-      border:1px solid var(--sap-border);
-      background:#f1f1f1;
-      overflow:hidden;
-    }
-    .meter > div{
-      height:100%;
-      width:0%;
-      background:#f5a000;
-      transition:width .2s ease;
-    }
+    .meter{ height:12px; background:#eee; border-radius:999px; overflow:hidden; border:1px solid var(--border); }
+    .meter > div{ height:100%; width:0%; background:var(--warn); transition:width .2s; }
 
-    #log{
-      margin-top:10px;
-      width:100%;
-      padding:12px;
-      border:1px solid var(--sap-border);
+    .logwrap{ margin-top:14px; }
+    .logtitle{ font-size:16px; font-weight:800; margin:0 0 8px; }
+    .logbox{
+      border:1px solid var(--border);
       border-radius:12px;
-      background:#0b1220;
-      color:#dbe7ff;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size:12px;
-      white-space:pre;
-      max-height:220px;
+      padding:12px;
+      background:#fff;
+      height:180px;          /* scroll SOLO aquí */
       overflow:auto;
+      font-family:ui-monospace,Menlo,Consolas,monospace;
+      font-size:12.5px;
+      white-space:pre-wrap;
     }
 
     /* Modal */
-    .mv-modal{ position:fixed; inset:0; display:none; z-index:9999; }
-    .mv-modal.show{ display:block; }
-    .mv-modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.35); }
-    .mv-modal-card{
-      position:relative;
-      width:min(820px, calc(100% - 32px));
-      margin: 8vh auto 0 auto;
-      background:#fff;
-      border:1px solid var(--sap-border);
-      border-radius:14px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    .modal-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
+      display:none; align-items:center; justify-content:center; padding:18px;
+      z-index:9999;
+    }
+    .modal{
+      width:min(860px, 100%);
+      background:#fff; border-radius:16px; border:1px solid var(--border);
+      box-shadow:0 12px 30px rgba(0,0,0,.25);
       overflow:hidden;
     }
-    .mv-modal-head{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:14px 16px;
-      background: linear-gradient(90deg, var(--sap-blue), var(--sap-blue-2));
-      color:#fff;
+    .modal-header{
+      background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
+      color:#fff; padding:14px 16px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
-    .mv-modal-title{ font-weight:700; }
-    .mv-modal-close{
-      width:34px; height:34px; border-radius:10px;
-      border:1px solid rgba(255,255,255,.35);
-      background:rgba(255,255,255,.12);
-      color:#fff; font-size:20px; cursor:pointer;
-    }
-    .mv-modal-body{
-      padding:16px;
-      color:var(--sap-text);
-      line-height:1.45;
-      max-height: 52vh;
-      overflow:auto;
-      white-space: pre-wrap;
-    }
-    .mv-modal-foot{ padding: 0 16px 16px 16px; display:flex; justify-content:flex-end; gap:10px; }
-    .mv-btn{
-      padding:10px 14px; border-radius:10px; border:1px solid var(--sap-border);
-      background:#fff; cursor:pointer; font-weight:600;
-    }
+    .modal-header h3{ margin:0; font-size:16px; }
+    .modal-body{ padding:16px; color:#243447; font-size:13.5px; line-height:1.55; max-height:55vh; overflow:auto; }
+    .modal-actions{ padding:12px 16px; display:flex; justify-content:flex-end; gap:10px; background:#fafafa; border-top:1px solid var(--border); }
+    .btn-close{ background:#e5e5e5; color:#222; }
+    .btn-go{ background:var(--sap-blue); color:#fff; }
+
+    .tiny{ font-size:12px; color:var(--muted); }
   </style>
 </head>
-
 <body>
 <header>
   <h1>MedVoice | Setup</h1>
-  <p>Configuración de voz para dictado clínico</p>
+  <p>Configuración de audio y perfil de voz para dictado clínico.</p>
 </header>
 
 <div class="wrap">
-  <div class="meta card">
-    <div class="small">
-      <b>Médico:</b> <span id="doctorLbl">-</span> &nbsp; | &nbsp;
-      <b>API:</b> <span id="apiLbl">-</span> &nbsp; | &nbsp;
-      <b>Campo:</b> <span id="fieldLbl">-</span>
-    </div>
-    <div class="pill" id="envPill">Validando...</div>
-  </div>
-
-  <div class="row">
-    <div class="col">
-      <div class="card">
-        <h2>A) Ruido (consultorio)</h2>
-        <div class="box">
-          <p>Pulsa <b>Iniciar</b>, deja 5–8s de ruido ambiente, y vuelve a pulsar para <b>Detener</b>. Luego <b>Guardar</b>.</p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-            <button class="btn btn-primary" id="btnNoiseToggle">Iniciar</button>
-            <button class="btn btn-warn" id="btnNoiseSave" disabled>Guardar</button>
-          </div>
-
-          <div class="status" id="noiseStatus">Estado: listo.</div>
-          <div class="status">Nivel estimado (RMS): <span id="noiseRms">0.000</span></div>
-          <div class="meter"><div id="noiseBar"></div></div>
-        </div>
+  <div class="card">
+    <div class="meta">
+      <div class="line">
+        <b>Médico:</b> <span id="mDoctor">—</span>
+        &nbsp; | &nbsp;
+        <b>API:</b> <span id="mApi">—</span>
+        &nbsp; | &nbsp;
+        <b>Campo:</b> <span id="mField">—</span>
       </div>
+      <span class="pill">Listo</span>
     </div>
-
-    <div class="col">
-      <div class="card">
-        <h2>B) Huella (enrolamiento)</h2>
-        <div class="box">
-          <p>Pulsa <b>Grabar</b> y lee 20–30s. Pulsa de nuevo para <b>Detener</b>. Luego <b>Guardar</b>.</p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-            <button class="btn btn-primary" id="btnEnrollToggle">Grabar</button>
-            <button class="btn btn-soft" id="btnEnrollSend" disabled>Guardar</button>
-          </div>
-          <div class="status" id="enrollStatus">Estado: listo para grabar.</div>
-          <p style="margin-top:10px;">Ejemplo: “Paciente con dolor precordial irradiado a miembro superior izquierdo…”</p>
-        </div>
-      </div>
+    <div class="tiny" style="margin-top:10px;">
+      Esta configuración prepara el dictado por voz para las consultas médicas.
     </div>
   </div>
 
-  <div class="card" style="margin-top:14px;">
-    <h2 style="margin-bottom:6px;">Log</h2>
-    <div id="log"></div>
+  <div class="grid">
+    <!-- Ruido -->
+    <div class="panel">
+      <h2>A) Ruido (consultorio)</h2>
+      <p>Captura breve del ambiente para estabilizar el dictado. Mantén silencio 5–8 segundos.</p>
+
+      <div class="btns">
+        <button id="btnNoiseStart" class="btn-primary">Iniciar</button>
+        <button id="btnNoiseSave" class="btn-secondary" disabled>Guardar</button>
+      </div>
+
+      <div class="status">
+        Estado: <span id="noiseStatus">listo.</span>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="tiny">Nivel estimado (RMS): <span id="noiseRms">0.000</span></div>
+        <div class="meter" style="margin-top:6px;"><div id="noiseBar"></div></div>
+      </div>
+    </div>
+
+    <!-- Huella -->
+    <div class="panel">
+      <h2>B) Huella (enrolamiento)</h2>
+      <p>Grabación de 20–30 segundos para reconocer al médico durante el dictado.</p>
+
+      <div class="btns">
+        <button id="btnVoiceStart" class="btn-primary">Grabar</button>
+        <button id="btnVoiceSave" class="btn-ghost" disabled>Guardar</button>
+      </div>
+
+      <div class="status">
+        Estado: <span id="voiceStatus">listo.</span>
+      </div>
+
+      <div class="tiny" style="margin-top:10px;">
+        Ejemplo: “Paciente con dolor precordial irradiado a miembro superior izquierdo…”
+      </div>
+    </div>
+  </div>
+
+  <div class="logwrap">
+    <div class="logtitle">Log</div>
+    <div id="logBox" class="logbox"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Grabación de huella vocal</h3>
+      <button id="modalX" class="btn-close" style="border:0;padding:8px 10px;border-radius:10px;cursor:pointer;">Cerrar</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions">
+      <button id="modalClose" class="btn-close" style="border:0;padding:10px 14px;border-radius:10px;cursor:pointer;">Cerrar</button>
+      <button id="modalGo" class="btn-go" style="border:0;padding:10px 14px;border-radius:10px;cursor:pointer;">Ir a Dictado</button>
+    </div>
   </div>
 </div>
 
 <script>
-(function bootstrapMedVoice(){
-  const url = new URL(window.location.href);
-  const qs = url.searchParams;
+/* =========================================================
+   Reglas:
+   - NO backend para huella (por ahora): TODO local.
+   - NO mostrar "localStorage" en UI.
+   - Barra del navegador: SIEMPRE /static/index.html (sin query)
+   ========================================================= */
 
-  const setSS = (k,v)=>{ if(v) sessionStorage.setItem("medvoice."+k, v); };
-  const setLS = (k,v)=>{ if(v) localStorage.setItem("medvoice."+k, v); };
-
-  // tomar de querystring (si viene) y persistir
-  const doctor_id = (qs.get("doctor_id")||"").trim();
-  const api       = (qs.get("api")||"").trim();
-  const field     = (qs.get("field")||"").trim();
-  const patnr     = (qs.get("patnr")||"").trim();
-  const falnr     = (qs.get("falnr")||"").trim();
-  const wake_word = (qs.get("wake_word")||qs.get("wake")||"").trim();
-
-  setSS("doctor_id", doctor_id); setLS("doctor_id", doctor_id);
-  setSS("api", api);             setLS("api", api);
-  setSS("field", field);         setLS("field", field);
-  setSS("patnr", patnr);         setLS("patnr", patnr);
-  setSS("falnr", falnr);         setLS("falnr", falnr);
-  setSS("wake_word", wake_word); setLS("wake_word", wake_word);
-
-  // limpiar URL (quitar parámetros)
-  if (url.search) window.history.replaceState({}, document.title, url.pathname);
+// --- Limpieza de URL en esta pantalla también (por si SAP abre directo)
+(function () {
+  const u = new URL(location.href);
+  // si viene con querystring, lo ocultamos dejando index.html
+  const indexUrl = u.origin + "/static/index.html";
+  history.replaceState({}, document.title, indexUrl);
 })();
 
-  const $ = (id)=>document.getElementById(id);
-  const log = (m)=>{ const el=$("log"); el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`; el.scrollTop=el.scrollHeight; };
+// --- Contexto (primero sessionStorage/localStorage, si no, de query)
+function getCtx(){
+  const u = new URL(location.href);
+  const qs = u.searchParams;
+  const get = (k)=> (sessionStorage.getItem("medvoice."+k)
+                  || localStorage.getItem("medvoice."+k)
+                  || (qs.get(k)||"")).trim();
+  return {
+    doctor_id: get("doctor_id") || "—",
+    api: get("api") || (location.origin),
+    field: get("field") || "ANAMNESIS"
+  };
+}
 
-  function showEnrollPopup(){
-    const txt =
-`Buenos días, mi nombre es Doctor especialista en medicina general. Voy a realizar una grabación de mi voz para crear una huella vocal única que me permitirá ser identificado durante las consultas médicas. Este sistema de reconocimiento de voz es una herramienta innovadora que facilitará la transcripción automática de las conversaciones con los pacientes. Durante la consulta médica, el sistema identificará mi voz y la diferenciará de la voz del paciente y sus acompañantes. La precisión del reconocimiento depende de esta grabación inicial, por lo que es importante que hable de forma clara y natural. El tono de mi voz, la velocidad al hablar y las características únicas de mi pronunciación quedarán registradas en el sistema. Esta tecnología respeta la privacidad y confidencialidad de los datos médicos. El sistema guardará un perfil vocal que solo contiene características técnicas de audio, sin almacenar el contenido de las conversaciones. Esto me permite dictar las historias clínicas de manera fluida mientras atiendo a mis pacientes, mejorando la eficiencia de la consulta y permitiéndome concentrarme mejor en la atención.`;
-    const el = document.getElementById("enrollModal");
-    document.getElementById("enrollModalText").textContent = txt;
-    el.classList.add("show");
-    el.setAttribute("aria-hidden","false");
-  }
-  function hideEnrollPopup(){
-    const el = document.getElementById("enrollModal");
-    el.classList.remove("show");
-    el.setAttribute("aria-hidden","true");
-  }
+const ctx = getCtx();
+document.getElementById("mDoctor").textContent = ctx.doctor_id;
+document.getElementById("mApi").textContent    = ctx.api;
+document.getElementById("mField").textContent  = ctx.field;
 
-  function qs(name){
-    const u = new URL(window.location.href);
-    return (u.searchParams.get(name) || "").trim();
-  }
+// --- Log
+const logBox = document.getElementById("logBox");
+function log(msg){
+  const ts = new Date().toLocaleTimeString();
+  logBox.textContent += `[${ts}] ${msg}\n`;
+  logBox.scrollTop = logBox.scrollHeight;
+}
+log("Setup listo.");
 
-  function getCtx(name){
-    return (sessionStorage.getItem("medvoice."+name) || localStorage.getItem("medvoice."+name) || qs(name) || "").trim();
-  }
-  function apiBase(){
-    const v = (getCtx("api") || "").replace(/\/+$/,"");
-    return v || "http://127.0.0.1:8000";
-  }
-  function doctorId(){ return getCtx("doctor_id") || ""; }
-  function pmdField(){ return getCtx("field") || "ZTA915ENP7"; }
-  function patnr(){ return getCtx("patnr"); }
-  function falnr(){ return getCtx("falnr"); }
+// --- Utilidades audio
+let noiseStream=null, noiseRecorder=null, noiseChunks=[];
+let voiceStream=null, voiceRecorder=null, voiceChunks=[];
+let noiseRmsValue=0;
 
-  function validateEnv(){
-    const ok = !!doctorId() && !!apiBase() && !!pmdField();
-    $("doctorLbl").textContent = doctorId() || "-";
-    $("apiLbl").textContent = apiBase();
-    $("fieldLbl").textContent = (pmdField()||"").toUpperCase().includes("ANAMNESIS") ? "ANAMNESIS" : pmdField();
+function stopStream(s){
+  try{ s && s.getTracks && s.getTracks().forEach(t=>t.stop()); }catch(e){}
+}
 
-    $("envPill").textContent = ok ? "OK" : "Datos incompletos";
-    $("envPill").style.background = ok ? "#e7f4ec" : "#fff3e0";
-    $("envPill").style.color = ok ? "var(--ok)" : "var(--warn)";
-    $("envPill").style.border = "1px solid var(--sap-border)";
-    return ok;
-  }
+async function getMic(){
+  return await navigator.mediaDevices.getUserMedia({ audio:true });
+}
 
-  function gotoTranscribe(){
-    const base = window.location.href.replace(/medvoice-setup\.html.*$/,"");
-    window.location.href = base + "medvoice-transcribe.html";
-  }
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = ()=> resolve(String(r.result || ""));
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
 
-  validateEnv();
+// --- RMS simple (para barra)
+let analyser=null, audioCtx=null, sourceNode=null, rafId=null;
+function startRms(stream){
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  sourceNode = audioCtx.createMediaStreamSource(stream);
+  sourceNode.connect(analyser);
 
-  // =========================
-  // AUDIO helpers
-  // =========================
-  async function getStream(){
-    return await navigator.mediaDevices.getUserMedia({ audio:true });
-  }
+  const data = new Float32Array(analyser.fftSize);
+  const bar = document.getElementById("noiseBar");
+  const rmsEl = document.getElementById("noiseRms");
 
-  // =========================
-  // NOISE
-  // =========================
-  let noiseRec=null, noiseStream=null, noiseChunks=[];
-  let noiseRms=0;
-
-  function rmsFromPCM(buf){
+  function tick(){
+    analyser.getFloatTimeDomainData(data);
     let sum=0;
-    for(let i=0;i<buf.length;i++){ const v=buf[i]; sum += v*v; }
-    return Math.sqrt(sum / Math.max(1,buf.length));
+    for (let i=0;i<data.length;i++) sum += data[i]*data[i];
+    const rms = Math.sqrt(sum/data.length);
+    noiseRmsValue = rms;
+    rmsEl.textContent = rms.toFixed(3);
+    const pct = Math.min(100, Math.max(0, rms*300));
+    bar.style.width = pct.toFixed(0)+"%";
+    rafId = requestAnimationFrame(tick);
+  }
+  tick();
+}
+function stopRms(){
+  try{ rafId && cancelAnimationFrame(rafId); }catch(e){}
+  try{ sourceNode && sourceNode.disconnect(); }catch(e){}
+  try{ analyser && analyser.disconnect && analyser.disconnect(); }catch(e){}
+  try{ audioCtx && audioCtx.close && audioCtx.close(); }catch(e){}
+  analyser=null; audioCtx=null; sourceNode=null; rafId=null;
+}
+
+// --- Ruido
+const btnNoiseStart = document.getElementById("btnNoiseStart");
+const btnNoiseSave  = document.getElementById("btnNoiseSave");
+const noiseStatus   = document.getElementById("noiseStatus");
+
+btnNoiseStart.addEventListener("click", async ()=>{
+  if (noiseRecorder && noiseRecorder.state === "recording") {
+    noiseRecorder.stop();
+    btnNoiseStart.textContent = "Iniciar";
+    noiseStatus.textContent = "deteniendo…";
+    return;
   }
 
-  async function estimateNoiseRms(stream){
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = ctx.createMediaStreamSource(stream);
-    const proc = ctx.createScriptProcessor(2048, 1, 1);
-    src.connect(proc);
-    proc.connect(ctx.destination);
-
-    proc.onaudioprocess = (e)=>{
-      const input = e.inputBuffer.getChannelData(0);
-      noiseRms = rmsFromPCM(input);
-      $("noiseRms").textContent = noiseRms.toFixed(3);
-      $("noiseBar").style.width = Math.min(100, noiseRms*2000) + "%";
+  try{
+    noiseStream = await getMic();
+    noiseChunks = [];
+    noiseRecorder = new MediaRecorder(noiseStream);
+    noiseRecorder.ondataavailable = e => { if (e.data && e.data.size) noiseChunks.push(e.data); };
+    noiseRecorder.onstop = async ()=>{
+      stopRms();
+      stopStream(noiseStream);
+      noiseStatus.innerHTML = `<span class="ok">captura lista.</span>`;
+      btnNoiseSave.disabled = false;
+      log("Ruido: grabación detenida.");
     };
 
-    return ()=>{ try{ proc.disconnect(); src.disconnect(); ctx.close(); }catch(_){} };
+    noiseRecorder.start();
+    startRms(noiseStream);
+    btnNoiseStart.textContent = "Detener";
+    noiseStatus.textContent = "grabando…";
+    log("Ruido: grabación iniciada.");
+  }catch(err){
+    noiseStatus.innerHTML = `<span class="err">no se pudo acceder al micrófono.</span>`;
+    log("ERROR micrófono (ruido). Revisa permisos del navegador.");
+  }
+});
+
+btnNoiseSave.addEventListener("click", async ()=>{
+  try{
+    // Guardar SOLO lo necesario (sin textos técnicos)
+    localStorage.setItem("medvoice.noise_rms", String(noiseRmsValue.toFixed(3)));
+    localStorage.setItem("medvoice.noise_saved_at", new Date().toISOString());
+    noiseStatus.innerHTML = `<span class="ok">guardado.</span>`;
+    log("Ruido: guardado.");
+  }catch(e){
+    noiseStatus.innerHTML = `<span class="err">no se pudo guardar.</span>`;
+    log("ERROR guardando ruido.");
+  }
+});
+
+// --- Huella (LOCAL)
+const btnVoiceStart = document.getElementById("btnVoiceStart");
+const btnVoiceSave  = document.getElementById("btnVoiceSave");
+const voiceStatus   = document.getElementById("voiceStatus");
+
+btnVoiceStart.addEventListener("click", async ()=>{
+  if (voiceRecorder && voiceRecorder.state === "recording") {
+    voiceRecorder.stop();
+    btnVoiceStart.textContent = "Grabar";
+    voiceStatus.textContent = "deteniendo…";
+    return;
   }
 
-  let stopNoiseMeter = null;
+  try{
+    voiceStream = await getMic();
+    voiceChunks = [];
+    voiceRecorder = new MediaRecorder(voiceStream);
+    voiceRecorder.ondataavailable = e => { if (e.data && e.data.size) voiceChunks.push(e.data); };
+    voiceRecorder.onstop = ()=>{
+      stopStream(voiceStream);
+      voiceStatus.innerHTML = `<span class="ok">grabación lista.</span>`;
+      btnVoiceSave.disabled = false;
+      log("Enrolamiento: grabación detenida.");
+    };
 
-  $("btnNoiseToggle").onclick = async ()=>{
-    if(!noiseRec){
-      try{
-        noiseStream = await getStream();
-        stopNoiseMeter = await estimateNoiseRms(noiseStream);
+    voiceRecorder.start();
+    btnVoiceStart.textContent = "Detener";
+    voiceStatus.textContent = "grabando…";
+    log("Enrolamiento: grabación iniciada.");
+  }catch(err){
+    voiceStatus.innerHTML = `<span class="err">no se pudo acceder al micrófono.</span>`;
+    log("ERROR micrófono (huella). Revisa permisos del navegador.");
+  }
+});
 
-        noiseChunks=[];
-        noiseRec = new MediaRecorder(noiseStream, { mimeType:"audio/webm" });
-        noiseRec.ondataavailable = (e)=>{ if(e.data && e.data.size) noiseChunks.push(e.data); };
-        noiseRec.onstart = ()=>{ $("noiseStatus").textContent="Estado: grabación iniciada."; log("Ruido: grabación iniciada."); };
-        noiseRec.onstop  = ()=>{
-          $("noiseStatus").textContent="Estado: grabación detenida.";
-          log("Ruido: grabación detenida.");
-          $("btnNoiseSave").disabled = false;
-        };
+function showModal(text){
+  const bd = document.getElementById("modalBackdrop");
+  const body = document.getElementById("modalBody");
+  body.textContent = text;
+  bd.style.display = "flex";
+}
+function hideModal(){
+  document.getElementById("modalBackdrop").style.display = "none";
+}
 
-        noiseRec.start();
-        $("btnNoiseToggle").textContent = "Detener";
-      }catch(e){
-        $("noiseStatus").innerHTML = `Estado: <span class="err">falló</span> Permiso micrófono`;
-        log("Ruido: ERROR -> "+e);
-      }
-      return;
-    }
+document.getElementById("modalClose").onclick = hideModal;
+document.getElementById("modalX").onclick = hideModal;
+document.getElementById("modalGo").onclick = ()=>{
+  hideModal();
+  // Marcar huella existente para que index enrute a transcribe siempre
+  localStorage.setItem("medvoice.has_voiceprint", "1");
+  window.location.href = "/static/medvoice-transcribe.html";
+};
 
-    // stop
-    try{
-      noiseRec.stop();
-      noiseStream.getTracks().forEach(t=>t.stop());
-      if(stopNoiseMeter) stopNoiseMeter();
-    }catch(_){}
-    noiseRec=null; noiseStream=null;
-    $("btnNoiseToggle").textContent="Iniciar";
-  };
+btnVoiceSave.addEventListener("click", async ()=>{
+  try{
+    const blob = new Blob(voiceChunks, { type: "audio/webm" });
+    const b64  = await blobToBase64(blob); // data:audio/webm;base64,...
+    localStorage.setItem("medvoice.voiceprint_b64", b64);
+    localStorage.setItem("medvoice.voiceprint_saved_at", new Date().toISOString());
+    localStorage.setItem("medvoice.has_voiceprint", "1");
 
-  $("btnNoiseSave").onclick = ()=>{
-    try{
-      localStorage.setItem("medvoice.noise_rms", noiseRms.toFixed(3));
-      localStorage.setItem("medvoice.noise_ts", new Date().toISOString());
+    voiceStatus.innerHTML = `<span class="ok">guardado.</span>`;
+    log("Enrolamiento: guardado.");
 
-      $("noiseStatus").innerHTML = `Estado: <span class="ok">guardado</span> (RMS=${noiseRms.toFixed(3)})`;
-      log(`Ruido: guardado RMS=${noiseRms.toFixed(3)}.`);
-      $("btnNoiseSave").disabled=true;
-    }catch(e){
-      $("noiseStatus").innerHTML = `Estado: <span class="err">falló</span>`;
-      log("Ruido: ERROR guardando -> "+e);
-    }
-  };
+    // Popup NO bloqueante
+    const popupText =
+`Buenos días, mi nombre es Doctor especialista en medicina general. Voy a realizar una grabación de mi voz para crear una huella vocal única que me permitirá ser identificado durante las consultas médicas. Este sistema de reconocimiento de voz es una herramienta innovadora que facilitará la transcripción automática de las conversaciones con los pacientes. Durante la consulta médica, el sistema identificará mi voz y la diferenciará de la voz del paciente y sus acompañantes. La precisión del reconocimiento depende de esta grabación inicial, por lo que es importante que hable de forma clara y natural. El tono de mi voz, la velocidad al hablar y las características únicas de mi pronunciación quedarán registradas en el sistema. Esta tecnología respeta la privacidad y confidencialidad de los datos médicos. El sistema guardará un perfil vocal que solo contiene características técnicas de audio, sin almacenar el contenido de las conversaciones. Esto me permite dictar las historias clínicas de manera fluida mientras atiendo a mis pacientes, mejorando la eficiencia de la consulta y permitiéndome concentrarme mejor en la atención.`;
+    showModal(popupText);
 
-  // =========================
-  // ENROLL (voice)
-  // =========================
-  let enrollRec=null, enrollStream=null, enrollChunks=[];
-
-  $("btnEnrollToggle").onclick = async ()=>{
-    if(!enrollRec){
-      try{
-        enrollStream = await getStream();
-        enrollChunks=[];
-        enrollRec = new MediaRecorder(enrollStream, { mimeType:"audio/webm" });
-        enrollRec.ondataavailable = (e)=>{ if(e.data && e.data.size) enrollChunks.push(e.data); };
-        enrollRec.onstart = ()=>{ $("enrollStatus").textContent="Estado: grabación iniciada."; log("Enrolamiento: grabación iniciada."); };
-        enrollRec.onstop  = ()=>{
-          $("enrollStatus").textContent="Estado: grabación detenida.";
-          log("Enrolamiento: grabación detenida.");
-          $("btnEnrollSend").disabled = false;
-        };
-
-        enrollRec.start();
-        $("btnEnrollToggle").textContent = "Detener";
-      }catch(e){
-        $("enrollStatus").innerHTML = `Estado: <span class="err">falló</span> Permiso micrófono`;
-        log("Enrolamiento: ERROR -> "+e);
-      }
-      return;
-    }
-
-    // stop
-    try{
-      enrollRec.stop();
-      enrollStream.getTracks().forEach(t=>t.stop());
-    }catch(_){}
-    enrollRec=null; enrollStream=null;
-    $("btnEnrollToggle").textContent="Grabar";
-  };
-
-  $("btnEnrollSend").onclick = async ()=>{
-    try{
-      // Guardado LOCAL (sin backend por ahora)
-      if(enrollChunks.length === 0){
-        $("enrollStatus").innerHTML = `Estado: <span class="err">no hay audio</span>`;
-        return;
-      }
-
-      const blob = new Blob(enrollChunks, { type:"audio/webm" });
-
-      // Guardar SOLO metadatos (rápido y estable). La huella real se activará cuando se habilite el backend.
-      localStorage.setItem("medvoice.has_voiceprint","1");
-      localStorage.setItem("medvoice.enroll_ts", new Date().toISOString());
-      localStorage.setItem("medvoice.enroll_bytes", String(blob.size));
-      localStorage.setItem("medvoice.enroll_mime", "audio/webm");
-
-      $("enrollStatus").innerHTML = `Estado: <span class="ok">guardado</span>`;
-      log("Enrolamiento: OK (guardado local).");
-      $("btnEnrollSend").disabled=true;
-
-      showEnrollPopup(); // popup informativo (cerrable)
-
-      // ===== REDIRECCIÓN AUTOMÁTICA =====
-      setTimeout(gotoTranscribe, 800);
-    }catch(e){
-      $("enrollStatus").innerHTML = `Estado: <span class="err">falló</span> ${e}`;
-      log("Enrolamiento: FALLÓ -> "+e);
-    }
-  };
+  }catch(e){
+    voiceStatus.innerHTML = `<span class="err">no se pudo guardar.</span>`;
+    log("ERROR guardando huella.");
+  }
+});
 </script>
-
-<!-- Popup informativo (no bloquea el flujo) -->
-<div id="enrollModal" class="mv-modal" aria-hidden="true">
-  <div class="mv-modal-backdrop" onclick="hideEnrollPopup()"></div>
-  <div class="mv-modal-card" role="dialog" aria-modal="true">
-    <div class="mv-modal-head">
-      <div class="mv-modal-title">Registro de voz</div>
-      <button class="mv-modal-close" onclick="hideEnrollPopup()">×</button>
-    </div>
-    <div class="mv-modal-body" id="enrollModalText"></div>
-    <div class="mv-modal-foot">
-      <button class="mv-btn" onclick="hideEnrollPopup()">Entendido</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>

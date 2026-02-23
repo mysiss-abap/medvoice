@@ -3,268 +3,211 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MedVoice | Transcripción</title>
+  <title>MedVoice | Dictado</title>
   <style>
     :root{
-      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
-      --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
+      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --bg:#f7f7f7; --card:#fff;
+      --text:#1d2d3e; --muted:#6a6d70; --border:#d9d9d9;
       --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
     }
-    *{ box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body{ margin:0; background:var(--sap-bg); color:var(--sap-text); }
-    header{
-      background: linear-gradient(90deg, var(--sap-blue), var(--sap-blue-2));
-      color:#fff; padding:18px 16px;
-    }
-    header h1{ margin:0; font-size:20px; letter-spacing:.2px; }
-    header p{ margin:6px 0 0 0; opacity:.9; font-size:13px; }
+    *{ box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+    body{ margin:0; background:var(--bg); color:var(--text); }
+    header{ background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2)); color:#fff; padding:18px 16px; }
+    header h1{ margin:0; font-size:20px; }
+    header p{ margin:6px 0 0; opacity:.92; font-size:13px; }
 
     .wrap{ max-width:1100px; margin:18px auto; padding:0 14px; }
-    .card{
-      background:var(--sap-card);
-      border:1px solid var(--sap-border);
-      border-radius:14px;
-      padding:16px;
-      box-shadow:0 6px 20px rgba(0,0,0,.06);
-    }
-    .meta-row{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:14px 16px; border-radius:12px; border:1px solid var(--sap-border);
-      background:#fff;
-      margin-bottom:14px;
-    }
-    .small{ font-size:13px; color:var(--sap-muted); }
-    .pill{
-      border-radius:999px; padding:6px 10px; font-size:12px; font-weight:600;
-      border:1px solid var(--sap-border); background:#fff;
-    }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 6px 20px rgba(0,0,0,.06); }
+    .meta{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .meta .line{ color:var(--muted); font-size:14px; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; border:1px solid #cfe9d7; background:#eaf7ef; color:var(--ok); padding:6px 10px; border-radius:999px; font-size:12px; }
 
-    .button-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-    .btn{
-      border:none; border-radius:10px;
-      padding:10px 14px;
-      cursor:pointer;
-      font-weight:700;
-      font-size:14px;
-      background:var(--sap-blue);
-      color:#fff;
-    }
-    .btn-warn{ background:#f3b37a; }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:14px; }
+    .panel{ border:1px solid var(--border); border-radius:14px; padding:16px; background:#fff; }
+    .panel h2{ margin:0 0 10px; font-size:18px; }
+    .panel p{ margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.35; }
 
-    #log{
-      margin-top:10px;
-      width:100%;
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+    button{ border:0; cursor:pointer; padding:10px 18px; border-radius:10px; font-weight:800; font-size:14px; }
+    .btn-primary{ background:var(--sap-blue); color:#fff; }
+    .btn-secondary{ background:#d3e7fb; color:#0b3c74; }
+
+    .status{ margin-top:8px; font-size:13px; color:var(--muted); }
+    .status .ok{ color:var(--ok); font-weight:900; }
+    .status .err{ color:var(--err); font-weight:900; }
+
+    .logwrap{ margin-top:14px; }
+    .logtitle{ font-size:16px; font-weight:900; margin:0 0 8px; }
+    .logbox{
+      border:1px solid var(--border);
+      border-radius:12px;
       padding:12px;
-      border:1px solid var(--sap-border);
-      border-radius:12px;
-      background:#0b1220;
-      color:#dbe7ff;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size:12px;
-      white-space:pre;
-      max-height:220px;
+      background:#fff;
+      height:200px;
       overflow:auto;
-    }
-
-    .ok{ color:var(--ok); font-weight:700; }
-    .err{ color:var(--err); font-weight:700; }
-    .warn{ color:var(--warn); font-weight:700; }
-
-    .box{
-      border:1px dashed #cfd3d7;
-      border-radius:12px;
-      padding:14px;
-      background:#fbfbfb;
-      margin-top:12px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;
+      font-size:12.5px;
+      white-space:pre-wrap;
     }
   </style>
 </head>
-
 <body>
 <header>
-  <h1>MedVoice | Transcripción</h1>
-  <p>Dictado clínico con asistencia por voz</p>
+  <h1>MedVoice | Dictado</h1>
+  <p>Dictado clínico por voz y envío a transcripción.</p>
 </header>
 
 <div class="wrap">
-  <div class="meta-row card">
-    <div class="small">
-      <b>Paciente:</b> <span id="patLbl">-</span> &nbsp; | &nbsp;
-      <b>Episodio:</b> <span id="falLbl">-</span> &nbsp; | &nbsp;
-      <b>Campo:</b> <span id="fieldLbl">-</span>
+  <div class="card">
+    <div class="meta">
+      <div class="line">
+        <b>Paciente:</b> <span id="mPatnr">—</span>
+        &nbsp; | &nbsp;
+        <b>Episodio:</b> <span id="mFalnr">—</span>
+        &nbsp; | &nbsp;
+        <b>Campo:</b> <span id="mField">ANAMNESIS</span>
+      </div>
+      <span class="pill">Listo</span>
     </div>
-    <div class="pill" id="envPill">Validando...</div>
   </div>
 
-  <div class="card">
-    <div class="button-row">
-      <button class="btn" id="btnRecToggle">Iniciar dictado</button>
-      <button class="btn btn-warn" id="btnProcess" disabled>Procesar</button>
-    </div>
+  <div class="grid">
+    <div class="panel">
+      <h2>Dictado</h2>
+      <p>Presiona <b>Grabar</b>, habla con normalidad y luego presiona <b>Detener</b>. Se enviará a transcripción.</p>
 
-    <div class="box">
-      <div id="statusLine" class="small">Estado: listo.</div>
-    </div>
+      <div class="btns">
+        <button id="btnRec" class="btn-primary">Grabar</button>
+        <button id="btnSend" class="btn-secondary" disabled>Enviar</button>
+      </div>
 
-    <div class="card" style="margin-top:14px;">
-      <h2 style="margin:0 0 6px 0;">Log</h2>
-      <div id="log"></div>
+      <div class="status">
+        Estado: <span id="st">listo.</span>
+      </div>
     </div>
+  </div>
+
+  <div class="logwrap">
+    <div class="logtitle">Log</div>
+    <div id="logBox" class="logbox"></div>
   </div>
 </div>
 
 <script>
-(function bootstrapMedVoice(){
-  const url = new URL(window.location.href);
-  const qs = url.searchParams;
-
-  const setSS = (k,v)=>{ if(v) sessionStorage.setItem("medvoice."+k, v); };
-  const setLS = (k,v)=>{ if(v) localStorage.setItem("medvoice."+k, v); };
-
-  const doctor_id = (qs.get("doctor_id")||"").trim();
-  const api       = (qs.get("api")||"").trim();
-  const field     = (qs.get("field")||"").trim();
-  const patnr     = (qs.get("patnr")||"").trim();
-  const falnr     = (qs.get("falnr")||"").trim();
-  const wake_word = (qs.get("wake_word")||qs.get("wake")||"").trim();
-
-  setSS("doctor_id", doctor_id); setLS("doctor_id", doctor_id);
-  setSS("api", api);             setLS("api", api);
-  setSS("field", field);         setLS("field", field);
-  setSS("patnr", patnr);         setLS("patnr", patnr);
-  setSS("falnr", falnr);         setLS("falnr", falnr);
-  setSS("wake_word", wake_word); setLS("wake_word", wake_word);
-
-  if (url.search) window.history.replaceState({}, document.title, url.pathname);
+// --- Limpieza barra: mostrar SIEMPRE .../static/index.html (sin query)
+(function () {
+  const u = new URL(location.href);
+  const indexUrl = u.origin + "/static/index.html";
+  history.replaceState({}, document.title, indexUrl);
 })();
 
-  const $ = (id)=>document.getElementById(id);
-  const log = (m)=>{ const el=$("log"); el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`; el.scrollTop=el.scrollHeight; };
+function getCtx(){
+  const u = new URL(location.href);
+  const qs = u.searchParams;
+  const get = (k)=> (sessionStorage.getItem("medvoice."+k)
+                  || localStorage.getItem("medvoice."+k)
+                  || (qs.get(k)||"")).trim();
+  return {
+    doctor_id: get("doctor_id"),
+    api:       get("api") || "http://127.0.0.1:8000",
+    field:     get("field") || "ANAMNESIS",
+    patnr:     get("patnr") || "—",
+    falnr:     get("falnr") || "—"
+  };
+}
 
-  function qs(name){
-    const u = new URL(window.location.href);
-    return (u.searchParams.get(name) || "").trim();
+const ctx = getCtx();
+document.getElementById("mPatnr").textContent = ctx.patnr;
+document.getElementById("mFalnr").textContent = ctx.falnr;
+document.getElementById("mField").textContent = ctx.field;
+
+const logBox = document.getElementById("logBox");
+function log(m){
+  const ts = new Date().toLocaleTimeString();
+  logBox.textContent += `[${ts}] ${m}\n`;
+  logBox.scrollTop = logBox.scrollHeight;
+}
+log("Dictado listo.");
+
+const st = document.getElementById("st");
+const btnRec = document.getElementById("btnRec");
+const btnSend = document.getElementById("btnSend");
+
+let stream=null, rec=null, chunks=[], lastBlob=null;
+
+function stopStream(s){ try{ s && s.getTracks && s.getTracks().forEach(t=>t.stop()); }catch(e){} }
+
+async function mic(){
+  return await navigator.mediaDevices.getUserMedia({audio:true});
+}
+
+btnRec.addEventListener("click", async ()=>{
+  if (rec && rec.state === "recording"){
+    rec.stop();
+    btnRec.textContent = "Grabar";
+    st.textContent = "procesando…";
+    return;
   }
-
-  function getCtx(name){
-    return (sessionStorage.getItem("medvoice."+name) || localStorage.getItem("medvoice."+name) || qs(name) || "").trim();
+  try{
+    stream = await mic();
+    chunks = [];
+    rec = new MediaRecorder(stream);
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = ()=>{
+      stopStream(stream);
+      lastBlob = new Blob(chunks, {type:"audio/webm"});
+      btnSend.disabled = false;
+      st.innerHTML = `<span class="ok">grabación lista.</span>`;
+      log("Grabación detenida.");
+    };
+    rec.start();
+    btnRec.textContent = "Detener";
+    st.textContent = "grabando…";
+    log("Grabación iniciada.");
+  }catch(e){
+    st.innerHTML = `<span class="err">no se pudo acceder al micrófono.</span>`;
+    log("ERROR micrófono. Revisa permisos del navegador.");
   }
-  function apiBase(){
-    const v = (getCtx("api") || "").replace(/\/+$/,"");
-    return v || "http://127.0.0.1:8000";
-  }
-  function doctorId(){ return getCtx("doctor_id") || ""; }
-  function pmdField(){ return getCtx("field") || "ZTA915ENP7"; }
-  function patnr(){ return getCtx("patnr"); }
-  function falnr(){ return getCtx("falnr"); }
-  function wakeWord(){ return getCtx("wake_word"); }
+});
 
-  function fieldNiceName(v){
-    const x = (v||"").toUpperCase().trim();
-    if(!x) return "ANAMNESIS";
-    if(x.includes("ANAMNESIS")) return "ANAMNESIS";
-    if(x === "ZTA915ENP7") return "ANAMNESIS";
-    return x;
-  }
+btnSend.addEventListener("click", async ()=>{
+  if (!lastBlob){ return; }
 
-  function validateEnv(){
-    const ok = !!doctorId() && !!apiBase() && !!pmdField();
+  try{
+    st.textContent = "enviando…";
+    log("Enviando a transcripción…");
 
-    $("patLbl").textContent = patnr() || "-";
-    $("falLbl").textContent = falnr() || "-";
-    $("fieldLbl").textContent = fieldNiceName(pmdField());
+    const fd = new FormData();
+    fd.append("file", lastBlob, "audio.webm");
+    fd.append("doctor_id", ctx.doctor_id || "");
+    fd.append("patnr", ctx.patnr || "");
+    fd.append("falnr", ctx.falnr || "");
+    fd.append("field", ctx.field || "");
 
-    $("envPill").textContent = ok ? "OK" : "Datos incompletos";
-    $("envPill").style.background = ok ? "#e7f4ec" : "#fff3e0";
-    $("envPill").style.color = ok ? "var(--ok)" : "var(--warn)";
-    $("envPill").style.border = "1px solid var(--sap-border)";
+    const r = await fetch(ctx.api.replace(/\/$/,"") + "/api/transcribe", {
+      method: "POST",
+      body: fd
+    });
 
-    return ok;
-  }
-
-  validateEnv();
-
-  // =========================
-  // Dictado (grabación) + envío a /api/transcribe (Whisper)
-  // =========================
-  let rec=null, stream=null, chunks=[];
-  let lastBlob=null;
-
-  async function getStream(){
-    return await navigator.mediaDevices.getUserMedia({ audio:true });
-  }
-
-  function setStatus(t){ $("statusLine").textContent = "Estado: " + t; }
-
-  $("btnRecToggle").onclick = async ()=>{
-    if(!rec){
-      try{
-        chunks=[];
-        stream = await getStream();
-        rec = new MediaRecorder(stream, { mimeType:"audio/webm" });
-
-        rec.ondataavailable = (e)=>{ if(e.data && e.data.size) chunks.push(e.data); };
-        rec.onstart = ()=>{ setStatus("grabando..."); log("Dictado: grabación iniciada."); };
-        rec.onstop  = ()=>{
-          lastBlob = new Blob(chunks, { type:"audio/webm" });
-          setStatus("grabación detenida.");
-          log("Dictado: grabación detenida.");
-          $("btnProcess").disabled = !lastBlob;
-        };
-
-        rec.start();
-        $("btnRecToggle").textContent = "Detener dictado";
-      }catch(e){
-        setStatus("falló permiso de micrófono");
-        log("ERROR micrófono -> "+e);
-      }
-      return;
+    if (!r.ok){
+      const t = await r.text();
+      throw new Error("HTTP " + r.status + " " + t);
     }
 
-    // stop
-    try{
-      rec.stop();
-      stream.getTracks().forEach(t=>t.stop());
-    }catch(_){}
-    rec=null; stream=null;
-    $("btnRecToggle").textContent = "Iniciar dictado";
-  };
+    const data = await r.json().catch(()=> ({}));
+    st.innerHTML = `<span class="ok">transcripción recibida.</span>`;
+    log("Transcripción OK.");
 
-  $("btnProcess").onclick = async ()=>{
-    if(!lastBlob){ return; }
-    try{
-      setStatus("procesando...");
-      $("btnProcess").disabled = true;
-
-      const fd = new FormData();
-      fd.append("doctor_id", doctorId());
-      fd.append("field", pmdField());
-      fd.append("patnr", patnr());
-      fd.append("falnr", falnr());
-      fd.append("wake_word", wakeWord());
-      fd.append("audio", lastBlob, "dictado.webm");
-
-      log("POST "+apiBase()+"/api/transcribe");
-
-      const r = await fetch(apiBase()+"/api/transcribe", { method:"POST", body: fd });
-      const j = await r.json().catch(()=>({ok:false,message:"Respuesta inválida"}));
-
-      if(r.ok && j.ok){
-        setStatus("listo.");
-        log("Transcripción: OK.");
-      }else{
-        setStatus("falló.");
-        log("Transcripción: FALLÓ -> "+(j.message||""));
-      }
-    }catch(e){
-      setStatus("falló.");
-      log("Transcripción: ERROR -> "+e);
-    }finally{
-      $("btnProcess").disabled = false;
+    // Si tu backend devuelve {text: "..."} lo registramos en log (sin mostrarlo en pantalla principal)
+    if (data && data.text){
+      log("Texto: " + data.text);
     }
-  };
+
+  }catch(err){
+    st.innerHTML = `<span class="err">error enviando a transcripción.</span>`;
+    log("ERROR: " + (err && err.message ? err.message : String(err)));
+  }
+});
 </script>
-
 </body>
 </html>
