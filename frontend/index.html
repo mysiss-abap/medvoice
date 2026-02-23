@@ -4,46 +4,98 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MedVoice | Router</title>
+  <style>
+    html,body{height:100%;margin:0}
+    #frame{width:100%;height:100%;border:0;display:block}
+    .msg{
+      font-family:Segoe UI, Arial, sans-serif;
+      padding:18px;
+      color:#1d2d3e;
+    }
+    .mono{font-family:Consolas, monospace; white-space:pre-wrap; font-size:12px;}
+  </style>
 </head>
 <body>
+<div id="msg" class="msg" style="display:none">
+  <b>MedVoice</b>
+  <div id="mtext" style="margin-top:8px"></div>
+  <div id="mdbg" class="mono" style="margin-top:12px;opacity:.85"></div>
+</div>
+
+<iframe id="frame" title="MedVoice UI"></iframe>
+
 <script>
-  function qs(name){
-    const u = new URL(window.location.href);
-    return (u.searchParams.get(name) || "").trim();
+(function(){
+  const msg = (t, dbg="")=>{
+    document.getElementById("frame").style.display="none";
+    const box = document.getElementById("msg");
+    box.style.display="block";
+    document.getElementById("mtext").textContent = t;
+    document.getElementById("mdbg").textContent = dbg || "";
+  };
+
+  const url = new URL(window.location.href);
+  const qs = url.searchParams;
+
+  // 1) Captura parámetros (si vienen desde SAP) y guárdalos interno
+  const incoming = {
+    doctor_id: qs.get("doctor_id") || "",
+    api: qs.get("api") || "",
+    field: qs.get("field") || "",
+    patnr: qs.get("patnr") || "",
+    falnr: qs.get("falnr") || "",
+    wake_word: qs.get("wake_word") || qs.get("wake") || ""
+  };
+
+  const setIf = (k,v)=>{ if(v) sessionStorage.setItem("medvoice."+k, v); };
+  setIf("doctor_id", incoming.doctor_id);
+  setIf("api", incoming.api);
+  setIf("field", incoming.field);
+  setIf("patnr", incoming.patnr);
+  setIf("falnr", incoming.falnr);
+  setIf("wake_word", incoming.wake_word);
+
+  // 2) Limpia la URL (queda solo .../static/index.html)
+  if (url.search) {
+    window.history.replaceState({}, document.title, url.pathname);
   }
-  function apiBase(){
-    const v = (qs("api") || "").replace(/\/+$/,"");
-    return v || "http://127.0.0.1:8000";
+
+  // 3) Lee valores internos (si no vinieron ahora, se usan los ya guardados)
+  const doctorId = (sessionStorage.getItem("medvoice.doctor_id") || "").trim();
+  const apiBase  = (sessionStorage.getItem("medvoice.api") || "").trim().replace(/\/+$/,"") || "http://127.0.0.1:8000";
+  const field    = (sessionStorage.getItem("medvoice.field") || "").trim() || "ZTA915ENP7";
+
+  // Si falta doctor_id, muestra mensaje (esto es lo que te salía antes)
+  if(!doctorId){
+    msg("Falta doctor_id (no llegó desde SAP).", "Abra SAP y llame index.html pasando doctor_id una vez.");
+    return;
   }
-  function doctorId(){ return qs("doctor_id") || ""; }
-  function field(){ return qs("field") || "ZTA915ENP7"; } // tu default
 
-  async function go(){
-    const d = doctorId();
-    if(!d){
-      document.body.innerText = "Falta doctor_id en la URL.";
-      return;
-    }
+  // 4) Decide destino consultando backend
+  const urlExists = `${apiBase}/api/voiceprint/exists?doctor_id=${encodeURIComponent(doctorId)}`;
 
-    const api = apiBase();
-    const urlExists = `${api}/api/voiceprint/exists?doctor_id=${encodeURIComponent(d)}`;
-
-    try{
-      const r = await fetch(urlExists);
-      const j = await r.json();
+  fetch(urlExists)
+    .then(r=>r.json().then(j=>({r,j})))
+    .then(({r,j})=>{
       const exists = !!(r.ok && j.ok && j.exists);
 
-      const base = window.location.href.replace(/index\.html.*$/,"");
+      // Guardamos "mode" interno solo informativo
+      sessionStorage.setItem("medvoice.mode", exists ? "transcribe" : "setup");
+
       const target = exists ? "medvoice-transcribe.html" : "medvoice-setup.html";
 
-      const next = `${base}${target}?doctor_id=${encodeURIComponent(d)}&api=${encodeURIComponent(api)}&field=${encodeURIComponent(field())}`;
-      window.location.replace(next);
-    }catch(e){
-      document.body.innerText = "No se pudo contactar el backend (api).";
-    }
-  }
+      // 5) Carga el módulo en el iframe (SIN params en URL)
+      const basePath = window.location.pathname.replace(/index\.html$/,"");
+      document.getElementById("frame").src = basePath + target;
 
-  go();
+      // Labels internos (por si alguna parte los usa)
+      sessionStorage.setItem("medvoice.api", apiBase);
+      sessionStorage.setItem("medvoice.field", field);
+    })
+    .catch(e=>{
+      msg("No se pudo contactar el backend (api).", String(e && e.message ? e.message : e));
+    });
+})();
 </script>
 </body>
 </html>

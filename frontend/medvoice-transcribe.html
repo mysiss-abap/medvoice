@@ -11,51 +11,27 @@
       --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
     }
     body{
-      margin:0;
-      height:100vh;
-      overflow:hidden;
-      background:var(--sap-bg);
-      font-family:Segoe UI, Arial, sans-serif;
-      color:var(--sap-text);
-      display:flex;
-      flex-direction:column;
+      margin:0;height:100vh;overflow:hidden;background:var(--sap-bg);
+      font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);
+      display:flex;flex-direction:column;
     }
     header{
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      z-index:10;
+      position:fixed;top:0;left:0;right:0;z-index:10;
       background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
-      color:#fff;
-      padding:14px 18px;
-      box-sizing:border-box;
+      color:#fff;padding:14px 18px;box-sizing:border-box;
     }
     header .t{font-size:18px;font-weight:600;}
     header .s{font-size:12px;opacity:.9;margin-top:2px;}
     .app-container{
-      flex:1;
-      min-height:0;
-      margin-top:72px;
-      padding:18px 14px;
-      overflow:hidden;
-      box-sizing:border-box;
-      display:flex;
-      justify-content:center;
+      flex:1;min-height:0;margin-top:72px;padding:18px 14px;overflow:hidden;
+      box-sizing:border-box;display:flex;justify-content:center;
     }
     .card{
-      width:100%;
-      max-width:980px;
-      background:var(--sap-card);
-      border:1px solid var(--sap-border);
-      border-radius:10px;
+      width:100%;max-width:980px;background:var(--sap-card);
+      border:1px solid var(--sap-border);border-radius:10px;
       box-shadow:0 1px 2px rgba(0,0,0,.05);
-      padding:16px;
-      box-sizing:border-box;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      min-height:0;
+      padding:16px;box-sizing:border-box;
+      display:flex;flex-direction:column;gap:12px;min-height:0;
     }
     .controls{display:flex;flex-direction:column;gap:12px;}
     .meta-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
@@ -82,198 +58,84 @@
     .log-container{flex:1;min-height:120px;display:flex;flex-direction:column;gap:8px;}
     .log-title{margin:0;font-size:16px;}
     .log-output{flex:1;min-height:0;border:1px solid var(--sap-border);border-radius:8px;padding:10px;background:#fff;overflow-y:auto;}
-  
-  /* ==== mySiss Voice Assistant (GIF + popup sin texto) ==== */
-  .mysiss-gif-btn{
-    position:fixed;
-    right:18px;
-    bottom:18px;
-    width:86px;
-    height:86px;
-    border-radius:26px;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 18px 60px rgba(0,0,0,.55);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    user-select:none;
-    z-index:9999;
-    backdrop-filter: blur(10px);
-    transition: transform .12s ease;
-  }
-  .mysiss-gif-btn:active{ transform: scale(.98); }
-  .mysiss-gif-btn img{
-    width:72px;
-    height:72px;
-    object-fit:contain;
-    border-radius:20px;
-    display:block;
-  }
 
-  .mysiss-overlay{
-    position:fixed;
-    inset:0;
-    background: rgba(0,0,0,.55);
-    display:none;
-    align-items:flex-end;
-    justify-content:flex-end;
-    padding:18px;
-    z-index:9998;
-  }
-  .mysiss-overlay.show{ display:flex; }
+    /* ==== mySiss Voice Assistant (GIF + popup sin texto) ==== */
+    .mysiss-gif-btn{
+      position:fixed;right:18px;bottom:18px;width:86px;height:86px;border-radius:26px;
+      background: rgba(255,255,255,.06);border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;
+      z-index:9999;backdrop-filter: blur(10px);transition: transform .12s ease;
+    }
+    .mysiss-gif-btn:active{ transform: scale(.98); }
+    .mysiss-gif-btn img{width:72px;height:72px;object-fit:contain;border-radius:20px;display:block;}
 
-  .mysiss-modal{
-    width:min(420px, 100%);
-    height:min(240px, 60vh);
-    border-radius:22px;
-    background: rgba(12,16,28,.55);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 18px 60px rgba(0,0,0,.55);
-    backdrop-filter: blur(14px);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    overflow:hidden;
-  }
+    .mysiss-overlay{
+      position:fixed;inset:0;background: rgba(0,0,0,.55);
+      display:none;align-items:flex-end;justify-content:flex-end;padding:18px;z-index:9998;
+    }
+    .mysiss-overlay.show{ display:flex; }
 
-  .mysiss-close{
-    position:absolute;
-    top:12px;
-    right:12px;
-    width:40px;
-    height:40px;
-    border-radius:14px;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.06);
-    cursor:pointer;
-  }
-  .mysiss-close::before, .mysiss-close::after{
-    content:"";
-    position:absolute;
-    top:50%; left:50%;
-    width:18px; height:2px;
-    background: rgba(255,255,255,.80);
-    transform-origin:center;
-  }
-  .mysiss-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
-  .mysiss-close::after{  transform: translate(-50%,-50%) rotate(-45deg); }
+    .mysiss-modal{
+      width:min(420px, 100%);height:min(240px, 60vh);
+      border-radius:22px;background: rgba(12,16,28,.55);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      backdrop-filter: blur(14px);
+      display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+    }
 
-  .mysiss-mic-orb{
-    width:120px;
-    height:120px;
-    border-radius:999px;
-    border: 1px solid rgba(255,255,255,.18);
-    background: rgba(255,255,255,.06);
-    cursor:pointer;
-    position:relative;
-    display:grid;
-    place-items:center;
-    overflow:hidden;
-  }
+    .mysiss-close{
+      position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:14px;
+      border: 1px solid rgba(255,255,255,.14);background: rgba(255,255,255,.06);cursor:pointer;
+    }
+    .mysiss-close::before, .mysiss-close::after{
+      content:"";position:absolute;top:50%; left:50%;width:18px;height:2px;background: rgba(255,255,255,.80);transform-origin:center;
+    }
+    .mysiss-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
+    .mysiss-close::after{  transform: translate(-50%,-50%) rotate(-45deg); }
 
-  .mysiss-mic-core{
-    width:24px; height:24px;
-    border-radius:999px;
-    background: rgba(124,58,237,.9);
-    box-shadow: 0 0 0 10px rgba(124,58,237,.14);
-  }
+    .mysiss-mic-orb{
+      width:120px;height:120px;border-radius:999px;border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);cursor:pointer;position:relative;
+      display:grid;place-items:center;overflow:hidden;
+    }
 
-  .mysiss-mic-ring{
-    position:absolute;
-    inset:-30px;
-    border-radius:999px;
-    border: 2px solid rgba(124,58,237,.0);
-    pointer-events:none;
-  }
+    .mysiss-mic-core{
+      width:24px;height:24px;border-radius:999px;background: rgba(124,58,237,.9);
+      box-shadow: 0 0 0 10px rgba(124,58,237,.14);
+    }
 
-  .mysiss-listening .mysiss-mic-core{
-    box-shadow: 0 0 0 14px rgba(124,58,237,.18);
-    animation: mysissPulse 1.1s infinite;
-  }
-  .mysiss-listening .mysiss-mic-ring{
-    border-color: rgba(124,58,237,.20);
-    animation: mysissRing 1.1s infinite;
-  }
+    .mysiss-mic-ring{position:absolute;inset:-30px;border-radius:999px;border: 2px solid rgba(124,58,237,.0);pointer-events:none;}
 
-  @keyframes mysissPulse{
-    0%{ transform: scale(1); }
-    50%{ transform: scale(1.12); }
-    100%{ transform: scale(1); }
-  }
-  @keyframes mysissRing{
-    0%{ transform: scale(.92); opacity:.25; }
-    70%{ transform: scale(1.06); opacity:.0; }
-    100%{ transform: scale(1.06); opacity:0; }
-  }
+    .mysiss-listening .mysiss-mic-core{box-shadow: 0 0 0 14px rgba(124,58,237,.18);animation: mysissPulse 1.1s infinite;}
+    .mysiss-listening .mysiss-mic-ring{border-color: rgba(124,58,237,.20);animation: mysissRing 1.1s infinite;}
 
-  @media (max-width:520px){
-    .mysiss-overlay{ justify-content:center; }
-    .mysiss-gif-btn{ right:14px; bottom:14px; }
-  }
+    @keyframes mysissPulse{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+    @keyframes mysissRing{0%{transform:scale(.92);opacity:.25}70%{transform:scale(1.06);opacity:.0}100%{transform:scale(1.06);opacity:0}}
 
+    @media (max-width:520px){.mysiss-overlay{ justify-content:center; }.mysiss-gif-btn{ right:14px; bottom:14px; }}
 
-  /* ==== mySiss Dashboard emergente (visual, sin texto) ==== */
-  .mysiss-dash-overlay{
-    position:fixed; inset:0; background: rgba(0,0,0,.55);
-    display:none; align-items:center; justify-content:center; padding:18px; z-index:9997;
-  }
-  .mysiss-dash-overlay.show{ display:flex; }
-  .mysiss-dash-modal{
-    width:min(860px, 100%);
-    height:min(560px, 86vh);
-    border-radius:22px;
-    background: rgba(12,16,28,.60);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 18px 60px rgba(0,0,0,.55);
-    backdrop-filter: blur(14px);
-    position:relative;
-    overflow:hidden;
-  }
-  .mysiss-dash-grid{
-    display:grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap:14px;
-    padding:18px 18px 10px 18px;
-  }
-  .mysiss-dash-card{
-    height:92px;
-    border-radius:18px;
-    border:1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.06);
-    position:relative;
-    overflow:hidden;
-  }
-  .mysiss-ico{
-    position:absolute; left:16px; top:16px;
-    width:22px; height:22px; border-radius:8px;
-    background: rgba(124,58,237,.85);
-    box-shadow: 0 0 0 10px rgba(124,58,237,.12);
-  }
-  .mysiss-spark{
-    position:absolute; right:-30px; bottom:-30px;
-    width:120px; height:120px; border-radius:999px;
-    background: radial-gradient(circle, rgba(34,197,94,.35), rgba(34,197,94,0));
-    filter: blur(0.5px);
-  }
-  .mysiss-dash-chart{
-    padding: 0 18px 18px 18px;
-  }
-  #mySissMiniChart{ width:100% !important; height:360px !important; }
-  @media (max-width:900px){
-    .mysiss-dash-grid{ grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media (max-width:768px){
-    .app-container{padding:12px;}
-    .card{padding:12px;}
-    .transcription-container{min-height:140px;}
-    .log-container{min-height:100px;}
-  }
-
-</style>
+    /* ==== mySiss Dashboard emergente (visual, sin texto) ==== */
+    .mysiss-dash-overlay{position:fixed; inset:0; background: rgba(0,0,0,.55);display:none; align-items:center; justify-content:center; padding:18px; z-index:9997;}
+    .mysiss-dash-overlay.show{ display:flex; }
+    .mysiss-dash-modal{
+      width:min(860px, 100%);height:min(560px, 86vh);
+      border-radius:22px;background: rgba(12,16,28,.60);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      backdrop-filter: blur(14px);
+      position:relative;overflow:hidden;
+    }
+    .mysiss-dash-grid{display:grid;grid-template-columns: repeat(4, 1fr);gap:14px;padding:18px 18px 10px 18px;}
+    .mysiss-dash-card{height:92px;border-radius:18px;border:1px solid rgba(255,255,255,.14);background: rgba(255,255,255,.06);position:relative;overflow:hidden;}
+    .mysiss-ico{position:absolute; left:16px; top:16px;width:22px; height:22px; border-radius:8px;background: rgba(124,58,237,.85);box-shadow: 0 0 0 10px rgba(124,58,237,.12);}
+    .mysiss-spark{position:absolute; right:-30px; bottom:-30px;width:120px; height:120px; border-radius:999px;background: radial-gradient(circle, rgba(34,197,94,.35), rgba(34,197,94,0));filter: blur(0.5px);}
+    .mysiss-dash-chart{padding: 0 18px 18px 18px;}
+    #mySissMiniChart{ width:100% !important; height:360px !important; }
+    @media (max-width:900px){.mysiss-dash-grid{ grid-template-columns: repeat(2, 1fr); }}
+    @media (max-width:768px){.app-container{padding:12px;}.card{padding:12px;}.transcription-container{min-height:140px;}.log-container{min-height:100px;}}
+  </style>
 </head>
 <body>
 <header>
@@ -294,9 +156,9 @@
       </div>
 
       <div class="button-row">
-      <button class="btn" id="btnRecToggle">Iniciar dictado</button>
-      <button class="btn btn-warn" id="btnProcess" disabled>Procesar (Transcribir → Enviar SAP → Limpiar)</button>
-      <button class="btn btn-ghost" id="btnClear">Limpiar</button>
+        <button class="btn" id="btnRecToggle">Iniciar dictado</button>
+        <button class="btn btn-warn" id="btnProcess" disabled>Procesar (Transcribir → Enviar SAP → Limpiar)</button>
+        <button class="btn btn-ghost" id="btnClear">Limpiar</button>
       </div>
     </div>
 
@@ -317,16 +179,17 @@
   const $ = (id)=>document.getElementById(id);
   const log = (m)=>{ const el=$("log"); el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`; el.scrollTop=el.scrollHeight; };
 
-  function qs(name){
-    const u = new URL(window.location.href);
-    return (u.searchParams.get(name) || "").trim();
+  // ====== PARAMS (internos) ======
+  function getParam(name, fallback=""){
+    const v = (sessionStorage.getItem("medvoice."+name) || "").trim();
+    return v || fallback;
   }
   function apiBase(){
-    const v = (qs("api") || "").replace(/\/+$/,"");
+    const v = getParam("api","http://127.0.0.1:8000").replace(/\/+$/,"");
     return v || "http://127.0.0.1:8000";
   }
-  function doctorId(){ return qs("doctor_id") || ""; }
-  function pmdField(){ return qs("field") || "ZTA915ENP7"; }
+  function doctorId(){ return getParam("doctor_id",""); }
+  function pmdField(){ return getParam("field","ZTA915ENP7"); }
 
   function validateEnv(){
     const ok = !!doctorId() && !!apiBase() && !!pmdField();
@@ -342,7 +205,24 @@
   }
 
   async function getMic(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw new Error("Este navegador no soporta getUserMedia (micrófono).");
+    }
     return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+  }
+
+  function pickMime(){
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/ogg"
+    ];
+    if(!window.MediaRecorder) return "";
+    for(const c of candidates){
+      if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
+    }
+    return "";
   }
 
   let rec=null, chunks=[], stream=null, recording=false;
@@ -351,20 +231,30 @@
     if(!validateEnv()){ $("status").innerHTML=`Estado: <span class="err">falta doctor_id</span>`; return; }
 
     if(!recording){
-      chunks=[];
-      $("status").textContent="Estado: iniciando mic...";
-      stream = await getMic();
-      rec = new MediaRecorder(stream, { mimeType:"audio/webm" });
-      rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
-      rec.onstop=()=>log("Grabación: detenida.");
-      rec.start(250);
+      try{
+        chunks=[];
+        $("status").textContent="Estado: iniciando mic...";
+        stream = await getMic();
 
-      recording=true;
-      $("btnRecToggle").textContent="Detener dictado";
-      $("btnProcess").disabled=true;
-      $("status").textContent="Estado: grabando...";
-      log("Grabación: iniciada.");
-      return;
+        const mime = pickMime();
+        rec = mime ? new MediaRecorder(stream, { mimeType:mime }) : new MediaRecorder(stream);
+        log("Dictado: MediaRecorder mime=" + (mime || "(default)"));
+
+        rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+        rec.onstop=()=>log("Grabación: detenida.");
+
+        rec.start(250);
+        recording=true;
+        $("btnRecToggle").textContent="Detener dictado";
+        $("btnProcess").disabled=true;
+        $("status").textContent="Estado: grabando...";
+        log("Grabación: iniciada.");
+        return;
+      }catch(e){
+        $("status").innerHTML = `Estado: <span class="err">error micrófono</span> ${e.message||e}`;
+        log("Dictado: ERROR mic -> " + (e.message||e));
+        return;
+      }
     }
 
     // stop
@@ -378,7 +268,7 @@
   };
 
   async function transcribeBackend(){
-    const blob = new Blob(chunks, { type:"audio/webm" });
+    const blob = new Blob(chunks, { type: chunks[0]?.type || "audio/webm" });
     const fd = new FormData();
     fd.append("doctor_id", doctorId());
     fd.append("audio", blob, "dictation.webm");
@@ -394,7 +284,7 @@
     const payload = encodeURIComponent(text || "");
     const field = encodeURIComponent(pmdField());
 
-    // SAP embedded
+    // SAP embedded (si existe)
     try{
       window.location.href = `sapevent:done?field=${field}&text=${payload}`;
       log("Return: sapevent:done disparado.");
@@ -434,16 +324,11 @@
       $("status").innerHTML = `Estado: <span class="ok">OK</span> | enviando a SAP...`;
       log(`verify_ok=true score=${j.verify_score ?? "?"} -> enviando a SAP`);
 
-      // Enviar a SAP
       const ok = returnSap($("txt").value);
-
-      // Limpiar SOLO si “envié” (en embedded se dispara navegación)
-      if(ok){
-        $("txt").value="";
-      }
+      if(ok){ $("txt").value=""; }
     }catch(e){
       $("status").innerHTML = `Estado: <span class="err">error</span> backend no responde`;
-      log("Error -> "+e.message);
+      log("Error -> "+(e.message||e));
       $("btnProcess").disabled=false;
     }
   };
@@ -467,7 +352,6 @@
   <div class="mysiss-modal" id="mySissModal">
     <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
 
-    <!-- Orbe / mic (único elemento interactivo del popup) -->
     <button class="mysiss-mic-orb" id="mySissMic" aria-label="Hablar">
       <span class="mysiss-mic-core"></span>
       <span class="mysiss-mic-ring"></span>
@@ -475,18 +359,10 @@
   </div>
 </div>
 
-
 <script>
   // ===== mySiss Voice Engine + Popup =====
   (function(){
-    const STATES = {
-      PASSIVE: 'PASSIVE',
-      WAKE_DETECTED: 'WAKE_DETECTED',
-      SPEAKING: 'SPEAKING',
-      ACTIVE_LISTENING: 'ACTIVE_LISTENING',
-      PROCESSING: 'PROCESSING'
-    };
-
+    const STATES = { PASSIVE:'PASSIVE', WAKE_DETECTED:'WAKE_DETECTED', SPEAKING:'SPEAKING', ACTIVE_LISTENING:'ACTIVE_LISTENING', PROCESSING:'PROCESSING' };
     let state = STATES.PASSIVE;
     let rec = null;
     let isRecognitionRunning = false;
@@ -494,7 +370,6 @@
     let activePromptTimeout = null;
     let passiveRestartTimer = null;
     let lastWakeAt = 0;
-
     let dashChart = null;
 
     const init = () => {
@@ -521,9 +396,8 @@
         return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
       }
 
-      function detectWakeWord(text){
-        return normalize(text).includes('boton');
-      }
+      // wake word (dejas “boton” como lo tienes)
+      function detectWakeWord(text){ return normalize(text).includes('boton'); }
 
       function speakES(text, onEnd){
         try{
@@ -540,15 +414,8 @@
         }
       }
 
-      function openPopup(){
-        overlay.classList.add('show');
-        overlay.setAttribute('aria-hidden', 'false');
-      }
-
-      function closePopup(){
-        overlay.classList.remove('show');
-        overlay.setAttribute('aria-hidden', 'true');
-      }
+      function openPopup(){ overlay.classList.add('show'); overlay.setAttribute('aria-hidden', 'false'); }
+      function closePopup(){ overlay.classList.remove('show'); overlay.setAttribute('aria-hidden', 'true'); }
 
       function openDashboard(mode){
         if(!dashOverlay || !dashCanvas) return;
@@ -567,18 +434,11 @@
 
             dashChart = new Chart(ctx, {
               type: 'line',
-              data: {
-                labels: ['','','','','','',''],
-                datasets: [{ label: '', data: base, tension: 0.35, borderWidth: 2, pointRadius: 0 }]
-              },
+              data: { labels: ['','','','','','',''], datasets: [{ label: '', data: base, tension: 0.35, borderWidth: 2, pointRadius: 0 }] },
               options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display:false }, tooltip: { enabled:false } },
-                scales: {
-                  x: { display:false, grid:{ display:false } },
-                  y: { display:false, grid:{ display:false } }
-                }
+                scales: { x: { display:false, grid:{ display:false } }, y: { display:false, grid:{ display:false } } }
               }
             });
           }
@@ -596,23 +456,19 @@
 
         if(q.includes('hemograma') || q.includes('cuadro hematico') || q.includes('cbc')){
           speakES('Hemograma localizado. Presentando vista clínica.');
-          openDashboard('cbc');
-          return;
+          openDashboard('cbc'); return;
         }
         if(q.includes('alerg')){
           speakES('Alergias verificadas. Presentando vista clínica.');
-          openDashboard('alergias');
-          return;
+          openDashboard('alergias'); return;
         }
         if(q.includes('diagnost') || q.includes('dx')){
           speakES('Diagnósticos revisados. Presentando vista clínica.');
-          openDashboard('dx');
-          return;
+          openDashboard('dx'); return;
         }
         if(q.includes('medic') || q.includes('tratam')){
           speakES('Medicación actual revisada. Presentando vista clínica.');
-          openDashboard('meds');
-          return;
+          openDashboard('meds'); return;
         }
 
         speakES('Consulta recibida. Presentando vista clínica.');
@@ -685,10 +541,7 @@
 
         r.onresult = handleResult;
 
-        r.onerror = () => {
-          isRecognitionRunning = false;
-          modal.classList.remove('mysiss-listening');
-        };
+        r.onerror = () => { isRecognitionRunning = false; modal.classList.remove('mysiss-listening'); };
 
         r.onend = () => {
           isRecognitionRunning = false;
@@ -704,7 +557,6 @@
       function startRecognition(){
         if(!rec) rec = initRecognition();
         if(!rec) return;
-
         shouldRestart = true;
         if(isRecognitionRunning) return;
         try{ rec.start(); }catch(e){ schedulePassiveRestart(300); }
@@ -726,23 +578,15 @@
       overlay.addEventListener('click', (e) => { if(e.target === overlay) closePopup(); });
       gifBtn.addEventListener('click', openPopup);
       micOrb.addEventListener('click', () => {
-        if(state === STATES.ACTIVE_LISTENING){
-          enterPassiveMode();
-          return;
-        }
-        if(state === STATES.PASSIVE){
-          triggerWakeWordFlow();
-        }
+        if(state === STATES.ACTIVE_LISTENING){ enterPassiveMode(); return; }
+        if(state === STATES.PASSIVE){ triggerWakeWordFlow(); }
       });
 
       if(dashClose) dashClose.addEventListener('click', closeDashboard);
       if(dashOverlay) dashOverlay.addEventListener('click', (e)=>{ if(e.target === dashOverlay) closeDashboard(); });
 
-      document.addEventListener('keydown', (e) => {
-        if(e.key === 'Escape' && overlay.classList.contains('show')) closePopup();
-      });
+      document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && overlay.classList.contains('show')) closePopup(); });
 
-      // Continuous passive listening from page load.
       setState(STATES.PASSIVE);
       startPassiveListening();
     };
@@ -752,22 +596,20 @@
   })();
 </script>
 
-
-  <!-- Dashboard emergente (visual, sin texto de resultados) -->
-  <div id="mySissDashOverlay" class="mysiss-dash-overlay" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="mysiss-dash-modal" id="mySissDashModal">
-      <button class="mysiss-close" id="mySissDashClose" aria-label="Cerrar"></button>
-      <div class="mysiss-dash-grid" aria-label="Panel visual">
-        <div class="mysiss-dash-card" id="mysissCard1"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-        <div class="mysiss-dash-card" id="mysissCard2"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-        <div class="mysiss-dash-card" id="mysissCard3"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-        <div class="mysiss-dash-card" id="mysissCard4"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-      </div>
-      <div class="mysiss-dash-chart">
-        <canvas id="mySissMiniChart" aria-label="Gráfica"></canvas>
-      </div>
+<div id="mySissDashOverlay" class="mysiss-dash-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="mysiss-dash-modal" id="mySissDashModal">
+    <button class="mysiss-close" id="mySissDashClose" aria-label="Cerrar"></button>
+    <div class="mysiss-dash-grid" aria-label="Panel visual">
+      <div class="mysiss-dash-card" id="mysissCard1"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
+      <div class="mysiss-dash-card" id="mysissCard2"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
+      <div class="mysiss-dash-card" id="mysissCard3"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
+      <div class="mysiss-dash-card" id="mysissCard4"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
+    </div>
+    <div class="mysiss-dash-chart">
+      <canvas id="mySissMiniChart" aria-label="Gráfica"></canvas>
     </div>
   </div>
+</div>
 
 </body>
 </html>
