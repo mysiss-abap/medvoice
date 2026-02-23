@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, UploadFile, File, Form, Query
+from fastapi import FastAPI, UploadFile, File, Form, Query, Body
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -29,7 +29,8 @@ DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 
 # Directorios base
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = BASE_DIR / "frontend"
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
@@ -45,10 +46,20 @@ whisper = WhisperModel(DEFAULT_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
 
 app = FastAPI(title=APP_TITLE)
 
+
+class NoCacheStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+
 # Servir frontend local
 app.mount(
     "/static",
-    StaticFiles(directory=BASE_DIR / "frontend"),
+    NoCacheStaticFiles(directory=FRONTEND_DIR),
     name="static",
 )
 
@@ -70,12 +81,13 @@ app.add_middleware(
 # =========================
 # Persistencia (archivos)
 # =========================
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
 # cache RAM (solo performance, la verdad está en archivo)
 VOICEPRINTS: dict[str, np.ndarray] = {}  # doctor_id -> embedding
+PUSH_RESULTS: list[dict] = []
 
 
 def _safe_key(k: str) -> str:
@@ -264,3 +276,16 @@ async def transcribe(
         "verify_score": 1.0,
         "text": text,
     }
+
+
+@app.post("/api/push_result")
+async def push_result(payload: dict = Body(...)):
+    item = {
+        "doctor_id": str(payload.get("doctor_id", "")).strip(),
+        "patnr": str(payload.get("patnr", "")).strip(),
+        "falnr": str(payload.get("falnr", "")).strip(),
+        "field": str(payload.get("field", "")).strip(),
+        "text": str(payload.get("text", "")).strip(),
+    }
+    PUSH_RESULTS.append(item)
+    return {"ok": True, "stored": True, "result": item}
