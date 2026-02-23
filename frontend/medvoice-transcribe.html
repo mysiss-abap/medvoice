@@ -5,209 +5,265 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MedVoice | Dictado</title>
   <style>
-    :root{
-      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --bg:#f7f7f7; --card:#fff;
-      --text:#1d2d3e; --muted:#6a6d70; --border:#d9d9d9;
-      --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
-    }
-    *{ box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
-    body{ margin:0; background:var(--bg); color:var(--text); }
-    header{ background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2)); color:#fff; padding:18px 16px; }
-    header h1{ margin:0; font-size:20px; }
-    header p{ margin:6px 0 0; opacity:.92; font-size:13px; }
-
-    .wrap{ max-width:1100px; margin:18px auto; padding:0 14px; }
-    .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 6px 20px rgba(0,0,0,.06); }
-    .meta{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .meta .line{ color:var(--muted); font-size:14px; }
-    .pill{ display:inline-flex; align-items:center; gap:8px; border:1px solid #cfe9d7; background:#eaf7ef; color:var(--ok); padding:6px 10px; border-radius:999px; font-size:12px; }
-
-    .grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:14px; }
-    .panel{ border:1px solid var(--border); border-radius:14px; padding:16px; background:#fff; }
-    .panel h2{ margin:0 0 10px; font-size:18px; }
-    .panel p{ margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.35; }
-
-    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
-    button{ border:0; cursor:pointer; padding:10px 18px; border-radius:10px; font-weight:800; font-size:14px; }
-    .btn-primary{ background:var(--sap-blue); color:#fff; }
-    .btn-secondary{ background:#d3e7fb; color:#0b3c74; }
-
-    .status{ margin-top:8px; font-size:13px; color:var(--muted); }
-    .status .ok{ color:var(--ok); font-weight:900; }
-    .status .err{ color:var(--err); font-weight:900; }
-
-    .logwrap{ margin-top:14px; }
-    .logtitle{ font-size:16px; font-weight:900; margin:0 0 8px; }
-    .logbox{
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:12px;
-      background:#fff;
-      height:200px;
-      overflow:auto;
-      font-family:ui-monospace,Menlo,Consolas,monospace;
-      font-size:12.5px;
-      white-space:pre-wrap;
-    }
+    :root{--sap-blue:#0a6ed1;--sap-blue-2:#0854a0;--bg:#f7f7f7;--card:#fff;--text:#1d2d3e;--muted:#6a6d70;--border:#d9d9d9;--ok:#107e3e;--warn:#e9730c;--err:#bb0000}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:var(--bg);color:var(--text)}
+    header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:14px 16px}
+    .head-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+    .app-name{font-size:20px;font-weight:700}
+    .patient-line{justify-self:center;font-size:14px;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .wrap{max-width:1100px;margin:18px auto;padding:0 14px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #cfe9d7;background:#eaf7ef;color:var(--ok);padding:6px 10px;border-radius:999px;font-size:12px}
+    .panel{border:1px solid var(--border);border-radius:14px;padding:16px;background:#fff;margin-top:14px}
+    .panel h2{margin:0 0 10px;font-size:18px}
+    .panel p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.35}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+    button{border:0;cursor:pointer;padding:10px 18px;border-radius:10px;font-weight:800;font-size:14px}
+    .btn-primary{background:var(--sap-blue);color:#fff}
+    .btn-secondary{background:#d3e7fb;color:#0b3c74}
+    .status{margin-top:8px;font-size:13px;color:var(--muted)}
+    .ok{color:var(--ok);font-weight:900}.err{color:var(--err);font-weight:900}
+    .logwrap{margin-top:14px}.logtitle{font-size:16px;font-weight:900;margin:0 0 8px}
+    .logbox{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;height:220px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre-wrap}
   </style>
 </head>
 <body>
 <header>
-  <h1>MedVoice | Dictado</h1>
-  <p>Dictado clínico por voz y envío a transcripción.</p>
+  <div class="head-row">
+    <div class="app-name">MedVoice | Dictado</div>
+    <div class="patient-line" id="patientLine">Paciente por confirmar | Episodio por confirmar | Campo: por confirmar</div>
+    <div style="justify-self:end;"><span class="pill" id="modePill">En espera de palabra clave</span></div>
+  </div>
 </header>
 
 <div class="wrap">
   <div class="card">
-    <div class="meta">
-      <div class="line">
-        <b>Paciente:</b> <span id="mPatnr">—</span>
-        &nbsp; | &nbsp;
-        <b>Episodio:</b> <span id="mFalnr">—</span>
-        &nbsp; | &nbsp;
-        <b>Campo:</b> <span id="mField">ANAMNESIS</span>
-      </div>
-      <span class="pill">Listo</span>
-    </div>
+    <p style="margin:0;color:#3f5163">El sistema escuchará la palabra clave para iniciar el dictado y enviará el resultado automáticamente.</p>
+    <!-- FUTURO: insertar nombre completo del paciente y demografía desde SAP -->
+    <!-- <div id="patientFullInfo"></div> -->
   </div>
 
-  <div class="grid">
-    <div class="panel">
-      <h2>Dictado</h2>
-      <p>Presiona <b>Grabar</b>, habla con normalidad y luego presiona <b>Detener</b>. Se enviará a transcripción.</p>
-
-      <div class="btns">
-        <button id="btnRec" class="btn-primary">Grabar</button>
-        <button id="btnSend" class="btn-secondary" disabled>Enviar</button>
-      </div>
-
-      <div class="status">
-        Estado: <span id="st">listo.</span>
-      </div>
+  <div class="panel">
+    <h2>Dictado clínico</h2>
+    <p>Diga la palabra clave para iniciar y vuelva a pulsar detener cuando termine.</p>
+    <div class="btns">
+      <button id="btnRec" class="btn-primary">Iniciar escucha</button>
+      <button id="btnStop" class="btn-secondary" disabled>Detener</button>
     </div>
+    <div class="status">Estado: <span id="st">listo.</span></div>
   </div>
 
   <div class="logwrap">
-    <div class="logtitle">Log</div>
+    <div class="logtitle">Seguimiento</div>
     <div id="logBox" class="logbox"></div>
   </div>
 </div>
 
 <script>
-// --- Limpieza barra: mostrar SIEMPRE .../static/index.html (sin query)
-(function () {
-  const u = new URL(location.href);
-  const indexUrl = u.origin + "/static/index.html";
-  history.replaceState({}, document.title, indexUrl);
-})();
+(function(){ history.replaceState({}, document.title, "/static/medvoice-transcribe.html"); })();
 
-function getCtx(){
-  const u = new URL(location.href);
-  const qs = u.searchParams;
-  const get = (k)=> (sessionStorage.getItem("medvoice."+k)
-                  || localStorage.getItem("medvoice."+k)
-                  || (qs.get(k)||"")).trim();
-  return {
-    doctor_id: get("doctor_id"),
-    api:       get("api") || "http://127.0.0.1:8000",
-    field:     get("field") || "ANAMNESIS",
-    patnr:     get("patnr") || "—",
-    falnr:     get("falnr") || "—"
-  };
+function getValue(k, fallback=""){
+  return (sessionStorage.getItem("medvoice." + k) || localStorage.getItem("medvoice." + k) || fallback).trim();
 }
 
-const ctx = getCtx();
-document.getElementById("mPatnr").textContent = ctx.patnr;
-document.getElementById("mFalnr").textContent = ctx.falnr;
-document.getElementById("mField").textContent = ctx.field;
+const ctx = {
+  doctor_id: getValue("doctor_id"),
+  api: getValue("api", window.location.origin),
+  field: getValue("field", "por confirmar"),
+  patnr: getValue("patnr", "por confirmar"),
+  falnr: getValue("falnr", "por confirmar"),
+  wake_word: getValue("wake_word", "SAP")
+};
 
+const patientLine = document.getElementById("patientLine");
+patientLine.textContent = `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | Campo: ${ctx.field}`;
+
+// FUTURO SAP: completar bloque de datos extendidos del paciente aquí.
+// const patientFullInfo = document.getElementById("patientFullInfo");
+// patientFullInfo.textContent = `${sapData.patientName} | ${sapData.birthDate} | ${sapData.gender}`;
+
+const st = document.getElementById("st");
+const modePill = document.getElementById("modePill");
 const logBox = document.getElementById("logBox");
+const btnRec = document.getElementById("btnRec");
+const btnStop = document.getElementById("btnStop");
+
 function log(m){
   const ts = new Date().toLocaleTimeString();
   logBox.textContent += `[${ts}] ${m}\n`;
   logBox.scrollTop = logBox.scrollHeight;
 }
-log("Dictado listo.");
 
-const st = document.getElementById("st");
-const btnRec = document.getElementById("btnRec");
-const btnSend = document.getElementById("btnSend");
+function micBlockedMessage(){
+  st.innerHTML = '<span class="err">No fue posible usar el micrófono. Revise permisos del navegador.</span>';
+  log("No se pudo activar el micrófono. Revise permisos del navegador en Chrome.");
+}
 
-let stream=null, rec=null, chunks=[], lastBlob=null;
+// Nota dev: en producción, usar HTTPS para permisos de audio más consistentes.
+let wakeRecognition = null;
+let wakeLoopEnabled = false;
+let dictationRecorder = null;
+let dictationStream = null;
+let dictationChunks = [];
 
-function stopStream(s){ try{ s && s.getTracks && s.getTracks().forEach(t=>t.stop()); }catch(e){} }
+function stopStream(stream){ try{ stream && stream.getTracks().forEach(t=>t.stop()); }catch(_e){} }
 
-async function mic(){
-  return await navigator.mediaDevices.getUserMedia({audio:true});
+function setupWakeRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    log("Detección por palabra clave no disponible en este navegador.");
+    st.textContent = "la detección de palabra clave no está disponible.";
+    return null;
+  }
+  const recognition = new SR();
+  recognition.lang = "es-ES";
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event)=>{
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const fragment = (event.results[i][0] && event.results[i][0].transcript || "").toLowerCase();
+      if (fragment.includes(ctx.wake_word.toLowerCase())) {
+        log(`Palabra clave detectada: ${ctx.wake_word}`);
+        startDictation();
+        break;
+      }
+    }
+  };
+
+  recognition.onerror = (_e)=>{
+    if (wakeLoopEnabled) {
+      log("La escucha de palabra clave se reiniciará automáticamente.");
+    }
+  };
+
+  recognition.onend = ()=>{
+    if (wakeLoopEnabled && !dictationRecorder) {
+      try { recognition.start(); } catch(_e) {}
+    }
+  };
+  return recognition;
+}
+
+async function startDictation(){
+  if (dictationRecorder && dictationRecorder.state === "recording") return;
+  try{
+    if (wakeRecognition) {
+      try{ wakeRecognition.stop(); }catch(_e){}
+    }
+    dictationStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    dictationChunks = [];
+    dictationRecorder = new MediaRecorder(dictationStream);
+    dictationRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size) dictationChunks.push(e.data); };
+    dictationRecorder.onstop = async ()=>{
+      stopStream(dictationStream);
+      const audioBlob = new Blob(dictationChunks, {type:"audio/webm"});
+      await sendToTranscribe(audioBlob);
+      dictationRecorder = null;
+      if (wakeLoopEnabled && wakeRecognition) {
+        try { wakeRecognition.start(); } catch(_e){}
+        modePill.textContent = "En espera de palabra clave";
+      }
+    };
+    dictationRecorder.start();
+    st.innerHTML = '<span class="ok">dictado en curso.</span>';
+    modePill.textContent = "Dictando";
+    btnStop.disabled = false;
+    log("Dictado iniciado.");
+  }catch(_e){ micBlockedMessage(); }
+}
+
+async function sendToTranscribe(blob){
+  st.textContent = "enviando audio para transcripción…";
+  log("Enviando audio para transcripción.");
+  const endpoint = ctx.api.replace(/\/$/, "") + "/api/transcribe";
+  const fd = new FormData();
+  fd.append("doctor_id", ctx.doctor_id || "");
+  fd.append("target_field", ctx.field || "");
+  fd.append("audio", blob, "dictado.webm");
+
+  try{
+    const res = await fetch(endpoint, {method:"POST", body:fd});
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const text = (data && data.text || "").trim();
+    localStorage.setItem("medvoice.last_transcript_text", text);
+    window.MEDVOICE_TRANSCRIPT = text;
+    log(text ? "Transcripción recibida correctamente." : "Se recibió respuesta sin texto.");
+    st.innerHTML = '<span class="ok">transcripción completada.</span>';
+    btnStop.disabled = true;
+    await pushResult(text);
+
+    // Fallback SAP GUI HTML Viewer (sapevent): habilitar solo si el canal HTTP no aplica.
+    // window.location.href = "sapevent:MEDVOICE_DONE?text=" + encodeURIComponent(text);
+  }catch(err){
+    st.innerHTML = '<span class="err">No fue posible completar la transcripción.</span>';
+    log("Error al enviar o recibir la transcripción: " + (err.message || String(err)));
+  }
+}
+
+async function pushResult(text){
+  const endpoint = ctx.api.replace(/\/$/, "") + "/api/push_result";
+  try{
+    const payload = {
+      doctor_id: ctx.doctor_id || "",
+      patnr: ctx.patnr || "",
+      falnr: ctx.falnr || "",
+      field: ctx.field || "",
+      text: text || ""
+    };
+    const res = await fetch(endpoint, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    log("Resultado entregado correctamente.");
+  }catch(_e){
+    log("No fue posible entregar el resultado por canal principal.");
+  }
 }
 
 btnRec.addEventListener("click", async ()=>{
-  if (rec && rec.state === "recording"){
-    rec.stop();
-    btnRec.textContent = "Grabar";
-    st.textContent = "procesando…";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    micBlockedMessage();
     return;
   }
   try{
-    stream = await mic();
-    chunks = [];
-    rec = new MediaRecorder(stream);
-    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-    rec.onstop = ()=>{
-      stopStream(stream);
-      lastBlob = new Blob(chunks, {type:"audio/webm"});
-      btnSend.disabled = false;
-      st.innerHTML = `<span class="ok">grabación lista.</span>`;
-      log("Grabación detenida.");
-    };
-    rec.start();
-    btnRec.textContent = "Detener";
-    st.textContent = "grabando…";
-    log("Grabación iniciada.");
-  }catch(e){
-    st.innerHTML = `<span class="err">no se pudo acceder al micrófono.</span>`;
-    log("ERROR micrófono. Revisa permisos del navegador.");
+    const test = await navigator.mediaDevices.getUserMedia({audio:true});
+    stopStream(test);
+  }catch(_e){
+    micBlockedMessage();
+    return;
   }
+
+  wakeRecognition = wakeRecognition || setupWakeRecognition();
+  if (!wakeRecognition) return;
+  wakeLoopEnabled = true;
+  btnRec.disabled = true;
+  btnStop.disabled = false;
+  st.textContent = `escuchando palabra clave: ${ctx.wake_word}`;
+  modePill.textContent = "Escuchando palabra clave";
+  log(`Escucha activa. Diga la palabra clave "${ctx.wake_word}".`);
+  try { wakeRecognition.start(); } catch(_e) { log("No se pudo iniciar la escucha en este momento."); }
 });
 
-btnSend.addEventListener("click", async ()=>{
-  if (!lastBlob){ return; }
-
-  try{
-    st.textContent = "enviando…";
-    log("Enviando a transcripción…");
-
-    const fd = new FormData();
-    fd.append("file", lastBlob, "audio.webm");
-    fd.append("doctor_id", ctx.doctor_id || "");
-    fd.append("patnr", ctx.patnr || "");
-    fd.append("falnr", ctx.falnr || "");
-    fd.append("field", ctx.field || "");
-
-    const r = await fetch(ctx.api.replace(/\/$/,"") + "/api/transcribe", {
-      method: "POST",
-      body: fd
-    });
-
-    if (!r.ok){
-      const t = await r.text();
-      throw new Error("HTTP " + r.status + " " + t);
-    }
-
-    const data = await r.json().catch(()=> ({}));
-    st.innerHTML = `<span class="ok">transcripción recibida.</span>`;
-    log("Transcripción OK.");
-
-    // Si tu backend devuelve {text: "..."} lo registramos en log (sin mostrarlo en pantalla principal)
-    if (data && data.text){
-      log("Texto: " + data.text);
-    }
-
-  }catch(err){
-    st.innerHTML = `<span class="err">error enviando a transcripción.</span>`;
-    log("ERROR: " + (err && err.message ? err.message : String(err)));
+btnStop.addEventListener("click", ()=>{
+  wakeLoopEnabled = false;
+  btnRec.disabled = false;
+  btnStop.disabled = true;
+  if (wakeRecognition) { try{ wakeRecognition.stop(); }catch(_e){} }
+  if (dictationRecorder && dictationRecorder.state === "recording") {
+    dictationRecorder.stop();
   }
+  modePill.textContent = "En pausa";
+  st.textContent = "detenido.";
+  log("Proceso detenido por el usuario.");
 });
+
+window.MEDVOICE_TRANSCRIPT = localStorage.getItem("medvoice.last_transcript_text") || "";
+log("Dictado listo para iniciar.");
 </script>
 </body>
 </html>

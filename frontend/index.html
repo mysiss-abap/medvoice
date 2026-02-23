@@ -8,39 +8,33 @@
 <body>
 <script>
 (function () {
-  const u = new URL(window.location.href);
-  const qs = u.searchParams;
+  const url = new URL(window.location.href);
+  const pick = (k) => (url.searchParams.get(k) || "").trim();
 
-  const pick = (k) => (qs.get(k) || "").trim();
-
-  // Contexto que llega desde SAP
-  const ctx = {
+  const context = {
     doctor_id: pick("doctor_id"),
-    api:       pick("api"),
-    field:     pick("field"),
-    patnr:     pick("patnr"),
-    falnr:     pick("falnr"),
+    api: pick("api"),
+    field: pick("field"),
+    patnr: pick("patnr"),
+    falnr: pick("falnr"),
     wake_word: pick("wake_word") || pick("wake") || "SAP"
   };
 
-  // Persistencia (session + local) para que cualquier pantalla lo lea
-  for (const [k, v] of Object.entries(ctx)) {
+  Object.entries(context).forEach(([k, v]) => {
     if (v) {
       sessionStorage.setItem("medvoice." + k, v);
       localStorage.setItem("medvoice." + k, v);
     }
-  }
+  });
 
-  // LIMPIAR la barra: dejar SOLO .../static/index.html
-  if (u.search) {
-    history.replaceState({}, document.title, u.pathname);
-  }
+  history.replaceState({}, document.title, "/static/index.html");
 
-  // Router
-  const hasVoice = localStorage.getItem("medvoice.has_voiceprint") === "1";
-  const basePath = u.pathname.replace(/index\.html$/i, "");
-  const next = hasVoice ? "medvoice-transcribe.html" : "medvoice-setup.html";
-  window.location.replace(basePath + next);
+  const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1";
+  const destination = hasVoiceprint
+    ? "/static/medvoice-transcribe.html"
+    : "/static/medvoice-setup.html";
+
+  window.location.replace(destination);
 })();
 </script>
 </body>
