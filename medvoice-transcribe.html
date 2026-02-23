@@ -484,216 +484,278 @@
 
 
 <script>
-  // ===== mySiss Voice Popup: SIN TEXTO en UI (solo voz + orbe mic) =====
+  // ===== mySiss Voice Engine + Popup =====
   (function(){
-    const init = () => {
-    const gifBtn   = document.getElementById('mySissGifBtn');
-    const overlay  = document.getElementById('mySissOverlay');
-    const modal    = document.getElementById('mySissModal');
-    const closeBtn = document.getElementById('mySissClose');
-    const micOrb   = document.getElementById('mySissMic');
-    const dashOverlay = document.getElementById('mySissDashOverlay');
-    const dashClose   = document.getElementById('mySissDashClose');
-    const dashCanvas  = document.getElementById('mySissMiniChart');
-
-    if(!gifBtn || !overlay || !modal || !closeBtn || !micOrb) return;
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let rec = null;
-    let listening = false;
-
-    function speakES(text){
-      try{
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'es-CO';
-        u.rate = 1.0;
-        u.pitch = 1.0;
-        window.speechSynthesis.speak(u);
-      }catch(e){}
-    }
-
-    function openPopup(){
-      overlay.classList.add('show');
-      overlay.setAttribute('aria-hidden', 'false');
-
-      // El asistente habla y luego escucha automáticamente
-      try{
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance("Doctor, ¿qué información clínica del paciente necesita consultar?");
-        u.lang = 'es-CO'; u.rate = 1.0; u.pitch = 1.0;
-        u.onend = () => { setTimeout(() => startListening(), 150); };
-        window.speechSynthesis.speak(u);
-        // Respaldo por si onend no dispara
-        setTimeout(() => { if(!listening) startListening(); }, 1200);
-      }catch(e){
-        speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
-        setTimeout(() => startListening(), 800);
-      }
-    }
-
-    function closePopup(){
-      overlay.classList.remove('show');
-      overlay.setAttribute('aria-hidden', 'true');
-      stopListening();
-    }
-
-    closeBtn.addEventListener('click', closePopup);
-    overlay.addEventListener('click', (e) => { if(e.target === overlay) closePopup(); });
-
-    gifBtn.addEventListener('click', openPopup);
-
-    function initRec(){
-      if (!SpeechRecognition) return null;
-
-      const r = new SpeechRecognition();
-      r.lang = 'es-CO';
-      r.interimResults = false;
-      r.continuous = false;
-
-      r.onstart = () => {
-        listening = true;
-        modal.classList.add('mysiss-listening');
-      };
-
-      r.onerror = () => {
-        listening = false;
-        modal.classList.remove('mysiss-listening');
-        speakES("No tengo acceso al micrófono. Por favor habilite el permiso del navegador e intente de nuevo.");
-      };
-
-      r.onend = () => {
-        listening = false;
-        modal.classList.remove('mysiss-listening');
-      };
-
-      r.onresult = (event) => {
-        const said = (event.results?.[0]?.[0]?.transcript || '').trim();
-        if(!said) return;
-        respondToQueryByVoice(said);
-      };
-
-      return r;
-    }
-
-    function startListening(){
-      if(!rec) rec = initRec();
-      if(!rec){
-        speakES("Este navegador no soporta dictado por voz.");
-        return;
-      }
-      try{ rec.start(); }catch(e){}
-    }
-
-    function stopListening(){
-      if(rec && listening){
-        try{ rec.stop(); }catch(e){}
-      }
-    }
-
-    micOrb.addEventListener('click', () => {
-      if(listening) stopListening();
-      else startListening();
-    });
-
-    function normalize(s){
-      return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    }
-
-    function respondToQueryByVoice(query){
-      const q = normalize(query);
-
-      // Punto de integración real:
-      // TODO(SAP): aquí llamar endpoint/función y poblar el dashboard según el tipo de consulta.
-
-      if(q.includes('hemograma') || q.includes('cuadro hematico') || q.includes('cbc')){
-        speakES("Hemograma localizado. Presentando vista clínica.");
-        openDashboard('cbc');
-        return;
-      }
-      if(q.includes('alerg')){
-        speakES("Alergias verificadas. Presentando vista clínica.");
-        openDashboard('alergias');
-        return;
-      }
-      if(q.includes('diagnost') || q.includes('dx')){
-        speakES("Diagnósticos revisados. Presentando vista clínica.");
-        openDashboard('dx');
-        return;
-      }
-      if(q.includes('medic') || q.includes('tratam')){
-        speakES("Medicación actual revisada. Presentando vista clínica.");
-        openDashboard('meds');
-        return;
-      }
-
-      speakES("Consulta recibida. Presentando vista clínica.");
-      openDashboard('general');
-    }
-
+    const STATES = {
+      PASSIVE: 'PASSIVE',
+      WAKE_DETECTED: 'WAKE_DETECTED',
+      SPEAKING: 'SPEAKING',
+      ACTIVE_LISTENING: 'ACTIVE_LISTENING',
+      PROCESSING: 'PROCESSING'
     };
-    // asegurar binding incluso si el script carga antes del DOM
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
 
-    
+    let state = STATES.PASSIVE;
+    let rec = null;
+    let isRecognitionRunning = false;
+    let shouldRestart = true;
+    let activePromptTimeout = null;
+    let passiveRestartTimer = null;
+    let lastWakeAt = 0;
+
     let dashChart = null;
 
-    function openDashboard(mode){
-      if(!dashOverlay || !dashCanvas) return;
-      dashOverlay.classList.add('show');
-      dashOverlay.setAttribute('aria-hidden','false');
+    const init = () => {
+      const gifBtn = document.getElementById('mySissGifBtn');
+      const overlay = document.getElementById('mySissOverlay');
+      const modal = document.getElementById('mySissModal');
+      const closeBtn = document.getElementById('mySissClose');
+      const micOrb = document.getElementById('mySissMic');
+      const dashOverlay = document.getElementById('mySissDashOverlay');
+      const dashClose = document.getElementById('mySissDashClose');
+      const dashCanvas = document.getElementById('mySissMiniChart');
 
-      // Visual: chart sin etiquetas/valores visibles (solo formas)
-      try{
-        if(window.Chart){
-          const ctx = dashCanvas.getContext('2d');
-          if(dashChart) dashChart.destroy();
+      if(!gifBtn || !overlay || !modal || !closeBtn || !micOrb) return;
 
-          const base = (mode === 'cbc') ? [6,4,7,5,6,4,7] :
-                       (mode === 'alergias') ? [2,2,3,2,2,3,2] :
-                       (mode === 'dx') ? [4,5,4,5,4,5,4] :
-                       (mode === 'meds') ? [3,4,3,4,3,4,3] : [4,4,4,4,4,4,4];
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-          dashChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: ['','','','','','',''],
-              datasets: [{
-                label: '',
-                data: base,
-                tension: 0.35,
-                borderWidth: 2,
-                pointRadius: 0
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display:false }, tooltip: { enabled:false } },
-              scales: {
-                x: { display:false, grid:{ display:false } },
-                y: { display:false, grid:{ display:false } }
-              }
-            }
-          });
+      function setState(nextState){
+        state = nextState;
+        const visualListening = (state === STATES.PASSIVE || state === STATES.ACTIVE_LISTENING);
+        modal.classList.toggle('mysiss-listening', visualListening && isRecognitionRunning);
+      }
+
+      function normalize(s){
+        return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      }
+
+      function detectWakeWord(text){
+        return normalize(text).includes('boton');
+      }
+
+      function speakES(text, onEnd){
+        try{
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'es-CO';
+          u.rate = 1.0;
+          u.pitch = 1.0;
+          u.onend = () => { if(typeof onEnd === 'function') onEnd(); };
+          u.onerror = () => { if(typeof onEnd === 'function') onEnd(); };
+          window.speechSynthesis.speak(u);
+        }catch(e){
+          if(typeof onEnd === 'function') onEnd();
         }
-      }catch(e){}
-    }
+      }
 
-    function closeDashboard(){
-      if(!dashOverlay) return;
-      dashOverlay.classList.remove('show');
-      dashOverlay.setAttribute('aria-hidden','true');
-      // Al cerrar dashboard, el popup de voz queda abierto (si estaba abierto)
-    }
+      function openPopup(){
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
 
-    if(dashClose) dashClose.addEventListener('click', closeDashboard);
-    if(dashOverlay) dashOverlay.addEventListener('click', (e)=>{ if(e.target === dashOverlay) closeDashboard(); });
+      function closePopup(){
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
 
-    document.addEventListener('keydown', (e) => {
-      if(e.key === 'Escape' && overlay.classList.contains('show')) closePopup();
-    });
+      function openDashboard(mode){
+        if(!dashOverlay || !dashCanvas) return;
+        dashOverlay.classList.add('show');
+        dashOverlay.setAttribute('aria-hidden','false');
+
+        try{
+          if(window.Chart){
+            const ctx = dashCanvas.getContext('2d');
+            if(dashChart) dashChart.destroy();
+
+            const base = (mode === 'cbc') ? [6,4,7,5,6,4,7] :
+                         (mode === 'alergias') ? [2,2,3,2,2,3,2] :
+                         (mode === 'dx') ? [4,5,4,5,4,5,4] :
+                         (mode === 'meds') ? [3,4,3,4,3,4,3] : [4,4,4,4,4,4,4];
+
+            dashChart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: ['','','','','','',''],
+                datasets: [{ label: '', data: base, tension: 0.35, borderWidth: 2, pointRadius: 0 }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display:false }, tooltip: { enabled:false } },
+                scales: {
+                  x: { display:false, grid:{ display:false } },
+                  y: { display:false, grid:{ display:false } }
+                }
+              }
+            });
+          }
+        }catch(e){}
+      }
+
+      function closeDashboard(){
+        if(!dashOverlay) return;
+        dashOverlay.classList.remove('show');
+        dashOverlay.setAttribute('aria-hidden','true');
+      }
+
+      function handleQuery(query){
+        const q = normalize(query);
+
+        if(q.includes('hemograma') || q.includes('cuadro hematico') || q.includes('cbc')){
+          speakES('Hemograma localizado. Presentando vista clínica.');
+          openDashboard('cbc');
+          return;
+        }
+        if(q.includes('alerg')){
+          speakES('Alergias verificadas. Presentando vista clínica.');
+          openDashboard('alergias');
+          return;
+        }
+        if(q.includes('diagnost') || q.includes('dx')){
+          speakES('Diagnósticos revisados. Presentando vista clínica.');
+          openDashboard('dx');
+          return;
+        }
+        if(q.includes('medic') || q.includes('tratam')){
+          speakES('Medicación actual revisada. Presentando vista clínica.');
+          openDashboard('meds');
+          return;
+        }
+
+        speakES('Consulta recibida. Presentando vista clínica.');
+        openDashboard('general');
+      }
+
+      function schedulePassiveRestart(delay = 180){
+        clearTimeout(passiveRestartTimer);
+        passiveRestartTimer = setTimeout(() => startPassiveListening(), delay);
+      }
+
+      function enterPassiveMode(){
+        clearTimeout(activePromptTimeout);
+        setState(STATES.PASSIVE);
+        schedulePassiveRestart(100);
+      }
+
+      function startActiveListening(){
+        setState(STATES.ACTIVE_LISTENING);
+        startRecognition();
+      }
+
+      function promptForActiveListening(){
+        setState(STATES.SPEAKING);
+        speakES('Doctor, ¿qué desea consultar del paciente?', () => {
+          activePromptTimeout = setTimeout(() => startActiveListening(), 120);
+        });
+      }
+
+      function triggerWakeWordFlow(){
+        if(Date.now() - lastWakeAt < 1200) return;
+        lastWakeAt = Date.now();
+        setState(STATES.WAKE_DETECTED);
+        stopRecognition();
+        openPopup();
+        promptForActiveListening();
+      }
+
+      function handleResult(event){
+        const result = event.results?.[event.resultIndex];
+        const said = (result?.[0]?.transcript || '').trim();
+        if(!said) return;
+
+        if(state === STATES.PASSIVE){
+          if(detectWakeWord(said)) triggerWakeWordFlow();
+          return;
+        }
+
+        if(state === STATES.ACTIVE_LISTENING){
+          setState(STATES.PROCESSING);
+          stopRecognition();
+          handleQuery(said);
+          enterPassiveMode();
+        }
+      }
+
+      function initRecognition(){
+        if(!SpeechRecognition) return null;
+
+        const r = new SpeechRecognition();
+        r.lang = 'es-CO';
+        r.interimResults = false;
+        r.continuous = true;
+
+        r.onstart = () => {
+          isRecognitionRunning = true;
+          const visualListening = (state === STATES.PASSIVE || state === STATES.ACTIVE_LISTENING);
+          modal.classList.toggle('mysiss-listening', visualListening);
+        };
+
+        r.onresult = handleResult;
+
+        r.onerror = () => {
+          isRecognitionRunning = false;
+          modal.classList.remove('mysiss-listening');
+        };
+
+        r.onend = () => {
+          isRecognitionRunning = false;
+          modal.classList.remove('mysiss-listening');
+          if(shouldRestart && (state === STATES.PASSIVE || state === STATES.ACTIVE_LISTENING)){
+            schedulePassiveRestart(220);
+          }
+        };
+
+        return r;
+      }
+
+      function startRecognition(){
+        if(!rec) rec = initRecognition();
+        if(!rec) return;
+
+        shouldRestart = true;
+        if(isRecognitionRunning) return;
+        try{ rec.start(); }catch(e){ schedulePassiveRestart(300); }
+      }
+
+      function stopRecognition(){
+        shouldRestart = false;
+        if(rec && isRecognitionRunning){
+          try{ rec.stop(); }catch(e){}
+        }
+      }
+
+      function startPassiveListening(){
+        if(state !== STATES.PASSIVE) return;
+        startRecognition();
+      }
+
+      closeBtn.addEventListener('click', closePopup);
+      overlay.addEventListener('click', (e) => { if(e.target === overlay) closePopup(); });
+      gifBtn.addEventListener('click', openPopup);
+      micOrb.addEventListener('click', () => {
+        if(state === STATES.ACTIVE_LISTENING){
+          enterPassiveMode();
+          return;
+        }
+        if(state === STATES.PASSIVE){
+          triggerWakeWordFlow();
+        }
+      });
+
+      if(dashClose) dashClose.addEventListener('click', closeDashboard);
+      if(dashOverlay) dashOverlay.addEventListener('click', (e)=>{ if(e.target === dashOverlay) closeDashboard(); });
+
+      document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape' && overlay.classList.contains('show')) closePopup();
+      });
+
+      // Continuous passive listening from page load.
+      setState(STATES.PASSIVE);
+      startPassiveListening();
+    };
+
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
   })();
 </script>
 
