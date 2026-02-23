@@ -278,7 +278,7 @@
 <body>
 <header>
   <div class="t">MedVoice | Transcripción</div>
-  <div class="s">Dictado → MedASR (backend) → Verificación huella → Guardar en PMD</div>
+  <div class="s">Dictado → MedASR → Verificación huella → Guardar en PMD</div>
 </header>
 
 <main class="app-container">
@@ -292,9 +292,6 @@
         </div>
         <div class="pill" id="envPill">Validando...</div>
       </div>
-      <div class="small">
-        Si corre embebido, el retorno a SAP se hace con <b>sapevent</b>.
-      </div>
 
       <div class="button-row">
       <button class="btn" id="btnRecToggle">Iniciar dictado</button>
@@ -307,10 +304,6 @@
 
     <div class="transcription-container">
       <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
-    </div>
-
-    <div class="small">
-      Seguridad: si el backend devuelve <b>verify_ok=false</b>, NO se envía a SAP.
     </div>
 
     <div class="log-container">
