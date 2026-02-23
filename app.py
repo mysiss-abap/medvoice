@@ -11,6 +11,7 @@ import soundfile as sf
 from fastapi import FastAPI, UploadFile, File, Form, Query
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 # =========================
 # BIOMETRÍA (COMENTADA PERO CONSERVADA)
@@ -38,6 +39,12 @@ GHP_ORIGIN = "https://mysiss-abap.github.io"
 whisper = WhisperModel(DEFAULT_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
 
 app = FastAPI(title=APP_TITLE)
+
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR / "frontend"),
+    name="static",
+)
 
 # CORS para que el HTML en GitHub Pages pueda llamar tu API
 app.add_middleware(
