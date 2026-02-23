@@ -10,12 +10,56 @@
       --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
       --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
     }
-    body{margin:0;background:var(--sap-bg);font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);}
-    header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:14px 18px;}
+    body{
+      margin:0;
+      height:100vh;
+      overflow:hidden;
+      background:var(--sap-bg);
+      font-family:Segoe UI, Arial, sans-serif;
+      color:var(--sap-text);
+      display:flex;
+      flex-direction:column;
+    }
+    header{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:10;
+      background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
+      color:#fff;
+      padding:14px 18px;
+      box-sizing:border-box;
+    }
     header .t{font-size:18px;font-weight:600;}
     header .s{font-size:12px;opacity:.9;margin-top:2px;}
-    .wrap{max-width:980px;margin:18px auto;padding:0 14px;}
-    .card{background:var(--sap-card);border:1px solid var(--sap-border);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);padding:16px;margin-bottom:14px;}
+    .app-container{
+      flex:1;
+      min-height:0;
+      margin-top:72px;
+      padding:18px 14px;
+      overflow:hidden;
+      box-sizing:border-box;
+      display:flex;
+      justify-content:center;
+    }
+    .card{
+      width:100%;
+      max-width:980px;
+      background:var(--sap-card);
+      border:1px solid var(--sap-border);
+      border-radius:10px;
+      box-shadow:0 1px 2px rgba(0,0,0,.05);
+      padding:16px;
+      box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-height:0;
+    }
+    .controls{display:flex;flex-direction:column;gap:12px;}
+    .meta-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    .button-row{display:flex;gap:10px;flex-wrap:wrap;}
     .btn{
       border:1px solid var(--sap-blue); background:var(--sap-blue); color:#fff;
       border-radius:8px; padding:10px 14px; font-size:14px; cursor:pointer; transition:.15s; user-select:none;
@@ -26,7 +70,7 @@
     .btn-warn{background:var(--warn);border-color:var(--warn);}
     textarea{
       border:1px solid var(--sap-border);border-radius:8px;padding:10px 10px;font-size:14px;outline:none;background:#fff;
-      width:100%;min-height:320px;resize:vertical;line-height:1.4
+      width:100%;height:100%;resize:none;line-height:1.4;overflow-y:auto;box-sizing:border-box;
     }
     textarea:focus{border-color:var(--sap-blue);}
     .pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;background:#eef2f7;border:1px solid var(--sap-border);color:var(--sap-muted);}
@@ -34,6 +78,10 @@
     .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
     .small{font-size:12px;color:var(--sap-muted);line-height:1.4}
     .mono{font-family:Consolas, monospace;font-size:12px;white-space:pre-wrap;}
+    .transcription-container{flex:1;min-height:160px;display:flex;}
+    .log-container{flex:1;min-height:120px;display:flex;flex-direction:column;gap:8px;}
+    .log-title{margin:0;font-size:16px;}
+    .log-output{flex:1;min-height:0;border:1px solid var(--sap-border);border-radius:8px;padding:10px;background:#fff;overflow-y:auto;}
   
   /* ==== mySiss Voice Assistant (GIF + popup sin texto) ==== */
   .mysiss-gif-btn{
@@ -218,6 +266,13 @@
     .mysiss-dash-grid{ grid-template-columns: repeat(2, 1fr); }
   }
 
+  @media (max-width:768px){
+    .app-container{padding:12px;}
+    .card{padding:12px;}
+    .transcription-container{min-height:140px;}
+    .log-container{min-height:100px;}
+  }
+
 </style>
 </head>
 <body>
@@ -226,44 +281,44 @@
   <div class="s">Dictado → MedASR (backend) → Verificación huella → Guardar en PMD</div>
 </header>
 
-<div class="wrap">
+<main class="app-container">
   <div class="card">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
-      <div class="small">
-        <b>Médico:</b> <span id="doctorLbl">-</span> &nbsp; | &nbsp;
-        <b>API:</b> <span id="apiLbl">-</span> &nbsp; | &nbsp;
-        <b>Campo:</b> <span id="fieldLbl">-</span>
+    <div class="controls">
+      <div class="meta-row">
+        <div class="small">
+          <b>Médico:</b> <span id="doctorLbl">-</span> &nbsp; | &nbsp;
+          <b>API:</b> <span id="apiLbl">-</span> &nbsp; | &nbsp;
+          <b>Campo:</b> <span id="fieldLbl">-</span>
+        </div>
+        <div class="pill" id="envPill">Validando...</div>
       </div>
-      <div class="pill" id="envPill">Validando...</div>
-    </div>
-    <div class="small" style="margin-top:10px">
-      Si corre embebido, el retorno a SAP se hace con <b>sapevent</b>.
-    </div>
-  </div>
+      <div class="small">
+        Si corre embebido, el retorno a SAP se hace con <b>sapevent</b>.
+      </div>
 
-  <div class="card">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="button-row">
       <button class="btn" id="btnRecToggle">Iniciar dictado</button>
       <button class="btn btn-warn" id="btnProcess" disabled>Procesar (Transcribir → Enviar SAP → Limpiar)</button>
       <button class="btn btn-ghost" id="btnClear">Limpiar</button>
+      </div>
     </div>
 
     <div class="status" id="status">Estado: listo.</div>
 
-    <div style="margin-top:12px">
+    <div class="transcription-container">
       <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
     </div>
 
-    <div class="small" style="margin-top:10px">
+    <div class="small">
       Seguridad: si el backend devuelve <b>verify_ok=false</b>, NO se envía a SAP.
     </div>
-  </div>
 
-  <div class="card">
-    <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
-    <div class="mono" id="log"></div>
+    <div class="log-container">
+      <h3 class="log-title">Log</h3>
+      <div class="mono log-output" id="log"></div>
+    </div>
   </div>
-</div>
+</main>
 
 <script>
   const $ = (id)=>document.getElementById(id);
