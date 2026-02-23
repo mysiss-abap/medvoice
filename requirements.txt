@@ -10,3 +10,4 @@ faster-whisper==1.0.3
 torch==2.2.1
 torchaudio==2.2.1
 soundfile
+resemblyzer
