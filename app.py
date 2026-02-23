@@ -68,6 +68,13 @@ BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR / "frontend"),
+    name="static",
+)
+
+
 # cache RAM (solo performance, la verdad está en archivo)
 VOICEPRINTS: dict[str, np.ndarray] = {}  # doctor_id -> embedding
 
