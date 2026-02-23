@@ -24,9 +24,14 @@ from faster_whisper import WhisperModel
 # Config
 # =========================
 APP_TITLE = "MedVoice Backend"
-DEFAULT_MODEL = "small"  # small / medium / large-v3 (según máquina)
+DEFAULT_MODEL = "small"
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
+
+# Directorios base
+BASE_DIR = Path(__file__).parent
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
 
 # GitHub Pages origin (tu repo)
 GHP_ORIGIN = "https://mysiss-abap.github.io"
@@ -40,6 +45,7 @@ whisper = WhisperModel(DEFAULT_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
 
 app = FastAPI(title=APP_TITLE)
 
+# Servir frontend local
 app.mount(
     "/static",
     StaticFiles(directory=BASE_DIR / "frontend"),
@@ -67,13 +73,6 @@ app.add_middleware(
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
-
-app.mount(
-    "/static",
-    StaticFiles(directory=BASE_DIR / "frontend"),
-    name="static",
-)
-
 
 # cache RAM (solo performance, la verdad está en archivo)
 VOICEPRINTS: dict[str, np.ndarray] = {}  # doctor_id -> embedding
