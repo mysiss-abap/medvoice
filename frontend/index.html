@@ -3,98 +3,40 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MedVoice | Router</title>
-  <style>
-    html,body{height:100%;margin:0}
-    #frame{width:100%;height:100%;border:0;display:block}
-    .msg{
-      font-family:Segoe UI, Arial, sans-serif;
-      padding:18px;
-      color:#1d2d3e;
-    }
-    .mono{font-family:Consolas, monospace; white-space:pre-wrap; font-size:12px;}
-  </style>
+  <title>MedVoice</title>
 </head>
 <body>
-<div id="msg" class="msg" style="display:none">
-  <b>MedVoice</b>
-  <div id="mtext" style="margin-top:8px"></div>
-  <div id="mdbg" class="mono" style="margin-top:12px;opacity:.85"></div>
-</div>
-
-<iframe id="frame" title="MedVoice UI"></iframe>
-
 <script>
 (function(){
-  const msg = (t, dbg="")=>{
-    document.getElementById("frame").style.display="none";
-    const box = document.getElementById("msg");
-    box.style.display="block";
-    document.getElementById("mtext").textContent = t;
-    document.getElementById("mdbg").textContent = dbg || "";
-  };
-
   const url = new URL(window.location.href);
   const qs = url.searchParams;
 
-  // 1) Captura parámetros (si vienen desde SAP) y guárdalos interno
-  const incoming = {
-    doctor_id: qs.get("doctor_id") || "",
-    api: qs.get("api") || "",
-    field: qs.get("field") || "",
-    patnr: qs.get("patnr") || "",
-    falnr: qs.get("falnr") || "",
-    wake_word: qs.get("wake_word") || qs.get("wake") || ""
-  };
+  const setSS = (k,v)=>{ if(v) sessionStorage.setItem("medvoice."+k, v); };
+  const setLS = (k,v)=>{ if(v) localStorage.setItem("medvoice."+k, v); };
 
-  const setIf = (k,v)=>{ if(v) sessionStorage.setItem("medvoice."+k, v); };
-  setIf("doctor_id", incoming.doctor_id);
-  setIf("api", incoming.api);
-  setIf("field", incoming.field);
-  setIf("patnr", incoming.patnr);
-  setIf("falnr", incoming.falnr);
-  setIf("wake_word", incoming.wake_word);
+  const doctor_id = (qs.get("doctor_id")||"").trim();
+  const api       = (qs.get("api")||"").trim();
+  const field     = (qs.get("field")||"").trim();
+  const patnr     = (qs.get("patnr")||"").trim();
+  const falnr     = (qs.get("falnr")||"").trim();
+  const wake_word = (qs.get("wake_word")||qs.get("wake")||"").trim();
 
-  // 2) Limpia la URL (queda solo .../static/index.html)
-  if (url.search) {
-    window.history.replaceState({}, document.title, url.pathname);
-  }
+  // Persistir contexto (SAP -> UI)
+  setSS("doctor_id", doctor_id); setLS("doctor_id", doctor_id);
+  setSS("api", api);             setLS("api", api);
+  setSS("field", field);         setLS("field", field);
+  setSS("patnr", patnr);         setLS("patnr", patnr);
+  setSS("falnr", falnr);         setLS("falnr", falnr);
+  setSS("wake_word", wake_word); setLS("wake_word", wake_word);
 
-  // 3) Lee valores internos (si no vinieron ahora, se usan los ya guardados)
-  const doctorId = (sessionStorage.getItem("medvoice.doctor_id") || "").trim();
-  const apiBase  = (sessionStorage.getItem("medvoice.api") || "").trim().replace(/\/+$/,"") || "http://127.0.0.1:8000";
-  const field    = (sessionStorage.getItem("medvoice.field") || "").trim() || "ZTA915ENP7";
+  // Limpiar URL: dejar solo .../static/index.html (sin querystring)
+  if (url.search) window.history.replaceState({}, document.title, url.pathname);
 
-  // Si falta doctor_id, muestra mensaje (esto es lo que te salía antes)
-  if(!doctorId){
-    msg("Falta doctor_id (no llegó desde SAP).", "Abra SAP y llame index.html pasando doctor_id una vez.");
-    return;
-  }
-
-  // 4) Decide destino consultando backend
-  const urlExists = `${apiBase}/api/voiceprint/exists?doctor_id=${encodeURIComponent(doctorId)}`;
-
-  fetch(urlExists)
-    .then(r=>r.json().then(j=>({r,j})))
-    .then(({r,j})=>{
-      const exists = !!(r.ok && j.ok && j.exists);
-
-      // Guardamos "mode" interno solo informativo
-      sessionStorage.setItem("medvoice.mode", exists ? "transcribe" : "setup");
-
-      const target = exists ? "medvoice-transcribe.html" : "medvoice-setup.html";
-
-      // 5) Carga el módulo en el iframe (SIN params en URL)
-      const basePath = window.location.pathname.replace(/index\.html$/,"");
-      document.getElementById("frame").src = basePath + target;
-
-      // Labels internos (por si alguna parte los usa)
-      sessionStorage.setItem("medvoice.api", apiBase);
-      sessionStorage.setItem("medvoice.field", field);
-    })
-    .catch(e=>{
-      msg("No se pudo contactar el backend (api).", String(e && e.message ? e.message : e));
-    });
+  // Router local (sin backend)
+  const hasVoice = localStorage.getItem("medvoice.has_voiceprint") === "1";
+  const base = url.pathname.replace(/index\.html$/i,"");
+  const next = hasVoice ? "medvoice-transcribe.html" : "medvoice-setup.html";
+  window.location.replace(base + next);
 })();
 </script>
 </body>

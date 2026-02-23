@@ -10,606 +10,261 @@
       --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
       --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
     }
-    body{
-      margin:0;height:100vh;overflow:hidden;background:var(--sap-bg);
-      font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);
-      display:flex;flex-direction:column;
-    }
+    *{ box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body{ margin:0; background:var(--sap-bg); color:var(--sap-text); }
     header{
-      position:fixed;top:0;left:0;right:0;z-index:10;
-      background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
-      color:#fff;padding:14px 18px;box-sizing:border-box;
+      background: linear-gradient(90deg, var(--sap-blue), var(--sap-blue-2));
+      color:#fff; padding:18px 16px;
     }
-    header .t{font-size:18px;font-weight:600;}
-    header .s{font-size:12px;opacity:.9;margin-top:2px;}
-    .app-container{
-      flex:1;min-height:0;margin-top:72px;padding:18px 14px;overflow:hidden;
-      box-sizing:border-box;display:flex;justify-content:center;
-    }
+    header h1{ margin:0; font-size:20px; letter-spacing:.2px; }
+    header p{ margin:6px 0 0 0; opacity:.9; font-size:13px; }
+
+    .wrap{ max-width:1100px; margin:18px auto; padding:0 14px; }
     .card{
-      width:100%;max-width:980px;background:var(--sap-card);
-      border:1px solid var(--sap-border);border-radius:10px;
-      box-shadow:0 1px 2px rgba(0,0,0,.05);
-      padding:16px;box-sizing:border-box;
-      display:flex;flex-direction:column;gap:12px;min-height:0;
+      background:var(--sap-card);
+      border:1px solid var(--sap-border);
+      border-radius:14px;
+      padding:16px;
+      box-shadow:0 6px 20px rgba(0,0,0,.06);
     }
-    .controls{display:flex;flex-direction:column;gap:12px;}
-    .meta-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
-    .button-row{display:flex;gap:10px;flex-wrap:wrap;}
+    .meta-row{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:14px 16px; border-radius:12px; border:1px solid var(--sap-border);
+      background:#fff;
+      margin-bottom:14px;
+    }
+    .small{ font-size:13px; color:var(--sap-muted); }
+    .pill{
+      border-radius:999px; padding:6px 10px; font-size:12px; font-weight:600;
+      border:1px solid var(--sap-border); background:#fff;
+    }
+
+    .button-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     .btn{
-      border:1px solid var(--sap-blue); background:var(--sap-blue); color:#fff;
-      border-radius:8px; padding:10px 14px; font-size:14px; cursor:pointer; transition:.15s; user-select:none;
+      border:none; border-radius:10px;
+      padding:10px 14px;
+      cursor:pointer;
+      font-weight:700;
+      font-size:14px;
+      background:var(--sap-blue);
+      color:#fff;
     }
-    .btn:hover{filter:brightness(.95);}
-    .btn:disabled{opacity:.55;cursor:not-allowed;}
-    .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue);}
-    .btn-warn{background:var(--warn);border-color:var(--warn);}
-    textarea{
-      border:1px solid var(--sap-border);border-radius:8px;padding:10px 10px;font-size:14px;outline:none;background:#fff;
-      width:100%;height:100%;resize:none;line-height:1.4;overflow-y:auto;box-sizing:border-box;
-    }
-    textarea:focus{border-color:var(--sap-blue);}
-    .pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;background:#eef2f7;border:1px solid var(--sap-border);color:var(--sap-muted);}
-    .status{margin-top:10px;font-size:13px;}
-    .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
-    .small{font-size:12px;color:var(--sap-muted);line-height:1.4}
-    .mono{font-family:Consolas, monospace;font-size:12px;white-space:pre-wrap;}
-    .transcription-container{flex:1;min-height:160px;display:flex;}
-    .log-container{flex:1;min-height:120px;display:flex;flex-direction:column;gap:8px;}
-    .log-title{margin:0;font-size:16px;}
-    .log-output{flex:1;min-height:0;border:1px solid var(--sap-border);border-radius:8px;padding:10px;background:#fff;overflow-y:auto;}
+    .btn-warn{ background:#f3b37a; }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-    /* ==== mySiss Voice Assistant (GIF + popup sin texto) ==== */
-    .mysiss-gif-btn{
-      position:fixed;right:18px;bottom:18px;width:86px;height:86px;border-radius:26px;
-      background: rgba(255,255,255,.06);border: 1px solid rgba(255,255,255,.14);
-      box-shadow: 0 18px 60px rgba(0,0,0,.55);
-      display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;
-      z-index:9999;backdrop-filter: blur(10px);transition: transform .12s ease;
-    }
-    .mysiss-gif-btn:active{ transform: scale(.98); }
-    .mysiss-gif-btn img{width:72px;height:72px;object-fit:contain;border-radius:20px;display:block;}
-
-    .mysiss-overlay{
-      position:fixed;inset:0;background: rgba(0,0,0,.55);
-      display:none;align-items:flex-end;justify-content:flex-end;padding:18px;z-index:9998;
-    }
-    .mysiss-overlay.show{ display:flex; }
-
-    .mysiss-modal{
-      width:min(420px, 100%);height:min(240px, 60vh);
-      border-radius:22px;background: rgba(12,16,28,.55);
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow: 0 18px 60px rgba(0,0,0,.55);
-      backdrop-filter: blur(14px);
-      display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+    #log{
+      margin-top:10px;
+      width:100%;
+      padding:12px;
+      border:1px solid var(--sap-border);
+      border-radius:12px;
+      background:#0b1220;
+      color:#dbe7ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+      white-space:pre;
+      max-height:220px;
+      overflow:auto;
     }
 
-    .mysiss-close{
-      position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:14px;
-      border: 1px solid rgba(255,255,255,.14);background: rgba(255,255,255,.06);cursor:pointer;
+    .ok{ color:var(--ok); font-weight:700; }
+    .err{ color:var(--err); font-weight:700; }
+    .warn{ color:var(--warn); font-weight:700; }
+
+    .box{
+      border:1px dashed #cfd3d7;
+      border-radius:12px;
+      padding:14px;
+      background:#fbfbfb;
+      margin-top:12px;
     }
-    .mysiss-close::before, .mysiss-close::after{
-      content:"";position:absolute;top:50%; left:50%;width:18px;height:2px;background: rgba(255,255,255,.80);transform-origin:center;
-    }
-    .mysiss-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
-    .mysiss-close::after{  transform: translate(-50%,-50%) rotate(-45deg); }
-
-    .mysiss-mic-orb{
-      width:120px;height:120px;border-radius:999px;border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.06);cursor:pointer;position:relative;
-      display:grid;place-items:center;overflow:hidden;
-    }
-
-    .mysiss-mic-core{
-      width:24px;height:24px;border-radius:999px;background: rgba(124,58,237,.9);
-      box-shadow: 0 0 0 10px rgba(124,58,237,.14);
-    }
-
-    .mysiss-mic-ring{position:absolute;inset:-30px;border-radius:999px;border: 2px solid rgba(124,58,237,.0);pointer-events:none;}
-
-    .mysiss-listening .mysiss-mic-core{box-shadow: 0 0 0 14px rgba(124,58,237,.18);animation: mysissPulse 1.1s infinite;}
-    .mysiss-listening .mysiss-mic-ring{border-color: rgba(124,58,237,.20);animation: mysissRing 1.1s infinite;}
-
-    @keyframes mysissPulse{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
-    @keyframes mysissRing{0%{transform:scale(.92);opacity:.25}70%{transform:scale(1.06);opacity:.0}100%{transform:scale(1.06);opacity:0}}
-
-    @media (max-width:520px){.mysiss-overlay{ justify-content:center; }.mysiss-gif-btn{ right:14px; bottom:14px; }}
-
-    /* ==== mySiss Dashboard emergente (visual, sin texto) ==== */
-    .mysiss-dash-overlay{position:fixed; inset:0; background: rgba(0,0,0,.55);display:none; align-items:center; justify-content:center; padding:18px; z-index:9997;}
-    .mysiss-dash-overlay.show{ display:flex; }
-    .mysiss-dash-modal{
-      width:min(860px, 100%);height:min(560px, 86vh);
-      border-radius:22px;background: rgba(12,16,28,.60);
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow: 0 18px 60px rgba(0,0,0,.55);
-      backdrop-filter: blur(14px);
-      position:relative;overflow:hidden;
-    }
-    .mysiss-dash-grid{display:grid;grid-template-columns: repeat(4, 1fr);gap:14px;padding:18px 18px 10px 18px;}
-    .mysiss-dash-card{height:92px;border-radius:18px;border:1px solid rgba(255,255,255,.14);background: rgba(255,255,255,.06);position:relative;overflow:hidden;}
-    .mysiss-ico{position:absolute; left:16px; top:16px;width:22px; height:22px; border-radius:8px;background: rgba(124,58,237,.85);box-shadow: 0 0 0 10px rgba(124,58,237,.12);}
-    .mysiss-spark{position:absolute; right:-30px; bottom:-30px;width:120px; height:120px; border-radius:999px;background: radial-gradient(circle, rgba(34,197,94,.35), rgba(34,197,94,0));filter: blur(0.5px);}
-    .mysiss-dash-chart{padding: 0 18px 18px 18px;}
-    #mySissMiniChart{ width:100% !important; height:360px !important; }
-    @media (max-width:900px){.mysiss-dash-grid{ grid-template-columns: repeat(2, 1fr); }}
-    @media (max-width:768px){.app-container{padding:12px;}.card{padding:12px;}.transcription-container{min-height:140px;}.log-container{min-height:100px;}}
   </style>
 </head>
+
 <body>
 <header>
-  <div class="t">MedVoice | Transcripción</div>
-  <div class="s">Dictado → MedASR → Verificación huella → Guardar en PMD</div>
+  <h1>MedVoice | Transcripción</h1>
+  <p>Dictado clínico con asistencia por voz</p>
 </header>
 
-<main class="app-container">
+<div class="wrap">
+  <div class="meta-row card">
+    <div class="small">
+      <b>Paciente:</b> <span id="patLbl">-</span> &nbsp; | &nbsp;
+      <b>Episodio:</b> <span id="falLbl">-</span> &nbsp; | &nbsp;
+      <b>Campo:</b> <span id="fieldLbl">-</span>
+    </div>
+    <div class="pill" id="envPill">Validando...</div>
+  </div>
+
   <div class="card">
-    <div class="controls">
-      <div class="meta-row">
-        <div class="small">
-          <b>Médico:</b> <span id="doctorLbl">-</span> &nbsp; | &nbsp;
-          <b>API:</b> <span id="apiLbl">-</span> &nbsp; | &nbsp;
-          <b>Campo:</b> <span id="fieldLbl">-</span>
-        </div>
-        <div class="pill" id="envPill">Validando...</div>
-      </div>
-
-      <div class="button-row">
-        <button class="btn" id="btnRecToggle">Iniciar dictado</button>
-        <button class="btn btn-warn" id="btnProcess" disabled>Procesar (Transcribir → Enviar SAP → Limpiar)</button>
-        <button class="btn btn-ghost" id="btnClear">Limpiar</button>
-      </div>
+    <div class="button-row">
+      <button class="btn" id="btnRecToggle">Iniciar dictado</button>
+      <button class="btn btn-warn" id="btnProcess" disabled>Procesar</button>
     </div>
 
-    <div class="status" id="status">Estado: listo.</div>
-
-    <div class="transcription-container">
-      <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
+    <div class="box">
+      <div id="statusLine" class="small">Estado: listo.</div>
     </div>
 
-    <div class="log-container">
-      <h3 class="log-title">Log</h3>
-      <div class="mono log-output" id="log"></div>
+    <div class="card" style="margin-top:14px;">
+      <h2 style="margin:0 0 6px 0;">Log</h2>
+      <div id="log"></div>
     </div>
   </div>
-</main>
+</div>
 
 <script>
+(function bootstrapMedVoice(){
+  const url = new URL(window.location.href);
+  const qs = url.searchParams;
+
+  const setSS = (k,v)=>{ if(v) sessionStorage.setItem("medvoice."+k, v); };
+  const setLS = (k,v)=>{ if(v) localStorage.setItem("medvoice."+k, v); };
+
+  const doctor_id = (qs.get("doctor_id")||"").trim();
+  const api       = (qs.get("api")||"").trim();
+  const field     = (qs.get("field")||"").trim();
+  const patnr     = (qs.get("patnr")||"").trim();
+  const falnr     = (qs.get("falnr")||"").trim();
+  const wake_word = (qs.get("wake_word")||qs.get("wake")||"").trim();
+
+  setSS("doctor_id", doctor_id); setLS("doctor_id", doctor_id);
+  setSS("api", api);             setLS("api", api);
+  setSS("field", field);         setLS("field", field);
+  setSS("patnr", patnr);         setLS("patnr", patnr);
+  setSS("falnr", falnr);         setLS("falnr", falnr);
+  setSS("wake_word", wake_word); setLS("wake_word", wake_word);
+
+  if (url.search) window.history.replaceState({}, document.title, url.pathname);
+})();
+
   const $ = (id)=>document.getElementById(id);
   const log = (m)=>{ const el=$("log"); el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`; el.scrollTop=el.scrollHeight; };
 
-  // ====== PARAMS (internos) ======
-  function getParam(name, fallback=""){
-    const v = (sessionStorage.getItem("medvoice."+name) || "").trim();
-    return v || fallback;
+  function qs(name){
+    const u = new URL(window.location.href);
+    return (u.searchParams.get(name) || "").trim();
+  }
+
+  function getCtx(name){
+    return (sessionStorage.getItem("medvoice."+name) || localStorage.getItem("medvoice."+name) || qs(name) || "").trim();
   }
   function apiBase(){
-    const v = getParam("api","http://127.0.0.1:8000").replace(/\/+$/,"");
+    const v = (getCtx("api") || "").replace(/\/+$/,"");
     return v || "http://127.0.0.1:8000";
   }
-  function doctorId(){ return getParam("doctor_id",""); }
-  function pmdField(){ return getParam("field","ZTA915ENP7"); }
+  function doctorId(){ return getCtx("doctor_id") || ""; }
+  function pmdField(){ return getCtx("field") || "ZTA915ENP7"; }
+  function patnr(){ return getCtx("patnr"); }
+  function falnr(){ return getCtx("falnr"); }
+  function wakeWord(){ return getCtx("wake_word"); }
+
+  function fieldNiceName(v){
+    const x = (v||"").toUpperCase().trim();
+    if(!x) return "ANAMNESIS";
+    if(x.includes("ANAMNESIS")) return "ANAMNESIS";
+    if(x === "ZTA915ENP7") return "ANAMNESIS";
+    return x;
+  }
 
   function validateEnv(){
     const ok = !!doctorId() && !!apiBase() && !!pmdField();
-    $("doctorLbl").textContent = doctorId() || "(SIN doctor_id)";
-    $("apiLbl").textContent = apiBase();
-    $("fieldLbl").textContent = pmdField();
 
-    $("envPill").textContent = ok ? "OK" : "Falta doctor_id";
+    $("patLbl").textContent = patnr() || "-";
+    $("falLbl").textContent = falnr() || "-";
+    $("fieldLbl").textContent = fieldNiceName(pmdField());
+
+    $("envPill").textContent = ok ? "OK" : "Datos incompletos";
     $("envPill").style.background = ok ? "#e7f4ec" : "#fff3e0";
     $("envPill").style.color = ok ? "var(--ok)" : "var(--warn)";
     $("envPill").style.border = "1px solid var(--sap-border)";
+
     return ok;
   }
 
-  async function getMic(){
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-      throw new Error("Este navegador no soporta getUserMedia (micrófono).");
-    }
-    return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+  validateEnv();
+
+  // =========================
+  // Dictado (grabación) + envío a /api/transcribe (Whisper)
+  // =========================
+  let rec=null, stream=null, chunks=[];
+  let lastBlob=null;
+
+  async function getStream(){
+    return await navigator.mediaDevices.getUserMedia({ audio:true });
   }
 
-  function pickMime(){
-    const candidates = [
-      "audio/webm;codecs=opus",
-      "audio/webm",
-      "audio/ogg;codecs=opus",
-      "audio/ogg"
-    ];
-    if(!window.MediaRecorder) return "";
-    for(const c of candidates){
-      if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
-    }
-    return "";
-  }
-
-  let rec=null, chunks=[], stream=null, recording=false;
+  function setStatus(t){ $("statusLine").textContent = "Estado: " + t; }
 
   $("btnRecToggle").onclick = async ()=>{
-    if(!validateEnv()){ $("status").innerHTML=`Estado: <span class="err">falta doctor_id</span>`; return; }
-
-    if(!recording){
+    if(!rec){
       try{
         chunks=[];
-        $("status").textContent="Estado: iniciando mic...";
-        stream = await getMic();
+        stream = await getStream();
+        rec = new MediaRecorder(stream, { mimeType:"audio/webm" });
 
-        const mime = pickMime();
-        rec = mime ? new MediaRecorder(stream, { mimeType:mime }) : new MediaRecorder(stream);
-        log("Dictado: MediaRecorder mime=" + (mime || "(default)"));
+        rec.ondataavailable = (e)=>{ if(e.data && e.data.size) chunks.push(e.data); };
+        rec.onstart = ()=>{ setStatus("grabando..."); log("Dictado: grabación iniciada."); };
+        rec.onstop  = ()=>{
+          lastBlob = new Blob(chunks, { type:"audio/webm" });
+          setStatus("grabación detenida.");
+          log("Dictado: grabación detenida.");
+          $("btnProcess").disabled = !lastBlob;
+        };
 
-        rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
-        rec.onstop=()=>log("Grabación: detenida.");
-
-        rec.start(250);
-        recording=true;
-        $("btnRecToggle").textContent="Detener dictado";
-        $("btnProcess").disabled=true;
-        $("status").textContent="Estado: grabando...";
-        log("Grabación: iniciada.");
-        return;
+        rec.start();
+        $("btnRecToggle").textContent = "Detener dictado";
       }catch(e){
-        $("status").innerHTML = `Estado: <span class="err">error micrófono</span> ${e.message||e}`;
-        log("Dictado: ERROR mic -> " + (e.message||e));
-        return;
+        setStatus("falló permiso de micrófono");
+        log("ERROR micrófono -> "+e);
       }
+      return;
     }
 
     // stop
-    if(rec && rec.state!=="inactive") rec.stop();
-    if(stream) stream.getTracks().forEach(t=>t.stop());
-
-    recording=false;
-    $("btnRecToggle").textContent="Iniciar dictado";
-    $("btnProcess").disabled = (chunks.length===0);
-    $("status").textContent="Estado: listo para procesar.";
-  };
-
-  async function transcribeBackend(){
-    const blob = new Blob(chunks, { type: chunks[0]?.type || "audio/webm" });
-    const fd = new FormData();
-    fd.append("doctor_id", doctorId());
-    fd.append("audio", blob, "dictation.webm");
-    fd.append("target_field", pmdField());
-
-    log(`POST ${apiBase()}/api/transcribe (doctor_id=${doctorId()}, field=${pmdField()})`);
-    const r = await fetch(apiBase()+"/api/transcribe", { method:"POST", body: fd });
-    const j = await r.json().catch(()=>({ok:false,message:"Respuesta inválida"}));
-    return { r, j };
-  }
-
-  function returnSap(text){
-    const payload = encodeURIComponent(text || "");
-    const field = encodeURIComponent(pmdField());
-
-    // SAP embedded (si existe)
     try{
-      window.location.href = `sapevent:done?field=${field}&text=${payload}`;
-      log("Return: sapevent:done disparado.");
-      return true;
-    }catch(e){}
-
-    // External browser fallback
-    navigator.clipboard?.writeText(text).catch(()=>{});
-    $("status").innerHTML = `Estado: <span class="warn">sapevent no disponible</span>. Texto copiado, pégalo en SAP.`;
-    log("Return: sapevent no disponible (modo navegador externo).");
-    return false;
-  }
+      rec.stop();
+      stream.getTracks().forEach(t=>t.stop());
+    }catch(_){}
+    rec=null; stream=null;
+    $("btnRecToggle").textContent = "Iniciar dictado";
+  };
 
   $("btnProcess").onclick = async ()=>{
+    if(!lastBlob){ return; }
     try{
-      $("btnProcess").disabled=true;
-      $("status").textContent="Estado: transcribiendo en backend...";
-      const { r, j } = await transcribeBackend();
+      setStatus("procesando...");
+      $("btnProcess").disabled = true;
 
-      if(!(r.ok && j.ok)){
-        $("status").innerHTML = `Estado: <span class="err">falló</span> ${j.message||""}`;
-        log("Transcripción FALLÓ -> "+(j.message||""));
-        $("btnProcess").disabled=false;
-        return;
+      const fd = new FormData();
+      fd.append("doctor_id", doctorId());
+      fd.append("field", pmdField());
+      fd.append("patnr", patnr());
+      fd.append("falnr", falnr());
+      fd.append("wake_word", wakeWord());
+      fd.append("audio", lastBlob, "dictado.webm");
+
+      log("POST "+apiBase()+"/api/transcribe");
+
+      const r = await fetch(apiBase()+"/api/transcribe", { method:"POST", body: fd });
+      const j = await r.json().catch(()=>({ok:false,message:"Respuesta inválida"}));
+
+      if(r.ok && j.ok){
+        setStatus("listo.");
+        log("Transcripción: OK.");
+      }else{
+        setStatus("falló.");
+        log("Transcripción: FALLÓ -> "+(j.message||""));
       }
-
-      $("txt").value = j.text || "";
-      const vOk = (j.verify_ok === true);
-
-      if(!vOk){
-        $("status").innerHTML = `Estado: <span class="warn">transcripción OK</span> | <span class="err">huella NO válida</span>`;
-        log(`verify_ok=false score=${j.verify_score ?? "?"} -> NO se envía a SAP`);
-        $("btnProcess").disabled=false;
-        return;
-      }
-
-      $("status").innerHTML = `Estado: <span class="ok">OK</span> | enviando a SAP...`;
-      log(`verify_ok=true score=${j.verify_score ?? "?"} -> enviando a SAP`);
-
-      const ok = returnSap($("txt").value);
-      if(ok){ $("txt").value=""; }
     }catch(e){
-      $("status").innerHTML = `Estado: <span class="err">error</span> backend no responde`;
-      log("Error -> "+(e.message||e));
-      $("btnProcess").disabled=false;
+      setStatus("falló.");
+      log("Transcripción: ERROR -> "+e);
+    }finally{
+      $("btnProcess").disabled = false;
     }
   };
-
-  $("btnClear").onclick = ()=>{
-    $("txt").value="";
-    $("status").textContent="Estado: listo.";
-    log("Texto limpiado.");
-  };
-
-  validateEnv();
 </script>
-
-<!-- mySiss Voice Assistant (GIF floating) -->
-<div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
-  <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
-</div>
-
-<!-- Popup emergente (sin texto visible) -->
-<div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="mysiss-modal" id="mySissModal">
-    <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
-
-    <button class="mysiss-mic-orb" id="mySissMic" aria-label="Hablar">
-      <span class="mysiss-mic-core"></span>
-      <span class="mysiss-mic-ring"></span>
-    </button>
-  </div>
-</div>
-
-<script>
-  // ===== mySiss Voice Engine + Popup =====
-  (function(){
-    const STATES = { PASSIVE:'PASSIVE', WAKE_DETECTED:'WAKE_DETECTED', SPEAKING:'SPEAKING', ACTIVE_LISTENING:'ACTIVE_LISTENING', PROCESSING:'PROCESSING' };
-    let state = STATES.PASSIVE;
-    let rec = null;
-    let isRecognitionRunning = false;
-    let shouldRestart = true;
-    let activePromptTimeout = null;
-    let passiveRestartTimer = null;
-    let lastWakeAt = 0;
-    let dashChart = null;
-
-    const init = () => {
-      const gifBtn = document.getElementById('mySissGifBtn');
-      const overlay = document.getElementById('mySissOverlay');
-      const modal = document.getElementById('mySissModal');
-      const closeBtn = document.getElementById('mySissClose');
-      const micOrb = document.getElementById('mySissMic');
-      const dashOverlay = document.getElementById('mySissDashOverlay');
-      const dashClose = document.getElementById('mySissDashClose');
-      const dashCanvas = document.getElementById('mySissMiniChart');
-
-      if(!gifBtn || !overlay || !modal || !closeBtn || !micOrb) return;
-
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      function setState(nextState){
-        state = nextState;
-        const visualListening = (state === STATES.PASSIVE || state === STATES.ACTIVE_LISTENING);
-        modal.classList.toggle('mysiss-listening', visualListening && isRecognitionRunning);
-      }
-
-      function normalize(s){
-        return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      }
-
-      // wake word (dejas “boton” como lo tienes)
-      function detectWakeWord(text){ return normalize(text).includes('boton'); }
-
-      function speakES(text, onEnd){
-        try{
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(text);
-          u.lang = 'es-CO';
-          u.rate = 1.0;
-          u.pitch = 1.0;
-          u.onend = () => { if(typeof onEnd === 'function') onEnd(); };
-          u.onerror = () => { if(typeof onEnd === 'function') onEnd(); };
-          window.speechSynthesis.speak(u);
-        }catch(e){
-          if(typeof onEnd === 'function') onEnd();
-        }
-      }
-
-      function openPopup(){ overlay.classList.add('show'); overlay.setAttribute('aria-hidden', 'false'); }
-      function closePopup(){ overlay.classList.remove('show'); overlay.setAttribute('aria-hidden', 'true'); }
-
-      function openDashboard(mode){
-        if(!dashOverlay || !dashCanvas) return;
-        dashOverlay.classList.add('show');
-        dashOverlay.setAttribute('aria-hidden','false');
-
-        try{
-          if(window.Chart){
-            const ctx = dashCanvas.getContext('2d');
-            if(dashChart) dashChart.destroy();
-
-            const base = (mode === 'cbc') ? [6,4,7,5,6,4,7] :
-                         (mode === 'alergias') ? [2,2,3,2,2,3,2] :
-                         (mode === 'dx') ? [4,5,4,5,4,5,4] :
-                         (mode === 'meds') ? [3,4,3,4,3,4,3] : [4,4,4,4,4,4,4];
-
-            dashChart = new Chart(ctx, {
-              type: 'line',
-              data: { labels: ['','','','','','',''], datasets: [{ label: '', data: base, tension: 0.35, borderWidth: 2, pointRadius: 0 }] },
-              options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display:false }, tooltip: { enabled:false } },
-                scales: { x: { display:false, grid:{ display:false } }, y: { display:false, grid:{ display:false } } }
-              }
-            });
-          }
-        }catch(e){}
-      }
-
-      function closeDashboard(){
-        if(!dashOverlay) return;
-        dashOverlay.classList.remove('show');
-        dashOverlay.setAttribute('aria-hidden','true');
-      }
-
-      function handleQuery(query){
-        const q = normalize(query);
-
-        if(q.includes('hemograma') || q.includes('cuadro hematico') || q.includes('cbc')){
-          speakES('Hemograma localizado. Presentando vista clínica.');
-          openDashboard('cbc'); return;
-        }
-        if(q.includes('alerg')){
-          speakES('Alergias verificadas. Presentando vista clínica.');
-          openDashboard('alergias'); return;
-        }
-        if(q.includes('diagnost') || q.includes('dx')){
-          speakES('Diagnósticos revisados. Presentando vista clínica.');
-          openDashboard('dx'); return;
-        }
-        if(q.includes('medic') || q.includes('tratam')){
-          speakES('Medicación actual revisada. Presentando vista clínica.');
-          openDashboard('meds'); return;
-        }
-
-        speakES('Consulta recibida. Presentando vista clínica.');
-        openDashboard('general');
-      }
-
-      function schedulePassiveRestart(delay = 180){
-        clearTimeout(passiveRestartTimer);
-        passiveRestartTimer = setTimeout(() => startPassiveListening(), delay);
-      }
-
-      function enterPassiveMode(){
-        clearTimeout(activePromptTimeout);
-        setState(STATES.PASSIVE);
-        schedulePassiveRestart(100);
-      }
-
-      function startActiveListening(){
-        setState(STATES.ACTIVE_LISTENING);
-        startRecognition();
-      }
-
-      function promptForActiveListening(){
-        setState(STATES.SPEAKING);
-        speakES('Doctor, ¿qué desea consultar del paciente?', () => {
-          activePromptTimeout = setTimeout(() => startActiveListening(), 120);
-        });
-      }
-
-      function triggerWakeWordFlow(){
-        if(Date.now() - lastWakeAt < 1200) return;
-        lastWakeAt = Date.now();
-        setState(STATES.WAKE_DETECTED);
-        stopRecognition();
-        openPopup();
-        promptForActiveListening();
-      }
-
-      function handleResult(event){
-        const result = event.results?.[event.resultIndex];
-        const said = (result?.[0]?.transcript || '').trim();
-        if(!said) return;
-
-        if(state === STATES.PASSIVE){
-          if(detectWakeWord(said)) triggerWakeWordFlow();
-          return;
-        }
-
-        if(state === STATES.ACTIVE_LISTENING){
-          setState(STATES.PROCESSING);
-          stopRecognition();
-          handleQuery(said);
-          enterPassiveMode();
-        }
-      }
-
-      function initRecognition(){
-        if(!SpeechRecognition) return null;
-
-        const r = new SpeechRecognition();
-        r.lang = 'es-CO';
-        r.interimResults = false;
-        r.continuous = true;
-
-        r.onstart = () => {
-          isRecognitionRunning = true;
-          const visualListening = (state === STATES.PASSIVE || state === STATES.ACTIVE_LISTENING);
-          modal.classList.toggle('mysiss-listening', visualListening);
-        };
-
-        r.onresult = handleResult;
-
-        r.onerror = () => { isRecognitionRunning = false; modal.classList.remove('mysiss-listening'); };
-
-        r.onend = () => {
-          isRecognitionRunning = false;
-          modal.classList.remove('mysiss-listening');
-          if(shouldRestart && (state === STATES.PASSIVE || state === STATES.ACTIVE_LISTENING)){
-            schedulePassiveRestart(220);
-          }
-        };
-
-        return r;
-      }
-
-      function startRecognition(){
-        if(!rec) rec = initRecognition();
-        if(!rec) return;
-        shouldRestart = true;
-        if(isRecognitionRunning) return;
-        try{ rec.start(); }catch(e){ schedulePassiveRestart(300); }
-      }
-
-      function stopRecognition(){
-        shouldRestart = false;
-        if(rec && isRecognitionRunning){
-          try{ rec.stop(); }catch(e){}
-        }
-      }
-
-      function startPassiveListening(){
-        if(state !== STATES.PASSIVE) return;
-        startRecognition();
-      }
-
-      closeBtn.addEventListener('click', closePopup);
-      overlay.addEventListener('click', (e) => { if(e.target === overlay) closePopup(); });
-      gifBtn.addEventListener('click', openPopup);
-      micOrb.addEventListener('click', () => {
-        if(state === STATES.ACTIVE_LISTENING){ enterPassiveMode(); return; }
-        if(state === STATES.PASSIVE){ triggerWakeWordFlow(); }
-      });
-
-      if(dashClose) dashClose.addEventListener('click', closeDashboard);
-      if(dashOverlay) dashOverlay.addEventListener('click', (e)=>{ if(e.target === dashOverlay) closeDashboard(); });
-
-      document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && overlay.classList.contains('show')) closePopup(); });
-
-      setState(STATES.PASSIVE);
-      startPassiveListening();
-    };
-
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
-  })();
-</script>
-
-<div id="mySissDashOverlay" class="mysiss-dash-overlay" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="mysiss-dash-modal" id="mySissDashModal">
-    <button class="mysiss-close" id="mySissDashClose" aria-label="Cerrar"></button>
-    <div class="mysiss-dash-grid" aria-label="Panel visual">
-      <div class="mysiss-dash-card" id="mysissCard1"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-      <div class="mysiss-dash-card" id="mysissCard2"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-      <div class="mysiss-dash-card" id="mysissCard3"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-      <div class="mysiss-dash-card" id="mysissCard4"><span class="mysiss-ico"></span><span class="mysiss-spark"></span></div>
-    </div>
-    <div class="mysiss-dash-chart">
-      <canvas id="mySissMiniChart" aria-label="Gráfica"></canvas>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
