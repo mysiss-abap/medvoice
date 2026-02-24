@@ -13,7 +13,6 @@
     *{box-sizing:border-box}
     body{margin:0;background:var(--sap-bg);font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);}
 
-    /* ===== HEADER (como lo necesitas) ===== */
     header{
       background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
       color:#fff;
@@ -93,7 +92,6 @@
     .warn{color:var(--warn);font-weight:900}
     .err{color:var(--err);font-weight:900}
 
-    /* ===== Textarea con scroll interno (sin dañar el contenedor) ===== */
     textarea{
       border:1px solid var(--sap-border);
       border-radius:10px;
@@ -102,14 +100,13 @@
       outline:none;
       background:#fff;
       width:100%;
-      height:320px;            /* fijo para que no rompa el layout */
-      resize:none;             /* evita que “saque” el borde */
+      height:320px;
+      resize:none;
       line-height:1.45;
       overflow:auto;
     }
     textarea:focus{border-color:var(--sap-blue);}
 
-    /* ===== Log con scroll interno ===== */
     .mono{font-family:Consolas, ui-monospace, Menlo, monospace;font-size:12px;white-space:pre-wrap;}
     #log{
       border:1px solid var(--sap-border);
@@ -120,7 +117,6 @@
       overflow:auto;
     }
 
-    /* ==== mySiss Voice Assistant (GIF + popup sin texto) ==== */
     .mysiss-gif-btn{
       position:fixed; right:18px; bottom:18px;
       width:86px; height:86px; border-radius:26px;
@@ -223,8 +219,6 @@
     <div class="patient-line" id="patientLine">Paciente — | Episodio — | ANAMNESIS</div>
     <div></div>
   </div>
-  <div class="patient-line" id="patientLine">Paciente - (-) | Episodio - (adm -) | Ubicación - | ANAMNESIS</div>
-  <div></div>
 </header>
 
 <div class="wrap">
@@ -238,8 +232,6 @@
       </div>
       <div class="chip chip-warn" id="modeChip">Listo</div>
     </div>
-    <!-- FUTURO (SAP): nombre médico, datos paciente completos, ubicación, etc -->
-    <!-- <div id="headerExtra" class="small" style="margin-top:10px"></div> -->
   </div>
 
   <div class="card">
@@ -255,17 +247,6 @@
       <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
     </div>
   </div>
-</div>
-
-<!-- mySiss Voice Assistant (GIF floating) -->
-<div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
-  <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
-</div>
-
-<!-- Popup emergente (sin texto visible) -->
-<div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="mysiss-modal" id="mySissModal">
-    <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
 
   <div class="card">
     <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
@@ -292,19 +273,10 @@
 
 <script>
 /* ============================================================================
-   MedVoice Transcribe (estable, sin pantallazo en blanco)
-   - Lee params de SAP
-   - Guarda en session/local (medvoice.*)
-   - Oculta querystring en la barra
-   - Comandos de voz:
-       GIF: wake_word / stop_word
-       Dictado: ini_word / fin_word / env_word
-   - Dictado usa SpeechRecognition (sin backend, no BD). Guarda en localStorage.
-   - Enviar a SAP por sapevent: MEDVOICE_SET_FIELD
+   MedVoice Transcribe
 ============================================================================ */
 
 (function hideUrlBarButKeepParams(){
-  // 1) Guardar params antes de ocultar
   const u = new URL(window.location.href);
   const sp = u.searchParams;
 
@@ -323,7 +295,6 @@
     }
   });
 
-  // 2) Ocultar querystring en barra
   try{
     history.replaceState({}, document.title, "/static/medvoice-transcribe.html");
   }catch(_e){}
@@ -359,11 +330,9 @@ const ctx = {
   patnr       : getValue("patnr","—"),
   falnr       : getValue("falnr","—"),
 
-  // GIF assistant
   wake_word   : getValue("wake_word","MAISIS"),
   stop_word   : getValue("stop_word","APAGAR"),
 
-  // Dictado (transcripción)
   ini_word    : getValue("ini_word","INICIAR"),
   fin_word    : getValue("fin_word","FIN"),
   env_word    : getValue("env_word","ENVIAR"),
@@ -392,6 +361,7 @@ function setStatus(html, chipClass){
 
 /* =========================
    Dictation (SpeechRecognition)
+========================= */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 let dictRec = null;
@@ -407,7 +377,6 @@ function ensureSpeechSupport(){
 
 function startDictation(){
   if(!ensureSpeechSupport()) return;
-
   if(dictActive) return;
   dictActive = true;
 
@@ -421,7 +390,6 @@ function startDictation(){
   rec.interimResults = true;
 
   let finalText = $("txt").value || "";
-  let lastInterim = "";
 
   rec.onresult = (event)=>{
     let interim = "";
@@ -431,28 +399,21 @@ function startDictation(){
       if(r.isFinal) finalText += (t.trim() ? (t.trim()+" ") : "");
       else interim += t;
     }
-    lastInterim = interim;
     $("txt").value = (finalText + (interim ? "\n" + interim.trim() : "")).trim();
-
-    // Persistir (solo texto)
     localStorage.setItem("medvoice.last_transcript_text", $("txt").value);
   };
 
   rec.onerror = ()=>{
-    // NO spamear log (tú no quieres “reiniciando…”)
-    // Solo si realmente estaba activo, marcamos advertencia silenciosa
     if(dictActive) setStatus('<span class="warn">esperando audio...</span>', "chip-warn");
   };
 
   rec.onend = ()=>{
-    // Si seguía activo, reintenta sin escribir ruido en log
     if(dictActive){
       try{ rec.start(); }catch(_e){}
     }
   };
 
   try{ rec.start(); }catch(_e){}
-
   log(`Transcripción iniciada (por botón o palabra "${ctx.ini_word}").`);
 }
 
@@ -479,6 +440,7 @@ function clearText(){
 
 /* =========================
    Enviar a SAP (sapevent)
+========================= */
 function sendToSAP(){
   const text = ($("txt").value || "").trim();
   if(!text){
@@ -486,10 +448,9 @@ function sendToSAP(){
     return;
   }
 
-  // Guarda local siempre
   localStorage.setItem("medvoice.last_transcript_text", text);
 
-  const target = fieldLabelOnly(ctx.field); // tú decides si SAP usa este label o un target técnico
+  const target = fieldLabelOnly(ctx.field);
   const url = "sapevent:MEDVOICE_SET_FIELD"
     + "?target=" + encodeURIComponent(target)
     + "&text=" + encodeURIComponent(text);
@@ -499,7 +460,6 @@ function sendToSAP(){
     log("Enviado a SAP por sapevent.");
     setStatus('<span class="ok">enviado a SAP</span>', "chip-ok");
   }catch(_e){
-    // Fallback: no rompe demo
     setStatus('<span class="warn">sapevent no disponible (abre embebido en SAP)</span>', "chip-warn");
     log("sapevent no disponible en este navegador.");
   }
@@ -507,22 +467,20 @@ function sendToSAP(){
 
 /* =========================
    UI Buttons
+========================= */
 $("btnToggle").addEventListener("click", ()=>{
   if(dictActive) stopDictation();
   else startDictation();
 });
-
 $("btnSend").addEventListener("click", sendToSAP);
 $("btnClear").addEventListener("click", clearText);
 
-// Restaurar último texto si existía
 const last = (localStorage.getItem("medvoice.last_transcript_text") || "").trim();
 if(last) $("txt").value = last;
 
 /* =========================
    mySiss GIF Assistant (NO log)
-   - Activar: wake_word
-   - Parar: stop_word
+========================= */
 const gifBtn   = $("mySissGifBtn");
 const overlay  = $("mySissOverlay");
 const modal    = $("mySissModal");
@@ -548,7 +506,6 @@ function openGif(){
   gifOpen = true;
   overlay.classList.add("show");
   overlay.setAttribute("aria-hidden","false");
-  // NO log
   speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
 }
 
@@ -606,7 +563,6 @@ function stopGifListening(){
 function respondToQueryByVoice(query){
   const q = norm(query);
 
-  // DEMO (queda lista para conectar a SAP después)
   if(q.includes("hemograma") || q.includes("cuadro hematico") || q.includes("cbc")){
     speakES("Entendido. Consultando el hemograma más reciente. En este prototipo, la respuesta es simulada.");
     return;
@@ -627,7 +583,6 @@ function respondToQueryByVoice(query){
   speakES("Recibido. Confirmo la consulta solicitada. En este prototipo la respuesta es simulada, quedará lista para integración con SAP.");
 }
 
-/* UI gif */
 gifBtn.addEventListener("click", openGif);
 closeBtn.addEventListener("click", closeGif);
 overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
@@ -636,8 +591,7 @@ document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) close
 
 /* =========================
    Global Voice Command Listener (wake/stop/ini/fin/env)
-   - NO escribe log para GIF
-   - Sí escribe log para dictado (solo cuando cambia estado)
+========================= */
 let cmdRec = null;
 let cmdEnabled = false;
 let lastCmdAt = 0;
@@ -667,7 +621,6 @@ function startCommandLoop(){
     const now = Date.now();
     if(now - lastCmdAt < 900) return;
 
-    // GIF assistant commands (NO log)
     if(!gifOpen && WAKE && t.includes(WAKE)){
       lastCmdAt = now;
       openGif();
@@ -679,7 +632,6 @@ function startCommandLoop(){
       return;
     }
 
-    // Dictation commands
     if(!dictActive && INI && t.includes(INI)){
       lastCmdAt = now;
       startDictation();
@@ -691,7 +643,6 @@ function startCommandLoop(){
       return;
     }
     if(ENV && t.includes(ENV)){
-      // permitir enviar incluso si dictado está apagado
       lastCmdAt = now;
       sendToSAP();
       return;
