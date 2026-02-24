@@ -9,28 +9,33 @@
 <script>
 (function () {
   const url = new URL(window.location.href);
-  const pick = (k) => (url.searchParams.get(k) || "").trim();
+  const params = url.searchParams;
 
-  const context = {
-    doctor_id: pick("doctor_id"),
-    api: pick("api"),
-    field: pick("field"),
-    patnr: pick("patnr"),
-    falnr: pick("falnr"),
-    wake_word: pick("wake_word") || pick("wake") || "SAP"
+  const incoming = {};
+  params.forEach((value, key) => {
+    incoming[key] = (value || "").trim();
+  });
+
+  const aliases = {
+    wake: "wake_word",
+    stop: "stop_word"
   };
 
-  Object.entries(context).forEach(([k, v]) => {
-    if (v) {
-      sessionStorage.setItem("medvoice." + k, v);
-      localStorage.setItem("medvoice." + k, v);
-    }
+  Object.entries(aliases).forEach(([from, to]) => {
+    if (!incoming[to] && incoming[from]) incoming[to] = incoming[from];
+  });
+
+  Object.entries(incoming).forEach(([k, v]) => {
+    if (!v) return;
+    sessionStorage.setItem("medvoice." + k, v);
+    localStorage.setItem("medvoice." + k, v);
   });
 
   history.replaceState({}, document.title, "/static/index.html");
 
   const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1";
-  const destination = hasVoiceprint
+  const hasNoise = localStorage.getItem("medvoice.has_noise_profile") === "1" || !!localStorage.getItem("medvoice.noise_rms");
+  const destination = (hasVoiceprint && hasNoise)
     ? "/static/medvoice-transcribe.html"
     : "/static/medvoice-setup.html";
 
