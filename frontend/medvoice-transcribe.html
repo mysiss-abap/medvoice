@@ -223,6 +223,8 @@
     <div class="patient-line" id="patientLine">Paciente — | Episodio — | ANAMNESIS</div>
     <div></div>
   </div>
+  <div class="patient-line" id="patientLine">Paciente - (-) | Episodio - (adm -) | Ubicación - | ANAMNESIS</div>
+  <div></div>
 </header>
 
 <div class="wrap">
@@ -253,6 +255,17 @@
       <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
     </div>
   </div>
+</div>
+
+<!-- mySiss Voice Assistant (GIF floating) -->
+<div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
+  <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
+</div>
+
+<!-- Popup emergente (sin texto visible) -->
+<div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="mysiss-modal" id="mySissModal">
+    <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
 
   <div class="card">
     <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
@@ -379,7 +392,6 @@ function setStatus(html, chipClass){
 
 /* =========================
    Dictation (SpeechRecognition)
-========================= */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 let dictRec = null;
@@ -467,7 +479,6 @@ function clearText(){
 
 /* =========================
    Enviar a SAP (sapevent)
-========================= */
 function sendToSAP(){
   const text = ($("txt").value || "").trim();
   if(!text){
@@ -496,7 +507,6 @@ function sendToSAP(){
 
 /* =========================
    UI Buttons
-========================= */
 $("btnToggle").addEventListener("click", ()=>{
   if(dictActive) stopDictation();
   else startDictation();
@@ -513,7 +523,6 @@ if(last) $("txt").value = last;
    mySiss GIF Assistant (NO log)
    - Activar: wake_word
    - Parar: stop_word
-========================= */
 const gifBtn   = $("mySissGifBtn");
 const overlay  = $("mySissOverlay");
 const modal    = $("mySissModal");
@@ -629,7 +638,6 @@ document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) close
    Global Voice Command Listener (wake/stop/ini/fin/env)
    - NO escribe log para GIF
    - Sí escribe log para dictado (solo cuando cambia estado)
-========================= */
 let cmdRec = null;
 let cmdEnabled = false;
 let lastCmdAt = 0;
