@@ -24,6 +24,7 @@
     .btns{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
     button{border:0;cursor:pointer;padding:10px 18px;border-radius:10px;font-weight:700;font-size:14px}
     .btn-primary{background:var(--sap-blue);color:#fff}
+    .btn-go{background:#107e3e;color:#fff}
     .status{margin-top:8px;font-size:13px;color:var(--muted)}
     .status .ok{color:var(--ok);font-weight:800}
     .status .err{color:var(--err);font-weight:800}
@@ -32,7 +33,7 @@
     .tiny{font-size:12px;color:var(--muted)}
     .logwrap{display:flex;flex-direction:column;min-height:0;flex:1}
     .logtitle{font-size:16px;font-weight:800;margin:0 0 8px}
-    .logbox{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;height:100%;min-height:140px;overflow-y:auto;overflow-x:hidden;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre-wrap}
+    .logbox{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;height:190px;overflow-y:auto;overflow-x:hidden;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre-wrap}
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}
     .modal{width:min(860px,100%);background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:0 12px 30px rgba(0,0,0,.25);overflow:hidden}
     .modal-header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -123,11 +124,11 @@ function showMicErrorUI(target){
   log("No se pudo activar el micrófono. Revise los permisos de Chrome.");
 }
 
-let noiseStream = null, noiseRecorder = null, noiseRmsValue = 0, noiseChunks = [];
+let noiseStream = null, noiseRecorder = null, noiseRmsValue = 0;
 let voiceStream = null, voiceRecorder = null, voiceChunks = [];
 let voiceModalShownForCurrentStart = false;
-let noiseMode = "idle";
-let voiceMode = "idle";
+let noiseAutoStop = null;
+let voiceAutoStop = null;
 
 function stopStream(stream){ try{ stream && stream.getTracks().forEach(t=>t.stop()); }catch(_e){} }
 async function getMic(){
@@ -178,46 +179,51 @@ function stopRms(){
 
 const noiseStatus = document.getElementById("noiseStatus");
 const btnNoiseAction = document.getElementById("btnNoiseAction");
+let noiseReadyToSave = false;
 
 btnNoiseAction.addEventListener("click", async ()=>{
-  if (noiseMode === "idle") {
+  if (noiseReadyToSave) {
     try{
-      noiseStream = await getMic();
-      noiseChunks = [];
-      noiseRecorder = new MediaRecorder(noiseStream);
-      noiseRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size) noiseChunks.push(e.data); };
-      noiseRecorder.onstop = async ()=>{
-        stopRms();
-        stopStream(noiseStream);
-        try{
-          const noiseBlob = new Blob(noiseChunks, {type:"audio/webm"});
-          const b64 = await blobToBase64(noiseBlob);
-          localStorage.setItem("medvoice.noise_audio", b64);
-          localStorage.setItem("medvoice.noise_rms", String(noiseRmsValue.toFixed(3)));
-          localStorage.setItem("medvoice.has_noise_profile", "1");
-          noiseStatus.innerHTML = '<span class="ok">configuración de ambiente guardada.</span>';
-          log("Configuración de ambiente guardada.");
-        }catch(_e){
-          noiseStatus.innerHTML = '<span class="err">No fue posible guardar la configuración de ambiente.</span>';
-          log("No fue posible guardar la configuración de ambiente.");
-        }
-        noiseMode = "idle";
-        btnNoiseAction.textContent = "Iniciar";
-      };
-      noiseRecorder.start();
-      startRms(noiseStream);
-      noiseMode = "recording";
-      btnNoiseAction.textContent = "Guardar";
-      noiseStatus.textContent = "capturando ambiente…";
-      log("Muestra de ambiente iniciada.");
-    }catch(_err){ showMicErrorUI(noiseStatus); }
+      localStorage.setItem("medvoice.noise_rms", String(noiseRmsValue.toFixed(3)));
+      noiseStatus.innerHTML = '<span class="ok">configuración de ambiente guardada correctamente.</span>';
+      log("Configuración de ambiente guardada.");
+      noiseReadyToSave = false;
+      btnNoiseAction.textContent = "Iniciar";
+    }catch(_e){
+      noiseStatus.innerHTML = '<span class="err">No fue posible guardar la configuración de ambiente.</span>';
+      log("No fue posible guardar la configuración de ambiente.");
+    }
     return;
   }
 
-  if (noiseMode === "recording") {
-    noiseStatus.textContent = "guardando captura…";
+  if (noiseRecorder && noiseRecorder.state === "recording") {
+    noiseStatus.textContent = "finalizando captura…";
     try{ noiseRecorder.stop(); }catch(_e){}
+    return;
   }
+
+  try{
+    noiseStream = await getMic();
+    noiseRecorder = new MediaRecorder(noiseStream);
+    noiseRecorder.onstop = ()=>{
+      stopRms();
+      stopStream(noiseStream);
+      noiseStatus.innerHTML = '<span class="ok">captura lista para guardar.</span>';
+      btnNoiseAction.textContent = "Guardar";
+      noiseReadyToSave = true;
+      if (noiseAutoStop) { clearTimeout(noiseAutoStop); noiseAutoStop = null; }
+      log("Muestra de ambiente completada.");
+    };
+    noiseRecorder.start();
+    startRms(noiseStream);
+    noiseStatus.textContent = "capturando ambiente…";
+    log("Muestra de ambiente iniciada.");
+    noiseAutoStop = setTimeout(()=>{
+      if (noiseRecorder && noiseRecorder.state === "recording") {
+        try{ noiseRecorder.stop(); }catch(_e){}
+      }
+    }, 6500);
+  }catch(_err){ showMicErrorUI(noiseStatus); }
 });
 
 const enrollmentMessage = `Soy Doctor especialista en medicina general. Voy a realizar una grabación de mi voz para crear una huella vocal única que me permitirá ser identificado durante las consultas médicas. Este sistema de reconocimiento de voz es una herramienta innovadora que facilitará la transcripción automática de las conversaciones con los pacientes. Durante la consulta médica, el sistema identificará mi voz y la diferenciará de la voz del paciente y sus acompañantes. La precisión del reconocimiento depende de esta grabación inicial, por lo que es importante que hable de forma clara y natural. El tono de mi voz, la velocidad al hablar y las características únicas de mi pronunciación quedarán registradas en el sistema. Esta tecnología respeta la privacidad y confidencialidad de los datos médicos. El sistema guardará un perfil vocal que solo contiene características técnicas de audio, sin almacenar el contenido de las conversaciones. Esto me permite dictar las historias clínicas de manera fluida mientras atiendo a mis pacientes, mejorando la eficiencia de la consulta y permitiéndome concentrarme mejor en la atención.`;
@@ -233,48 +239,58 @@ document.getElementById("modalClose").onclick = hideModal;
 
 const voiceStatus = document.getElementById("voiceStatus");
 const btnVoiceAction = document.getElementById("btnVoiceAction");
+let voiceReadyToSave = false;
 
 btnVoiceAction.addEventListener("click", async ()=>{
-  if (voiceMode === "idle") {
-    if (!voiceModalShownForCurrentStart) {
-      showModal();
-      voiceModalShownForCurrentStart = true;
-    }
+  if (voiceReadyToSave) {
     try{
-      voiceStream = await getMic();
-      voiceChunks = [];
-      voiceRecorder = new MediaRecorder(voiceStream);
-      voiceRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size) voiceChunks.push(e.data); };
-      voiceRecorder.onstop = async ()=>{
-        stopStream(voiceStream);
-        try{
-          const blob = new Blob(voiceChunks, {type:"audio/webm"});
-          const b64 = await blobToBase64(blob);
-          localStorage.setItem("medvoice.voiceprint_audio", b64);
-          localStorage.setItem("medvoice.has_voiceprint", "1");
-          voiceStatus.innerHTML = '<span class="ok">perfil de voz guardado. Ingresando a transcripción…</span>';
-          log("Perfil de voz guardado correctamente.");
-          window.location.href = "/static/medvoice-transcribe.html";
-        }catch(_e){
-          voiceStatus.innerHTML = '<span class="err">No fue posible guardar la grabación.</span>';
-          log("No fue posible guardar la muestra de voz.");
-        }
-        voiceMode = "idle";
-        btnVoiceAction.textContent = "Iniciar grabación voz";
-      };
-      voiceRecorder.start();
-      voiceMode = "recording";
-      btnVoiceAction.textContent = "Guardar grabación";
-      voiceStatus.textContent = "grabando voz…";
-      log("Grabación de voz iniciada.");
-    }catch(_err){ showMicErrorUI(voiceStatus); }
+      const blob = new Blob(voiceChunks, {type:"audio/webm"});
+      const b64 = await blobToBase64(blob);
+      localStorage.setItem("medvoice.voiceprint_audio", b64);
+      localStorage.setItem("medvoice.has_voiceprint", "1");
+      voiceStatus.innerHTML = '<span class="ok">huella vocal guardada. Continuando al dictado…</span>';
+      log("Perfil de voz guardado correctamente.");
+      window.location.href = "/static/medvoice-transcribe.html";
+    }catch(_e){
+      voiceStatus.innerHTML = '<span class="err">No fue posible guardar la grabación.</span>';
+      log("No fue posible guardar la muestra de voz.");
+    }
     return;
   }
 
-  if (voiceMode === "recording") {
-    voiceStatus.textContent = "guardando grabación…";
-    try{ voiceRecorder.stop(); }catch(_e){}
+  if (!voiceModalShownForCurrentStart) {
+    showModal();
+    voiceModalShownForCurrentStart = true;
   }
+
+  if (voiceRecorder && voiceRecorder.state === "recording") {
+    voiceStatus.textContent = "finalizando grabación…";
+    try{ voiceRecorder.stop(); }catch(_e){}
+    return;
+  }
+
+  try{
+    voiceStream = await getMic();
+    voiceChunks = [];
+    voiceRecorder = new MediaRecorder(voiceStream);
+    voiceRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size) voiceChunks.push(e.data); };
+    voiceRecorder.onstop = ()=>{
+      stopStream(voiceStream);
+      voiceStatus.innerHTML = '<span class="ok">grabación lista para guardar.</span>';
+      btnVoiceAction.textContent = "Guardar grabación";
+      voiceReadyToSave = true;
+      if (voiceAutoStop) { clearTimeout(voiceAutoStop); voiceAutoStop = null; }
+      log("Muestra de voz completada.");
+    };
+    voiceRecorder.start();
+    voiceStatus.textContent = "grabando voz…";
+    log("Grabación de voz iniciada.");
+    voiceAutoStop = setTimeout(()=>{
+      if (voiceRecorder && voiceRecorder.state === "recording") {
+        try{ voiceRecorder.stop(); }catch(_e){}
+      }
+    }, 23000);
+  }catch(_err){ showMicErrorUI(voiceStatus); }
 });
 
 log("Configuración inicial lista.");
