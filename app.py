@@ -88,6 +88,8 @@ DATA_DIR.mkdir(exist_ok=True)
 # cache RAM (solo performance, la verdad está en archivo)
 VOICEPRINTS: dict[str, np.ndarray] = {}  # doctor_id -> embedding
 PUSH_RESULTS: list[dict] = []
+CONTEXT_STORE: dict[str, dict] = {}
+RESULT_BY_SESSION: dict[str, dict] = {}
 
 
 def _safe_key(k: str) -> str:
@@ -278,14 +280,60 @@ async def transcribe(
     }
 
 
+
+
+@app.post("/api/context")
+async def set_context(payload: dict = Body(...)):
+    session_id = str(payload.get("session_id", "")).strip()
+    if not session_id:
+        return JSONResponse({"ok": False, "msg": "session_id required"}, status_code=400)
+    item = dict(payload)
+    item["session_id"] = session_id
+    CONTEXT_STORE[session_id] = item
+    return {"ok": True, "session_id": session_id, "stored": True}
+
+
+@app.get("/api/context")
+def get_context(session_id: str = Query(..., min_length=1)):
+    sid = str(session_id).strip()
+    item = CONTEXT_STORE.get(sid)
+    if not item:
+        return JSONResponse({"ok": False, "msg": "no context"}, status_code=404)
+    return {"ok": True, "context": item}
+
+
+@app.get("/api/result")
+def get_result(session_id: str = Query(..., min_length=1)):
+    sid = str(session_id).strip()
+    item = RESULT_BY_SESSION.get(sid)
+    if not item:
+        return {"ok": False, "msg": "no result"}
+    return {"ok": True, **item}
+
+
 @app.post("/api/push_result")
 async def push_result(payload: dict = Body(...)):
     item = {
+        "session_id": str(payload.get("session_id", "")).strip(),
         "doctor_id": str(payload.get("doctor_id", "")).strip(),
         "patnr": str(payload.get("patnr", "")).strip(),
         "falnr": str(payload.get("falnr", "")).strip(),
         "field": str(payload.get("field", "")).strip(),
         "text": str(payload.get("text", "")).strip(),
     }
+
+    required = ("session_id", "doctor_id", "patnr", "falnr", "field", "text")
+    missing = [k for k in required if not item.get(k)]
+    if missing:
+        return JSONResponse({"ok": False, "msg": "missing fields", "missing": missing}, status_code=400)
+
     PUSH_RESULTS.append(item)
+    RESULT_BY_SESSION[item["session_id"]] = {
+        "session_id": item["session_id"],
+        "patnr": item["patnr"],
+        "falnr": item["falnr"],
+        "field": item["field"],
+        "text": item["text"],
+        "doctor_id": item["doctor_id"],
+    }
     return {"ok": True, "stored": True, "result": item}
