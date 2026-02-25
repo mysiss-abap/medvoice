@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MedVoice | Configuración</title>
   <style>
-    :root{--sap-blue:#0a6ed1;--sap-blue-2:#0854a0;--bg:#f7f7f7;--card:#fff;--text:#1d2d3e;--muted:#6a6d70;--border:#d9d9d9;--ok:#107e3e;--warn:#e9730c;--err:#bb0000}
+    :root{--sap-blue:#0a6ed1;--sap-blue-2:#0854a0;--bg:#f7f7f7;--card:#fff;--text:#1d2d3e;--muted:#6a6d70;--border:#d9d9d9;--ok:#107e3e;--err:#bb0000}
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     body{margin:0;background:var(--bg);color:var(--text);overflow:hidden}
     header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:18px 16px}
@@ -45,17 +45,16 @@
 </head>
 <body>
 <header>
-  <h1>MedVoice | Configuración inicial</h1>
-  <p>Preparemos su perfil de voz para comenzar el dictado clínico.</p>
+  <h1>MedVoice<br>Configuración inicial</h1>
+  <p>Complete su huella de voz para iniciar la transcripción clínica.</p>
 </header>
 
 <div class="wrap">
   <div class="card">
     <div class="meta">
-      <div class="line"><b>Médico:</b> <span id="mDoctor">—</span> &nbsp; | &nbsp; <b>Campo clínico:</b> <span id="mField">—</span></div>
+      <div class="line"><b>Médico:</b> <span id="mDoctor">—</span> &nbsp; | &nbsp; <b>Nombre:</b> <span id="mDoctorName">No informado</span></div>
       <span class="pill">Preparación guiada</span>
     </div>
-    <div class="tiny" style="margin-top:10px;">Esta etapa permite dejar listo su dictado para usarlo de forma continua durante la atención.</div>
   </div>
 
   <div class="grid">
@@ -80,11 +79,7 @@
       </div>
       <div class="status">Estado: <span id="voiceStatus">listo.</span></div>
     </div>
-  </div>
-
-  <div class="logwrap">
-    <div class="logtitle">Seguimiento</div>
-    <div id="logBox" class="logbox"></div>
+    <div class="status">Estado: <span id="voiceStatus">listo.</span></div>
   </div>
 </div>
 
@@ -132,13 +127,9 @@ let voiceAutoStop = null;
 
 function stopStream(stream){ try{ stream && stream.getTracks().forEach(t=>t.stop()); }catch(_e){} }
 async function getMic(){
-  // Nota dev: en producción se recomienda HTTPS para permisos de micrófono consistentes.
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error("Navegador sin soporte de micrófono");
-  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("Navegador sin soporte de micrófono");
   return navigator.mediaDevices.getUserMedia({audio:true});
 }
-
 function blobToBase64(blob){
   return new Promise((resolve,reject)=>{
     const fr = new FileReader();
@@ -233,10 +224,12 @@ function showModal(){
   document.getElementById("modalBackdrop").style.display = "flex";
 }
 function hideModal(){ document.getElementById("modalBackdrop").style.display = "none"; }
-
 document.getElementById("modalX").onclick = hideModal;
 document.getElementById("modalClose").onclick = hideModal;
 
+let voiceStream = null, voiceRecorder = null, voiceChunks = [];
+let voiceMode = "idle";
+let voiceModalShownForCurrentStart = false;
 const voiceStatus = document.getElementById("voiceStatus");
 const btnVoiceAction = document.getElementById("btnVoiceAction");
 let voiceReadyToSave = false;

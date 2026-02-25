@@ -260,6 +260,17 @@
     <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
     <div class="mono" id="log"></div>
   </div>
+</div>
+
+<!-- mySiss Voice Assistant (GIF floating) -->
+<div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
+  <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
+</div>
+
+<!-- Popup emergente (sin texto visible) -->
+<div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="mysiss-modal" id="mySissModal">
+    <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
 
 </div>
 
@@ -366,6 +377,19 @@ function setStatus(html, chipClass){
   const chip = $("modeChip");
   chip.className = "chip " + (chipClass || "chip-warn");
 }
+function logDictation(msg){
+  if (currentMode !== MODE.DICTATION || !dictationStartedOnce) return;
+  $("dictationLogCard").style.display = "block";
+  const el = $("log");
+  el.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+document.getElementById("hdrLine1").textContent = `${ctx.patient_name} | Céd.Ciudadanía | ${ctx.patient_doc}`;
+document.getElementById("hdrLine2").textContent = `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | Fe.admisión ${ctx.adm_date}`;
+document.getElementById("hdrLine3").textContent = `${ctx.location} |  ANAMNESIS`;
+$("doctorCode").textContent = ctx.doctor_id || "No informado";
+$("doctorName").textContent = ctx.doctor_name || "No informado";
 
 /* =========================
    Dictation (SpeechRecognition)
