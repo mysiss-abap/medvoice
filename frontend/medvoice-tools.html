@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MedVoice | Herramientas</title>
+  <style>
+    :root{--sap-blue:#0a6ed1;--sap-blue-2:#0854a0;--bg:#f7f7f7;--card:#fff;--text:#1d2d3e;--muted:#6a6d70;--border:#d9d9d9;--ok:#107e3e}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:var(--bg);color:var(--text)}
+    header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:18px 16px}
+    h1{margin:0;font-size:22px}
+    p{margin:6px 0 0;opacity:.95;font-size:13px}
+    .wrap{max-width:1040px;margin:18px auto;padding:0 14px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    .card h2{margin:0 0 8px;font-size:16px}
+    .card p{margin:0 0 12px;color:var(--muted)}
+    button{border:0;cursor:pointer;padding:10px 14px;border-radius:10px;font-weight:700;background:var(--sap-blue);color:#fff}
+    .ghost{background:#d3e7fb;color:#0b3c74}
+    .danger{background:#d32f2f}
+    textarea{width:100%;height:170px;border:1px solid var(--border);border-radius:10px;padding:10px;resize:none;background:#fafafa;color:#2c3e50}
+    .foot{margin-top:12px;color:var(--ok);font-size:13px;font-weight:700;min-height:18px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>MedVoice | Herramientas</h1>
+  <p>Panel interno para revisar y restablecer información de prueba.</p>
+</header>
+<div class="wrap">
+  <div class="grid">
+    <div class="card">
+      <h2>Restablecer configuración inicial</h2>
+      <p>Elimina solo la calibración de ambiente y la huella de voz.</p>
+      <button id="clearSetup">Restablecer configuración</button>
+    </div>
+    <div class="card">
+      <h2>Restablecer datos de transcripción</h2>
+      <p>Limpia el último resultado y estados de dictado guardados.</p>
+      <button id="clearTranscribe" class="ghost">Restablecer transcripción</button>
+    </div>
+    <div class="card">
+      <h2>Reiniciar MedVoice completo</h2>
+      <p>Elimina todas las claves de MedVoice guardadas.</p>
+      <button id="clearAll" class="danger">Restablecer todo</button>
+    </div>
+    <div class="card" style="grid-column:1/-1;">
+      <h2>Contexto actual</h2>
+      <p>Valores disponibles para la sesión de pruebas.</p>
+      <textarea id="ctxBox" readonly></textarea>
+    </div>
+    <div class="card">
+      <h2>Ir a configuración</h2>
+      <p>Abre la preparación guiada.</p>
+      <button id="goSetup">Abrir configuración</button>
+    </div>
+    <div class="card">
+      <h2>Ir a transcripción</h2>
+      <p>Abre la pantalla de dictado.</p>
+      <button id="goTranscribe">Abrir transcripción</button>
+    </div>
+  </div>
+  <div id="notice" class="foot"></div>
+</div>
+<script>
+(function(){ history.replaceState({}, document.title, "/static/medvoice-tools.html"); })();
+
+function medKeys(){ return Object.keys(localStorage).filter(k => k.startsWith("medvoice.")); }
+function clearKeys(keys){ keys.forEach(k => localStorage.removeItem(k)); refreshContext(); }
+function val(k){ return sessionStorage.getItem("medvoice."+k) || localStorage.getItem("medvoice."+k) || ""; }
+function notify(msg){ document.getElementById("notice").textContent = msg; }
+
+function refreshContext(){
+  const payload = {
+    doctor_id: val("doctor_id"),
+    patnr: val("patnr"),
+    falnr: val("falnr"),
+    field: val("field"),
+    wake_word: val("wake_word"),
+    stop_word: val("stop_word")
+  };
+  document.getElementById("ctxBox").value = JSON.stringify(payload, null, 2);
+}
+
+document.getElementById("clearSetup").onclick = ()=>{
+  clearKeys(["medvoice.noise_rms","medvoice.voiceprint_audio","medvoice.has_voiceprint"]);
+  notify("Configuración inicial restablecida.");
+};
+document.getElementById("clearTranscribe").onclick = ()=>{
+  clearKeys(["medvoice.last_transcript_text","medvoice.dictation_state","medvoice.last_transcript_payload"]);
+  notify("Datos de transcripción restablecidos.");
+};
+document.getElementById("clearAll").onclick = ()=>{
+  clearKeys(medKeys());
+  notify("Se restableció toda la información de MedVoice.");
+};
+document.getElementById("goSetup").onclick = ()=>{ window.location.href = "/static/medvoice-setup.html"; };
+document.getElementById("goTranscribe").onclick = ()=>{ window.location.href = "/static/medvoice-transcribe.html"; };
+
+refreshContext();
+</script>
+</body>
+</html>
