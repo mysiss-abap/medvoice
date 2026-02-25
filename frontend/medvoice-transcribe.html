@@ -11,197 +11,254 @@
       --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
     }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--sap-bg);font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);height:100vh;overflow:hidden}
-    header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:14px 18px;display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;gap:12px}
-    .leftTitle .t{font-size:20px;font-weight:700;line-height:1}
-    .leftTitle .s{font-size:13px;opacity:.95;margin-top:4px}
-    .patient-line{text-align:center;font-size:13px;font-weight:600;line-height:1.35;display:flex;flex-direction:column;gap:2px;align-items:center}
-    .wrap{max-width:1040px;margin:14px auto;padding:0 14px;height:calc(100vh - 84px);display:grid;grid-template-rows:auto auto 1fr;gap:12px}
-    .card{background:var(--sap-card);border:1px solid var(--sap-border);border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);padding:14px;min-height:0}
-    .btn{border:1px solid var(--sap-blue); background:var(--sap-blue); color:#fff;border-radius:8px;padding:10px 14px;font-size:14px;cursor:pointer;transition:.15s;user-select:none;font-weight:700}
-    .btn:hover{filter:brightness(.95)}
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-    .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue)}
-    textarea{border:1px solid var(--sap-border);border-radius:8px;padding:10px;font-size:14px;outline:none;background:#fff;width:100%;height:100%;resize:none;line-height:1.4;overflow:auto}
-    textarea:focus{border-color:var(--sap-blue)}
-    .status{margin-top:10px;font-size:13px;min-height:18px}
-    .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
-    .small{font-size:12px;color:var(--sap-muted);line-height:1.4}
-    .split{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;min-height:0}
-    .mono{font-family:Consolas, monospace;font-size:12px;white-space:pre-wrap;height:120px;overflow:auto}
+    body{margin:0;background:var(--sap-bg);font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);}
 
-  /* ==== mySiss Voice Assistant (GIF + popup sin texto) ==== */
-  .mysiss-gif-btn{
-    position:fixed;
-    right:18px;
-    bottom:18px;
-    width:86px;
-    height:86px;
-    border-radius:26px;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 18px 60px rgba(0,0,0,.55);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    user-select:none;
-    z-index:9999;
-    backdrop-filter: blur(10px);
-    transition: transform .12s ease;
-  }
-  .mysiss-gif-btn:active{ transform: scale(.98); }
-  .mysiss-gif-btn img{
-    width:72px;
-    height:72px;
-    object-fit:contain;
-    border-radius:20px;
-    display:block;
-  }
+    header{
+      background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
+      color:#fff;
+      padding:14px 18px;
+    }
+    .head-row{
+      display:grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      align-items:center;
+      gap:12px;
+    }
+    .app-name{font-size:22px;font-weight:800;line-height:1}
+    .app-sub{font-size:13px;opacity:.95;margin-top:4px;font-weight:600}
+    .patient-line{
+      justify-self:center;
+      font-size:14px;
+      font-weight:700;
+      text-align:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:100%;
+    }
+    @media (max-width: 900px){
+      .head-row{grid-template-columns:1fr}
+      .patient-line{justify-self:start;text-align:left}
+    }
 
-  .mysiss-overlay{
-    position:fixed;
-    inset:0;
-    background: rgba(0,0,0,.55);
-    display:none;
-    align-items:flex-end;
-    justify-content:flex-end;
-    padding:18px;
-    z-index:9998;
-  }
-  .mysiss-overlay.show{ display:flex; }
+    .wrap{max-width:980px;margin:18px auto;padding:0 14px;}
+    .card{
+      background:var(--sap-card);
+      border:1px solid var(--sap-border);
+      border-radius:12px;
+      box-shadow:0 1px 2px rgba(0,0,0,.05);
+      padding:16px;
+      margin-bottom:14px;
+    }
 
-  .mysiss-modal{
-    width:min(420px, 100%);
-    height:min(240px, 60vh);
-    border-radius:22px;
-    background: rgba(12,16,28,.55);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 18px 60px rgba(0,0,0,.55);
-    backdrop-filter: blur(14px);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    overflow:hidden;
-  }
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    .small{font-size:12.5px;color:var(--sap-muted);line-height:1.35}
+    .label{font-size:13px;color:var(--sap-muted)}
+    .label b{color:var(--sap-text)}
+    .chip{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      border:1px solid var(--sap-border);
+      background:#eef2f7;
+      color:var(--sap-muted);
+    }
+    .chip-ok{background:#e7f4ec;color:var(--ok)}
+    .chip-warn{background:#fff3e0;color:var(--warn)}
+    .chip-err{background:#fde8ea;color:var(--err)}
 
-  .mysiss-close{
-    position:absolute;
-    top:12px;
-    right:12px;
-    width:40px;
-    height:40px;
-    border-radius:14px;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.06);
-    cursor:pointer;
-  }
-  .mysiss-close::before, .mysiss-close::after{
-    content:"";
-    position:absolute;
-    top:50%; left:50%;
-    width:18px; height:2px;
-    background: rgba(255,255,255,.80);
-    transform-origin:center;
-  }
-  .mysiss-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
-  .mysiss-close::after{  transform: translate(-50%,-50%) rotate(-45deg); }
+    .btns{display:flex;gap:10px;flex-wrap:wrap;}
+    .btn{
+      border:1px solid var(--sap-blue);
+      background:var(--sap-blue);
+      color:#fff;
+      border-radius:10px;
+      padding:10px 14px;
+      font-size:14px;
+      cursor:pointer;
+      transition:.15s;
+      user-select:none;
+      font-weight:900;
+    }
+    .btn:hover{filter:brightness(.95);}
+    .btn:disabled{opacity:.55;cursor:not-allowed;}
+    .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue);}
+    .btn-warn{background:var(--warn);border-color:var(--warn);}
 
-  .mysiss-mic-orb{
-    width:120px;
-    height:120px;
-    border-radius:999px;
-    border: 1px solid rgba(255,255,255,.18);
-    background: rgba(255,255,255,.06);
-    cursor:pointer;
-    position:relative;
-    display:grid;
-    place-items:center;
-    overflow:hidden;
-  }
+    .status{margin-top:10px;font-size:13px;color:var(--sap-muted);}
+    .ok{color:var(--ok);font-weight:900}
+    .warn{color:var(--warn);font-weight:900}
+    .err{color:var(--err);font-weight:900}
 
-  .mysiss-mic-core{
-    width:24px; height:24px;
-    border-radius:999px;
-    background: rgba(124,58,237,.9);
-    box-shadow: 0 0 0 10px rgba(124,58,237,.14);
-  }
+    textarea{
+      border:1px solid var(--sap-border);
+      border-radius:10px;
+      padding:12px 12px;
+      font-size:14px;
+      outline:none;
+      background:#fff;
+      width:100%;
+      height:320px;
+      resize:none;
+      line-height:1.45;
+      overflow:auto;
+    }
+    textarea:focus{border-color:var(--sap-blue);}
 
-  .mysiss-mic-ring{
-    position:absolute;
-    inset:-30px;
-    border-radius:999px;
-    border: 2px solid rgba(124,58,237,.0);
-    pointer-events:none;
-  }
+    .mono{font-family:Consolas, ui-monospace, Menlo, monospace;font-size:12px;white-space:pre-wrap;}
+    #log{
+      border:1px solid var(--sap-border);
+      border-radius:12px;
+      padding:12px;
+      background:#fff;
+      height:180px;
+      overflow:auto;
+    }
 
-  .mysiss-listening .mysiss-mic-core{
-    box-shadow: 0 0 0 14px rgba(124,58,237,.18);
-    animation: mysissPulse 1.1s infinite;
-  }
-  .mysiss-listening .mysiss-mic-ring{
-    border-color: rgba(124,58,237,.20);
-    animation: mysissRing 1.1s infinite;
-  }
+    .mysiss-gif-btn{
+      position:fixed; right:18px; bottom:18px;
+      width:86px; height:86px; border-radius:26px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; user-select:none;
+      z-index:9999;
+      backdrop-filter: blur(10px);
+      transition: transform .12s ease;
+    }
+    .mysiss-gif-btn:active{ transform: scale(.98); }
+    .mysiss-gif-btn img{
+      width:72px; height:72px; object-fit:contain;
+      border-radius:20px; display:block;
+    }
+    .mysiss-overlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:flex-end; justify-content:flex-end;
+      padding:18px;
+      z-index:9998;
+    }
+    .mysiss-overlay.show{ display:flex; }
+    .mysiss-modal{
+      width:min(420px, 100%);
+      height:min(240px, 60vh);
+      border-radius:22px;
+      background: rgba(12,16,28,.55);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      backdrop-filter: blur(14px);
+      display:flex; align-items:center; justify-content:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .mysiss-close{
+      position:absolute; top:12px; right:12px;
+      width:40px; height:40px; border-radius:14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;
+    }
+    .mysiss-close::before, .mysiss-close::after{
+      content:"";
+      position:absolute; top:50%; left:50%;
+      width:18px; height:2px;
+      background: rgba(255,255,255,.80);
+      transform-origin:center;
+    }
+    .mysiss-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
+    .mysiss-close::after{  transform: translate(-50%,-50%) rotate(-45deg); }
 
-  @keyframes mysissPulse{
-    0%{ transform: scale(1); }
-    50%{ transform: scale(1.12); }
-    100%{ transform: scale(1); }
-  }
-  @keyframes mysissRing{
-    0%{ transform: scale(.92); opacity:.25; }
-    70%{ transform: scale(1.06); opacity:.0; }
-    100%{ transform: scale(1.06); opacity:0; }
-  }
-
-  @media (max-width:900px){
-    body{overflow:auto}
-    header{grid-template-columns:1fr}
-    .patient-line{text-align:left}
-    .wrap{height:auto;display:block}
-    .split{grid-template-columns:1fr}
-  }
-
-</style>
+    .mysiss-mic-orb{
+      width:120px; height:120px; border-radius:999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;
+      position:relative;
+      display:grid; place-items:center;
+      overflow:hidden;
+    }
+    .mysiss-mic-core{
+      width:24px; height:24px; border-radius:999px;
+      background: rgba(124,58,237,.9);
+      box-shadow: 0 0 0 10px rgba(124,58,237,.14);
+    }
+    .mysiss-mic-ring{
+      position:absolute; inset:-30px;
+      border-radius:999px;
+      border: 2px solid rgba(124,58,237,.0);
+      pointer-events:none;
+    }
+    .mysiss-listening .mysiss-mic-core{
+      box-shadow: 0 0 0 14px rgba(124,58,237,.18);
+      animation: mysissPulse 1.1s infinite;
+    }
+    .mysiss-listening .mysiss-mic-ring{
+      border-color: rgba(124,58,237,.20);
+      animation: mysissRing 1.1s infinite;
+    }
+    @keyframes mysissPulse{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+    @keyframes mysissRing{0%{transform:scale(.92);opacity:.25}70%{transform:scale(1.06);opacity:0}100%{transform:scale(1.06);opacity:0}}
+    @media (max-width:520px){
+      .mysiss-overlay{ justify-content:center; }
+      .mysiss-gif-btn{ right:14px; bottom:14px; }
+    }
+  </style>
 </head>
 <body>
+
 <header>
-  <div class="leftTitle">
-    <div class="t">MedVoice</div>
-    <div class="s">Transcripción</div>
+  <div class="head-row">
+    <div>
+      <div class="app-name">MedVoice</div>
+      <div class="app-sub">Transcripción</div>
+    </div>
+    <div class="patient-line" id="patientLine">Paciente — | Episodio — | ANAMNESIS</div>
+    <div></div>
   </div>
-  <div class="patient-line" id="patientLine">
-    <div id="hdrLine1">Carlos Obando Pinzon | Céd.Ciudadanía | 1122578956</div>
-    <div id="hdrLine2">Paciente 0000001382 | Episodio 0000003125 | Fe.admisión 27.02.2019</div>
-    <div id="hdrLine3">UM MED CYCI | UCI adultos | SALA UCI ADULTO | CAMA 1 |  ANAMNESIS</div>
-  </div>
+  <div class="patient-line" id="patientLine">Paciente - (-) | Episodio - (adm -) | Ubicación - | ANAMNESIS</div>
   <div></div>
 </header>
 
 <div class="wrap">
+
   <div class="card">
-    <div class="small"><b>Médico:</b> <span id="doctorCode">-</span> &nbsp; | &nbsp; <b>Nombre:</b> <span id="doctorName">No informado</span></div>
-    <div class="status" id="status">Estado: en espera.</div>
+    <div class="row">
+      <div class="label">
+        <b>Médico:</b> <span id="doctorLbl">—</span>
+        &nbsp; | &nbsp;
+        <b>Campo:</b> <span id="fieldLbl">ANAMNESIS</span>
+      </div>
+      <div class="chip chip-warn" id="modeChip">Listo</div>
+    </div>
   </div>
 
   <div class="card">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn" id="btnRecToggle">Iniciar transcripción</button>
-      <button class="btn" id="btnSend">Enviar a SAP</button>
+    <div class="btns">
+      <button class="btn" id="btnToggle">Iniciar transcripción</button>
+      <button class="btn btn-warn" id="btnSend">Enviar a SAP</button>
       <button class="btn btn-ghost" id="btnClear">Limpiar</button>
     </div>
-  </div>
 
-  <div class="split">
-    <div class="card" style="display:flex;flex-direction:column;">
+    <div class="status" id="status">Estado: listo.</div>
+
+    <div style="margin-top:12px">
       <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
     </div>
-    <div class="card" id="dictationLogCard" style="display:none;">
-      <h3 style="margin:0 0 10px 0;font-size:16px;">Log de dictado</h3>
-      <div class="mono" id="log"></div>
-    </div>
+  </div>
+</div>
+
+<!-- mySiss Voice Assistant (GIF floating) -->
+<div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
+  <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
+</div>
+
+  <div class="card">
+    <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
+    <div class="mono" id="log"></div>
   </div>
 </div>
 
@@ -215,7 +272,17 @@
   <div class="mysiss-modal" id="mySissModal">
     <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
 
-    <!-- Orbe / mic (único elemento interactivo del popup) -->
+</div>
+
+<!-- mySiss Voice Assistant (GIF floating) -->
+<div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
+  <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
+</div>
+
+<!-- Popup emergente (sin texto visible) -->
+<div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="mysiss-modal" id="mySissModal">
+    <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
     <button class="mysiss-mic-orb" id="mySissMic" aria-label="Hablar">
       <span class="mysiss-mic-core"></span>
       <span class="mysiss-mic-ring"></span>
@@ -224,68 +291,91 @@
 </div>
 
 <script>
-(function(){ history.replaceState({}, document.title, "/static/medvoice-transcribe.html"); })();
+/* ============================================================================
+   MedVoice Transcribe
+============================================================================ */
 
-const MODE = { IDLE: "IDLE", GIF_ASSISTANT: "GIF_ASSISTANT", DICTATION: "DICTATION" };
+(function hideUrlBarButKeepParams(){
+  const u = new URL(window.location.href);
+  const sp = u.searchParams;
+
+  const keys = [
+    "doctor_id","doctor_name","field",
+    "patnr","falnr",
+    "wake_word","stop_word",
+    "ini_word","fin_word","env_word"
+  ];
+
+  keys.forEach(k=>{
+    const v = (sp.get(k) || "").trim();
+    if(v){
+      sessionStorage.setItem("medvoice."+k, v);
+      localStorage.setItem("medvoice."+k, v);
+    }
+  });
+
+  try{
+    history.replaceState({}, document.title, "/static/medvoice-transcribe.html");
+  }catch(_e){}
+})();
+
 const $ = (id)=>document.getElementById(id);
-let currentMode = MODE.IDLE;
-let dictationStartedOnce = false;
+const log = (m)=>{
+  const el=$("log");
+  el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`;
+  el.scrollTop = el.scrollHeight;
+};
 
 function getValue(key, fallback=""){
-  const qs = new URL(window.location.href).searchParams;
-  return (sessionStorage.getItem("medvoice." + key) || localStorage.getItem("medvoice." + key) || qs.get(key) || fallback).trim();
+  const a = (sessionStorage.getItem("medvoice."+key) || "").trim();
+  const b = (localStorage.getItem("medvoice."+key) || "").trim();
+  return a || b || fallback;
 }
-function normalize(s){
-  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+function norm(s){
+  return String(s||"")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9\s]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
 }
 
 const ctx = {
-  doctor_id: getValue("doctor_id", ""),
-  doctor_name: getValue("doctor_name", getValue("doctor_fullname", "No informado")),
-  api: getValue("api", window.location.origin).replace(/\/+$/, ""),
-  session_id: getValue("session_id", getValue("sid", "")),
-  field: "ANAMNESIS",
-  patnr: getValue("patnr", "0000001382"),
-  patient_name: getValue("patient_name", getValue("patname", "Carlos Obando Pinzon")),
-  patient_doc: getValue("patient_doc", getValue("doc", "1122578956")),
-  falnr: getValue("falnr", "0000003125"),
-  adm_date: getValue("adm_date", getValue("admission_date", "27.02.2019")),
-  location: getValue("location", getValue("ward", "UM MED CYCI | UCI adultos | SALA UCI ADULTO | CAMA 1")),
-  wake_word: getValue("wake_word", "mysiss"),
-  stop_word: getValue("stop_word", "apagar"),
-  ini_word: getValue("ini_word", "iniciar"),
-  fin_word: getValue("fin_word", "fin"),
-  env_word: getValue("env_word", "enviar")
+  doctor_id   : getValue("doctor_id",""),
+  doctor_name : getValue("doctor_name",""),
+  field       : getValue("field","ANAMNESIS"),
+  patnr       : getValue("patnr","—"),
+  falnr       : getValue("falnr","—"),
+
+  wake_word   : getValue("wake_word","MAISIS"),
+  stop_word   : getValue("stop_word","APAGAR"),
+
+  ini_word    : getValue("ini_word","INICIAR"),
+  fin_word    : getValue("fin_word","FIN"),
+  env_word    : getValue("env_word","ENVIAR"),
 };
 
-const keys = {
-  wake: normalize(ctx.wake_word),
-  stop: normalize(ctx.stop_word),
-  ini: normalize(ctx.ini_word),
-  fin: normalize(ctx.fin_word),
-  env: normalize(ctx.env_word)
-};
-
-window.__MEDVOICE_CTX = ctx;
-localStorage.setItem("medvoice_ctx", JSON.stringify(ctx));
-Object.entries(ctx).forEach(([k,v])=>{
-  if (v === null || v === undefined) return;
-  const txt = String(v).trim();
-  if (!txt) return;
-  sessionStorage.setItem("medvoice." + k, txt);
-  localStorage.setItem("medvoice." + k, txt);
-});
-
-function hasCommandWord(phrase, command){
-  if (!phrase || !command) return false;
-  const words = normalize(phrase).split(" ").filter(Boolean);
-  return words.includes(normalize(command));
+function fieldLabelOnly(v){
+  const t = String(v||"").toUpperCase();
+  if(t.includes("ANAM")) return "ANAMNESIS";
+  return t || "ANAMNESIS";
 }
 
-function setMode(mode){ currentMode = mode; }
-function setStatus(message, cls){
-  if (!cls) { $("status").textContent = "Estado: " + message; return; }
-  $("status").innerHTML = `Estado: <span class="${cls}">${message}</span>`;
+$("fieldLbl").textContent = fieldLabelOnly(ctx.field);
+$("patientLine").textContent = `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | ${fieldLabelOnly(ctx.field)}`;
+
+const doctorShown = ctx.doctor_name
+  ? `${ctx.doctor_id} | ${ctx.doctor_name}`
+  : (ctx.doctor_id || "—");
+
+$("doctorLbl").textContent = doctorShown;
+
+function setStatus(html, chipClass){
+  $("status").innerHTML = "Estado: " + html;
+  const chip = $("modeChip");
+  chip.className = "chip " + (chipClass || "chip-warn");
 }
 function logDictation(msg){
   if (currentMode !== MODE.DICTATION || !dictationStartedOnce) return;
@@ -301,275 +391,308 @@ document.getElementById("hdrLine3").textContent = `${ctx.location} |  ANAMNESIS`
 $("doctorCode").textContent = ctx.doctor_id || "No informado";
 $("doctorName").textContent = ctx.doctor_name || "No informado";
 
-let dictationRecorder = null;
-let dictationStream = null;
-let dictationChunks = [];
+/* =========================
+   Dictation (SpeechRecognition)
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-function stopStream(stream){ try{ stream && stream.getTracks().forEach(t=>t.stop()); }catch(_e){} }
-async function getMic(){ return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}); }
+let dictRec = null;
+let dictActive = false;
 
-async function startDictation(){
-  if (currentMode !== MODE.IDLE) return;
-  try{
-    dictationStream = await getMic();
-    dictationChunks = [];
-    dictationRecorder = new MediaRecorder(dictationStream, { mimeType:"audio/webm" });
-    dictationRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size) dictationChunks.push(e.data); };
-    dictationRecorder.onstop = async ()=>{
-      stopStream(dictationStream);
-      dictationStream = null;
-      dictationRecorder = null;
-      setMode(MODE.IDLE);
-      $("btnRecToggle").textContent = "Iniciar transcripción";
-      setStatus("transcripción detenida.", "ok");
-      if (dictationChunks.length) await transcribeBackend();
-    };
-    dictationRecorder.start(250);
-    dictationStartedOnce = true;
-    setMode(MODE.DICTATION);
-    $("btnRecToggle").textContent = "Terminar transcripción";
-    setStatus("transcripción en curso.", "ok");
-    logDictation("Transcripción iniciada.");
-  }catch(_e){
-    setStatus("no se pudo activar el micrófono.", "err");
+function ensureSpeechSupport(){
+  if(!SR){
+    setStatus('<span class="err">este navegador no soporta SpeechRecognition</span>', "chip-err");
+    return false;
   }
+  return true;
 }
 
-async function stopDictation(){
-  if (currentMode !== MODE.DICTATION || !dictationRecorder) return;
-  setStatus("finalizando transcripción...", "warn");
-  logDictation("Finalizando transcripción.");
-  try{ if (dictationRecorder.state !== "inactive") dictationRecorder.stop(); }catch(_e){}
-}
+function startDictation(){
+  if(!ensureSpeechSupport()) return;
+  if(dictActive) return;
+  dictActive = true;
 
-async function transcribeBackend(){
-  const blob = new Blob(dictationChunks, {type:"audio/webm"});
-  const fd = new FormData();
-  fd.append("doctor_id", ctx.doctor_id || "");
-  fd.append("target_field", ctx.field);
-  fd.append("audio", blob, "dictation.webm");
-  try{
-    const res = await fetch(ctx.api + "/api/transcribe", { method:"POST", body: fd });
-    const data = await res.json().catch(()=>({ok:false}));
-    if (!res.ok || !data.ok) throw new Error("transcribe error");
-    const text = (data.text || "").trim();
-    $("txt").value = text;
-    window.MEDVOICE_TRANSCRIPT = text;
-    localStorage.setItem("medvoice.last_transcript_text", text);
-    logDictation(text ? "Transcripción recibida." : "Transcripción sin contenido.");
-    setStatus("texto listo para enviar.", "ok");
-  }catch(_e){
-    const cached = ($("txt").value || localStorage.getItem("medvoice.last_transcript_text") || "").trim();
-    localStorage.setItem("medvoice.last_transcript_text", cached);
-    setStatus("no se pudo transcribir ahora; puede enviar más tarde.", "warn");
-    logDictation("No se pudo contactar el backend de transcripción.");
-  }
-}
+  $("btnToggle").textContent = "Terminar transcripción";
+  setStatus('<span class="ok">escuchando...</span>', "chip-ok");
 
-async function sendToBackend(){
-  const text = ($("txt").value || localStorage.getItem("medvoice.last_transcript_text") || "").trim();
-  if (!text) {
-    setStatus("No hay datos para enviar", "warn");
-    if (currentMode === MODE.DICTATION) logDictation("No hay texto para enviar.");
-    return;
-  }
-  localStorage.setItem("medvoice.last_transcript_text", text);
-  if (!ctx.session_id || !ctx.patnr || !ctx.falnr || !ctx.doctor_id) {
-    setStatus("Faltan datos de contexto para enviar.", "warn");
-    if (currentMode === MODE.DICTATION) logDictation("Faltan datos de contexto para envío.");
-    return;
-  }
-  const payload = {
-    session_id: ctx.session_id || "",
-    patnr: ctx.patnr || "",
-    falnr: ctx.falnr || "",
-    field: ctx.field,
-    text: text,
-    doctor_id: ctx.doctor_id || ""
+  const rec = new SR();
+  dictRec = rec;
+  rec.lang = "es-CO";
+  rec.continuous = true;
+  rec.interimResults = true;
+
+  let finalText = $("txt").value || "";
+
+  rec.onresult = (event)=>{
+    let interim = "";
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const r = event.results[i];
+      const t = (r[0] && r[0].transcript) ? r[0].transcript : "";
+      if(r.isFinal) finalText += (t.trim() ? (t.trim()+" ") : "");
+      else interim += t;
+    }
+    $("txt").value = (finalText + (interim ? "\n" + interim.trim() : "")).trim();
+    localStorage.setItem("medvoice.last_transcript_text", $("txt").value);
   };
-  try{
-    const res = await fetch(ctx.api + "/api/push_result", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error("push_result error");
-    setStatus("enviado a SAP.", "ok");
-    if (currentMode === MODE.DICTATION) logDictation("Resultado enviado a SAP.");
-  }catch(_e){
-    setStatus("no se pudo enviar ahora. Quedó guardado localmente.", "warn");
-    if (currentMode === MODE.DICTATION) logDictation("Error al enviar resultado al backend.");
-  }
-}
 
-// ===== mySiss Voice Popup: SIN TEXTO en UI (solo voz + orbe mic) =====
-const gifAssistant = (function(){
-  const gifBtn   = document.getElementById('mySissGifBtn');
-  const overlay  = document.getElementById('mySissOverlay');
-  const modal    = document.getElementById('mySissModal');
-  const closeBtn = document.getElementById('mySissClose');
-  const micOrb   = document.getElementById('mySissMic');
+  rec.onerror = ()=>{
+    if(dictActive) setStatus('<span class="warn">esperando audio...</span>', "chip-warn");
+  };
 
-  if(!gifBtn || !overlay || !modal || !closeBtn || !micOrb) return null;
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null;
-  let listening = false;
-
-  function speakES(text){
-    try{
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'es-CO';
-      u.rate = 1.0;
-      u.pitch = 1.0;
-      window.speechSynthesis.speak(u);
-    }catch(_e){}
-  }
-
-  function openPopup(){
-    overlay.classList.add('show');
-    overlay.setAttribute('aria-hidden', 'false');
-    speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
-  }
-
-  function closePopup(){
-    overlay.classList.remove('show');
-    overlay.setAttribute('aria-hidden', 'true');
-    stopListening();
-  }
-
-  function initRec(){
-    if (!SpeechRecognition) return null;
-
-    const r = new SpeechRecognition();
-    r.lang = 'es-CO';
-    r.interimResults = false;
-    r.continuous = false;
-
-    r.onstart = () => { listening = true; modal.classList.add('mysiss-listening'); };
-    r.onerror = () => { listening = false; modal.classList.remove('mysiss-listening'); speakES("No tengo acceso al micrófono. Por favor habilite el permiso del navegador e intente de nuevo."); };
-    r.onend = () => { listening = false; modal.classList.remove('mysiss-listening'); };
-    r.onresult = (event) => {
-      const said = (event.results?.[0]?.[0]?.transcript || '').trim();
-      if(!said) return;
-      respondToQueryByVoice(said);
-    };
-
-    return r;
-  }
-
-  function startListening(){
-    if(!rec) rec = initRec();
-    if(!rec){
-      speakES("Este navegador no soporta dictado por voz.");
-      return;
-    }
-    try{ rec.start(); }catch(_e){}
-  }
-
-  function stopListening(){
-    if(rec && listening){
-      try{ rec.stop(); }catch(_e){}
-    }
-  }
-
-  micOrb.addEventListener('click', () => { if(listening) stopListening(); else startListening(); });
-  gifBtn.addEventListener('click', () => { if (currentMode === MODE.IDLE) { setMode(MODE.GIF_ASSISTANT); openPopup(); } });
-  closeBtn.addEventListener('click', () => { closePopup(); if (currentMode === MODE.GIF_ASSISTANT) setMode(MODE.IDLE); });
-  overlay.addEventListener('click', (e) => { if(e.target === overlay){ closePopup(); if (currentMode === MODE.GIF_ASSISTANT) setMode(MODE.IDLE); } });
-
-  function respondToQueryByVoice(query){
-    const q = normalize(query);
-
-    // Respuestas demo (listas para conectar a SAP después)
-    if(q.includes('hemograma') || q.includes('cuadro hematico') || q.includes('cbc')){
-      speakES("Entendido. Consultando el hemograma más reciente. En este prototipo, la respuesta es simulada.");
-      return;
-    }
-    if(q.includes('alerg')){
-      speakES("Entendido. Consultando alergias registradas. En este prototipo, la respuesta es simulada.");
-      return;
-    }
-    if(q.includes('diagnost') || q.includes('dx')){
-      speakES("Entendido. Consultando diagnósticos activos. En este prototipo, la respuesta es simulada.");
-      return;
-    }
-    if(q.includes('medic') || q.includes('tratam')){
-      speakES("Entendido. Consultando medicación y tratamiento actual. En este prototipo, la respuesta es simulada.");
-      return;
-    }
-
-    speakES("Recibido. Confirmo la consulta solicitada. En este prototipo la respuesta es simulada, quedará lista para integración con SAP.");
-  }
-
-  return { openPopup, closePopup };
-})();
-
-let commandRecognition = null;
-let commandLastTs = 0;
-
-function setupCommandRecognition(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
-  const recognition = new SR();
-  recognition.lang = "es-ES";
-  recognition.continuous = true;
-  recognition.interimResults = true;
-
-  recognition.onresult = (event)=>{
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const phrase = normalize((event.results[i][0] && event.results[i][0].transcript) || "");
-      if (!phrase) continue;
-      const now = Date.now();
-      if (now - commandLastTs < 900) continue;
-
-      if (currentMode === MODE.IDLE && keys.wake && hasCommandWord(phrase, keys.wake)) {
-        commandLastTs = now;
-        setMode(MODE.GIF_ASSISTANT);
-        if (gifAssistant) gifAssistant.openPopup();
-        continue;
-      }
-      if (currentMode === MODE.GIF_ASSISTANT && keys.stop && hasCommandWord(phrase, keys.stop)) {
-        commandLastTs = now;
-        if (gifAssistant) gifAssistant.closePopup();
-        setMode(MODE.IDLE);
-        continue;
-      }
-      if (currentMode === MODE.IDLE && keys.ini && hasCommandWord(phrase, keys.ini)) {
-        commandLastTs = now;
-        startDictation();
-        continue;
-      }
-      if (currentMode === MODE.DICTATION && keys.fin && hasCommandWord(phrase, keys.fin)) {
-        commandLastTs = now;
-        stopDictation();
-        continue;
-      }
-      if (currentMode === MODE.DICTATION && keys.env && hasCommandWord(phrase, keys.env)) {
-        commandLastTs = now;
-        sendToBackend();
-      }
+  rec.onend = ()=>{
+    if(dictActive){
+      try{ rec.start(); }catch(_e){}
     }
   };
 
-  recognition.onend = ()=>{ try{ recognition.start(); }catch(_e){} };
-  recognition.onerror = ()=>{};
-  return recognition;
+  try{ rec.start(); }catch(_e){}
+  log(`Transcripción iniciada (por botón o palabra "${ctx.ini_word}").`);
 }
 
-$("btnRecToggle").onclick = ()=>{ if (currentMode === MODE.DICTATION) stopDictation(); else if (currentMode === MODE.IDLE) startDictation(); };
-$("btnSend").onclick = ()=>{ sendToBackend(); };
-$("btnClear").onclick = ()=>{
+function stopDictation(){
+  if(!dictActive) return;
+  dictActive = false;
+
+  $("btnToggle").textContent = "Iniciar transcripción";
+  setStatus('<span class="ok">lista</span>', "chip-ok");
+
+  try{ dictRec && dictRec.stop(); }catch(_e){}
+  dictRec = null;
+
+  localStorage.setItem("medvoice.last_transcript_text", $("txt").value || "");
+  log(`Transcripción detenida (por botón o palabra "${ctx.fin_word}").`);
+}
+
+function clearText(){
   $("txt").value = "";
   localStorage.removeItem("medvoice.last_transcript_text");
-  if (currentMode === MODE.DICTATION) logDictation("Texto limpiado.");
-};
+  setStatus("listo.", "chip-warn");
+  log("Texto limpiado.");
+}
 
-window.MEDVOICE_TRANSCRIPT = localStorage.getItem("medvoice.last_transcript_text") || "";
-if (window.MEDVOICE_TRANSCRIPT) $("txt").value = window.MEDVOICE_TRANSCRIPT;
-commandRecognition = setupCommandRecognition();
-if (commandRecognition) { try{ commandRecognition.start(); }catch(_e){} }
+/* =========================
+   Enviar a SAP (sapevent)
+function sendToSAP(){
+  const text = ($("txt").value || "").trim();
+  if(!text){
+    setStatus('<span class="warn">no hay texto para enviar</span>', "chip-warn");
+    return;
+  }
+
+  localStorage.setItem("medvoice.last_transcript_text", text);
+
+  const target = fieldLabelOnly(ctx.field);
+  const url = "sapevent:MEDVOICE_SET_FIELD"
+    + "?target=" + encodeURIComponent(target)
+    + "&text=" + encodeURIComponent(text);
+
+  try{
+    window.location.href = url;
+    log("Enviado a SAP por sapevent.");
+    setStatus('<span class="ok">enviado a SAP</span>', "chip-ok");
+  }catch(_e){
+    setStatus('<span class="warn">sapevent no disponible (abre embebido en SAP)</span>', "chip-warn");
+    log("sapevent no disponible en este navegador.");
+  }
+}
+
+/* =========================
+   UI Buttons
+$("btnToggle").addEventListener("click", ()=>{
+  if(dictActive) stopDictation();
+  else startDictation();
+});
+$("btnSend").addEventListener("click", sendToSAP);
+$("btnClear").addEventListener("click", clearText);
+
+const last = (localStorage.getItem("medvoice.last_transcript_text") || "").trim();
+if(last) $("txt").value = last;
+
+/* =========================
+   mySiss GIF Assistant (NO log)
+const gifBtn   = $("mySissGifBtn");
+const overlay  = $("mySissOverlay");
+const modal    = $("mySissModal");
+const closeBtn = $("mySissClose");
+const micOrb   = $("mySissMic");
+
+let gifOpen = false;
+let gifListening = false;
+let gifRec = null;
+
+function speakES(text){
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "es-CO";
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    window.speechSynthesis.speak(u);
+  }catch(_e){}
+}
+
+function openGif(){
+  gifOpen = true;
+  overlay.classList.add("show");
+  overlay.setAttribute("aria-hidden","false");
+  speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
+}
+
+function closeGif(){
+  gifOpen = false;
+  overlay.classList.remove("show");
+  overlay.setAttribute("aria-hidden","true");
+  stopGifListening();
+}
+
+function initGifRec(){
+  if(!SR) return null;
+  const r = new SR();
+  r.lang = "es-CO";
+  r.interimResults = false;
+  r.continuous = false;
+
+  r.onstart = ()=>{
+    gifListening = true;
+    modal.classList.add("mysiss-listening");
+  };
+  r.onerror = ()=>{
+    gifListening = false;
+    modal.classList.remove("mysiss-listening");
+    speakES("No tengo acceso al micrófono. Por favor habilite el permiso del navegador e intente de nuevo.");
+  };
+  r.onend = ()=>{
+    gifListening = false;
+    modal.classList.remove("mysiss-listening");
+  };
+  r.onresult = (event)=>{
+    const said = (event.results?.[0]?.[0]?.transcript || "").trim();
+    if(!said) return;
+    respondToQueryByVoice(said);
+  };
+  return r;
+}
+
+function startGifListening(){
+  if(!SR){
+    speakES("Este navegador no soporta dictado por voz.");
+    return;
+  }
+  if(!gifRec) gifRec = initGifRec();
+  if(!gifRec) return;
+  try{ gifRec.start(); }catch(_e){}
+}
+
+function stopGifListening(){
+  if(gifRec && gifListening){
+    try{ gifRec.stop(); }catch(_e){}
+  }
+}
+
+function respondToQueryByVoice(query){
+  const q = norm(query);
+
+  if(q.includes("hemograma") || q.includes("cuadro hematico") || q.includes("cbc")){
+    speakES("Entendido. Consultando el hemograma más reciente. En este prototipo, la respuesta es simulada.");
+    return;
+  }
+  if(q.includes("alerg")){
+    speakES("Entendido. Consultando alergias registradas. En este prototipo, la respuesta es simulada.");
+    return;
+  }
+  if(q.includes("diagnost") || q.includes("dx")){
+    speakES("Entendido. Consultando diagnósticos activos. En este prototipo, la respuesta es simulada.");
+    return;
+  }
+  if(q.includes("medic") || q.includes("tratam")){
+    speakES("Entendido. Consultando medicación y tratamiento actual. En este prototipo, la respuesta es simulada.");
+    return;
+  }
+
+  speakES("Recibido. Confirmo la consulta solicitada. En este prototipo la respuesta es simulada, quedará lista para integración con SAP.");
+}
+
+gifBtn.addEventListener("click", openGif);
+closeBtn.addEventListener("click", closeGif);
+overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
+micOrb.addEventListener("click", ()=>{ if(gifListening) stopGifListening(); else startGifListening(); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
+
+/* =========================
+   Global Voice Command Listener (wake/stop/ini/fin/env)
+let cmdRec = null;
+let cmdEnabled = false;
+let lastCmdAt = 0;
+
+function startCommandLoop(){
+  if(!SR) return;
+
+  cmdRec = new SR();
+  cmdRec.lang = "es-CO";
+  cmdRec.continuous = true;
+  cmdRec.interimResults = true;
+
+  const WAKE = norm(ctx.wake_word);
+  const STOP = norm(ctx.stop_word);
+  const INI  = norm(ctx.ini_word);
+  const FIN  = norm(ctx.fin_word);
+  const ENV  = norm(ctx.env_word);
+
+  cmdRec.onresult = (event)=>{
+    let phrase = "";
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      phrase += " " + ((event.results[i][0] && event.results[i][0].transcript) ? event.results[i][0].transcript : "");
+    }
+    const t = norm(phrase);
+    if(!t) return;
+
+    const now = Date.now();
+    if(now - lastCmdAt < 900) return;
+
+    if(!gifOpen && WAKE && t.includes(WAKE)){
+      lastCmdAt = now;
+      openGif();
+      return;
+    }
+    if(gifOpen && STOP && t.includes(STOP)){
+      lastCmdAt = now;
+      closeGif();
+      return;
+    }
+
+    if(!dictActive && INI && t.includes(INI)){
+      lastCmdAt = now;
+      startDictation();
+      return;
+    }
+    if(dictActive && FIN && t.includes(FIN)){
+      lastCmdAt = now;
+      stopDictation();
+      return;
+    }
+    if(ENV && t.includes(ENV)){
+      lastCmdAt = now;
+      sendToSAP();
+      return;
+    }
+  };
+
+  cmdRec.onend = ()=>{
+    if(cmdEnabled){
+      try{ cmdRec.start(); }catch(_e){}
+    }
+  };
+
+  cmdRec.onerror = ()=>{ /* silencioso */ };
+
+  cmdEnabled = true;
+  try{ cmdRec.start(); }catch(_e){}
+}
+
+startCommandLoop();
+
+// Estado inicial bonito
+setStatus("listo.", "chip-warn");
 </script>
+
 </body>
 </html>

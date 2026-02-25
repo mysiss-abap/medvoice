@@ -8,41 +8,36 @@
 <body>
 <script>
 (function () {
-  function pick(k){ return (new URL(window.location.href).searchParams.get(k) || "").trim(); }
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
 
-  const sessionId = pick("session_id");
-  const api = (pick("api") || localStorage.getItem("medvoice.api") || window.location.origin).replace(/\/+$/, "");
+  const incoming = {};
+  params.forEach((value, key) => {
+    incoming[key] = (value || "").trim();
+  });
 
-  if (sessionId) {
-    sessionStorage.setItem("medvoice.session_id", sessionId);
-    localStorage.setItem("medvoice.session_id", sessionId);
-  }
-  if (api) {
-    sessionStorage.setItem("medvoice.api", api);
-    localStorage.setItem("medvoice.api", api);
-  }
+  const aliases = {
+    wake: "wake_word",
+    stop: "stop_word"
+  };
+
+  Object.entries(aliases).forEach(([from, to]) => {
+    if (!incoming[to] && incoming[from]) incoming[to] = incoming[from];
+  });
+
+  Object.entries(incoming).forEach(([k, v]) => {
+    if (!v) return;
+    sessionStorage.setItem("medvoice." + k, v);
+    localStorage.setItem("medvoice." + k, v);
+  });
 
   history.replaceState({}, document.title, "/static/index.html");
 
-  async function loadContext(){
-    const sid = sessionStorage.getItem("medvoice.session_id") || localStorage.getItem("medvoice.session_id") || "";
-    if (!sid || !api) throw new Error("missing session/api");
-    const res = await fetch(`${api}/api/context?session_id=${encodeURIComponent(sid)}`);
-    if (!res.ok) throw new Error("context http " + res.status);
-    const data = await res.json();
-    if (!data || !data.ok || !data.context) throw new Error("invalid context payload");
-    const ctx = data.context;
-    window.__MEDVOICE_CTX = ctx;
-    localStorage.setItem("medvoice_ctx", JSON.stringify(ctx));
-    Object.entries(ctx).forEach(([k, v])=>{
-      if (v === null || v === undefined) return;
-      const txt = String(v).trim();
-      if (!txt) return;
-      sessionStorage.setItem("medvoice." + k, txt);
-      localStorage.setItem("medvoice." + k, txt);
-    });
-    return ctx;
-  }
+  const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1";
+  const hasNoise = localStorage.getItem("medvoice.has_noise_profile") === "1" || !!localStorage.getItem("medvoice.noise_rms");
+  const destination = (hasVoiceprint && hasNoise)
+    ? "/static/medvoice-transcribe.html"
+    : "/static/medvoice-setup.html";
 
   function loadFallbackContext(){
     try{
