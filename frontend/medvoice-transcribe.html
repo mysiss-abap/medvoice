@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MedVoice | Transcripción</title>
+
   <style>
     :root{
       --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
@@ -12,52 +13,67 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:var(--sap-bg);font-family:Segoe UI, Arial, sans-serif;color:var(--sap-text);overflow:hidden;}
+    body{
+      margin:0;
+      background:var(--sap-bg);
+      font-family:Segoe UI, Arial, sans-serif;
+      color:var(--sap-text);
+      overflow:hidden; /* sin scroll del browser */
+    }
 
+    /* ===== HEADER ===== */
     header{
       background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
       color:#fff;
-      padding:14px 0; /* el padding lateral lo maneja head-inner para alinear con cards */
+      padding:14px 0; /* padding lateral lo maneja .head-inner */
     }
-
-    /* Alinea TODO el header al mismo ancho/padding de los cards */
     .head-inner{
       max-width:980px;
       margin:0 auto;
-      padding:0 14px;
+      padding:0 14px; /* igual que .wrap */
     }
 
-    .head-top{
+    /* Grid: izquierda MedVoice / derecha vacío, centro datos paciente */
+    .head-grid{
+      display:grid;
+      grid-template-columns: 220px 1fr 60px;
+      align-items:start;
+      gap:10px;
+    }
+
+    .brand{
       display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
+      flex-direction:column;
+      gap:4px;
     }
     .app-name{font-size:22px;font-weight:800;line-height:1}
-    .app-sub{font-size:13px;opacity:.95;margin-top:4px;font-weight:600}
+    .app-sub{font-size:13px;opacity:.95;font-weight:600}
 
-    /* ===== Header paciente (TRANSPARENTE, sin cajón) ===== */
-    .head-lines{
-      margin-top:10px;
+    /* Datos paciente centrados, 2 líneas, transparente */
+    .patient-center{
       display:flex;
       flex-direction:column;
       gap:6px;
+      align-items:center;   /* CENTRADO */
+      justify-content:flex-start;
+      text-align:center;
+      min-width:0;
     }
-    .head-line{
+    .patient-line{
       font-size:13.5px;
-      font-weight:700;
+      font-weight:800;
       opacity:.96;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      /* transparente */
+      max-width:100%;
       background:transparent;
       border:none;
       padding:0;
-      border-radius:0;
-      max-width:100%;
+      margin:0;
     }
 
+    /* ===== LAYOUT ===== */
     .wrap{
       max-width:980px;
       margin:18px auto;
@@ -129,6 +145,7 @@
       resize:none;
       line-height:1.45;
       overflow:auto;
+      white-space:pre-wrap; /* respeta ENTER */
     }
     textarea:focus{border-color:var(--sap-blue);}
 
@@ -142,10 +159,10 @@
       border-radius:12px;
       padding:12px;
       background:#fff;
-      overflow:auto;
+      overflow:auto; /* único scroll */
     }
 
-    /* mySiss GIF floating (solo 1) */
+    /* mySiss GIF floating */
     .mysiss-gif-btn{
       position:fixed; right:18px; bottom:18px;
       width:86px; height:86px; border-radius:26px;
@@ -233,28 +250,37 @@
     @keyframes mysissRing{0%{transform:scale(.92);opacity:.25}70%{transform:scale(1.06);opacity:0}100%{transform:scale(1.06);opacity:0}}
   </style>
 </head>
+
 <body>
 
 <header>
   <div class="head-inner">
-    <div class="head-top">
-      <div>
+    <div class="head-grid">
+      <!-- IZQUIERDA: MedVoice / Transcripción (como estaba) -->
+      <div class="brand">
         <div class="app-name">MedVoice</div>
         <div class="app-sub">Transcripción</div>
       </div>
-    </div>
 
-    <!-- SOLO 2 LINEAS -->
-    <div class="head-lines">
-      <div class="head-line" id="hdrLine1">Paciente — | Documento identidad — | Paciente — | Episodio — | Fecha admisión —</div>
-      <div class="head-line" id="hdrLine2">Ubicación — | ANAMNESIS</div>
+      <!-- CENTRO: SOLO datos paciente (2 líneas) -->
+      <div class="patient-center">
+        <div class="patient-line" id="hdrLine1">
+          Paciente — | Documento identidad — | Paciente — | Episodio — | Fecha admisión —
+        </div>
+        <div class="patient-line" id="hdrLine2">
+          Ubicación — | ANAMNESIS
+        </div>
+      </div>
+
+      <!-- DERECHA: vacío para balance visual -->
+      <div></div>
     </div>
   </div>
 </header>
 
 <div class="wrap">
 
-  <!-- Datos médico (en una misma línea ID/Médico) -->
+  <!-- Datos médico -->
   <div class="card">
     <div class="row">
       <div class="label">
@@ -289,12 +315,11 @@
 
 </div>
 
-<!-- mySiss Voice Assistant (GIF floating) -->
+<!-- mySiss GIF floating -->
 <div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
   <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
 </div>
 
-<!-- Popup emergente (sin texto visible) -->
 <div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="mysiss-modal" id="mySissModal">
     <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
@@ -307,7 +332,7 @@
 
 <script>
 /* ============================================================================
-   MedVoice Transcribe - limpio y funcional
+   Persistencia de params + ocultar querystring
 ============================================================================ */
 (function persistParamsAndHide(){
   const u = new URL(window.location.href);
@@ -317,8 +342,7 @@
     "doctor_id","doctor_name","field","field_label",
     "patnr","falnr",
     "patient_name","patient_doc","adm_date","location_line",
-    "wake_word","stop_word","ini_word","fin_word","env_word",
-    "lim_word"
+    "wake_word","stop_word","ini_word","fin_word","env_word","lim_word"
   ];
 
   keys.forEach(k=>{
@@ -390,7 +414,7 @@ function fieldLabelOnly(v){
   return t.toUpperCase();
 }
 
-/* ===== Header (2 líneas) ===== */
+/* ===== Header paciente (2 líneas) ===== */
 $("hdrLine1").textContent =
   `Paciente ${ctx.patient_name} | Documento identidad ${ctx.patient_doc} | ` +
   `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | Fecha admisión ${ctx.adm_date}`;
@@ -398,19 +422,23 @@ $("hdrLine1").textContent =
 $("hdrLine2").textContent =
   `${ctx.location_line} | ${fieldLabelOnly(ctx.field_label)}`;
 
-/* ===== Datos médico (1 línea ID/Médico) ===== */
+/* ===== Datos médico ===== */
 $("doctorId").textContent = ctx.doctor_id || "—";
 $("doctorName").textContent = ctx.doctor_name || "No informado";
 
 /* ============================================================================
-   Dictado + Comandos (UN SOLO SpeechRecognition para evitar conflictos)
+   SpeechRecognition (un solo SR)
+   - Enter automático por pausa
+   - GIF wake/stop funciona (inicia SR tras primer gesto del usuario)
 ============================================================================ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 let rec = null;
 let recRunning = false;
 let dictActive = false;
+
 let lastCmdAt = 0;
+let pauseTimer = null;
 
 const WAKE = norm(ctx.wake_word);
 const STOP = norm(ctx.stop_word);
@@ -419,12 +447,28 @@ const FIN  = norm(ctx.fin_word);
 const ENV  = norm(ctx.env_word);
 const LIM  = norm(ctx.lim_word);
 
+/* ENTER por pausa: si pasan X ms sin texto final, inserta salto de línea */
+const PAUSE_MS = 1100;
+
 function ensureSpeechSupport(){
   if(!SR){
     setStatus('<span class="err">este navegador no soporta SpeechRecognition</span>', "chip-err");
     return false;
   }
   return true;
+}
+
+function schedulePauseEnter(){
+  if(!dictActive) return;
+  if(pauseTimer) clearTimeout(pauseTimer);
+  pauseTimer = setTimeout(()=>{
+    if(!dictActive) return;
+    const t = $("txt").value || "";
+    if(t && !t.endsWith("\n")){
+      $("txt").value = t + "\n";
+      localStorage.setItem("medvoice.last_transcript_text", $("txt").value);
+    }
+  }, PAUSE_MS);
 }
 
 function maybeHandleCommand(textNorm){
@@ -438,7 +482,6 @@ function maybeHandleCommand(textNorm){
   if(dictActive && FIN && textNorm.includes(FIN)){ lastCmdAt = now; stopDictation(); return true; }
 
   if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; sendToSAP(); return true; }
-
   if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearText(); return true; }
 
   return false;
@@ -453,12 +496,14 @@ function initRecognition(){
   r.interimResults = true;
 
   r.onstart = ()=>{ recRunning = true; };
-
   r.onerror = ()=>{ /* silencioso */ };
 
-  r.onend = ()=> {
+  r.onend = ()=>{
     recRunning = false;
-    try{ r.start(); }catch(_e){}
+    // loop si ya fue activado por gesto del usuario
+    if(rec && rec.__enabledByGesture){
+      try{ r.start(); }catch(_e){}
+    }
   };
 
   r.onresult = (event)=>{
@@ -479,10 +524,14 @@ function initRecognition(){
     if(probe && maybeHandleCommand(probe)) return;
 
     if(dictActive){
+      // Enter por pausa se reprograma con cualquier señal de voz
+      if(finalText || interimText) schedulePauseEnter();
+
+      // Escribe solo FINAL para no duplicar
       if(finalText){
         const cur = $("txt").value || "";
         const add = finalText.trim();
-        const next = (cur + (cur && !cur.endsWith("\n") ? " " : "") + add).trim();
+        const next = (cur + (cur && !cur.endsWith("\n") && !cur.endsWith(" ") ? " " : "") + add).trimEnd();
         $("txt").value = next;
         localStorage.setItem("medvoice.last_transcript_text", next);
       }
@@ -492,10 +541,14 @@ function initRecognition(){
   return r;
 }
 
-function startRecognitionLoop(){
+/* Importante:
+   SpeechRecognition.start() se bloquea sin interacción del usuario.
+   Por eso activamos el loop la primera vez que el usuario haga click. */
+function enableRecognitionByGesture(){
   if(rec) return;
   rec = initRecognition();
   if(!rec) return;
+  rec.__enabledByGesture = true;
   try{ rec.start(); }catch(_e){}
 }
 
@@ -503,7 +556,8 @@ function startDictation(){
   dictActive = true;
   $("btnToggle").textContent = "Terminar transcripción";
   setStatus('<span class="ok">escuchando...</span>', "chip-ok");
-  startRecognitionLoop();
+  enableRecognitionByGesture(); // asegura SR activo
+  schedulePauseEnter();
   log(`Transcripción iniciada (palabra: "${ctx.ini_word}").`);
 }
 
@@ -511,6 +565,7 @@ function stopDictation(){
   dictActive = false;
   $("btnToggle").textContent = "Iniciar transcripción";
   setStatus('<span class="ok">lista</span>', "chip-ok");
+  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer=null; }
   localStorage.setItem("medvoice.last_transcript_text", $("txt").value || "");
   log(`Transcripción detenida (palabra: "${ctx.fin_word}").`);
 }
@@ -522,9 +577,6 @@ function clearText(){
   log(`Texto limpiado (palabra: "${ctx.lim_word}").`);
 }
 
-/* ============================================================================
-   Enviar a SAP (sapevent)
-============================================================================ */
 function sendToSAP(){
   const text = ($("txt").value || "").trim();
   if(!text){
@@ -549,22 +601,20 @@ function sendToSAP(){
   }
 }
 
-/* ============================================================================
-   UI Buttons
-============================================================================ */
+/* Botones */
 $("btnToggle").addEventListener("click", ()=>{
   if(dictActive) stopDictation();
   else startDictation();
 });
-$("btnSend").addEventListener("click", sendToSAP);
-$("btnClear").addEventListener("click", clearText);
+$("btnSend").addEventListener("click", ()=>{ enableRecognitionByGesture(); sendToSAP(); });
+$("btnClear").addEventListener("click", ()=>{ enableRecognitionByGesture(); clearText(); });
 
-/* Cargar texto previo */
+/* Texto previo */
 const last = (localStorage.getItem("medvoice.last_transcript_text") || "").trim();
 if(last) $("txt").value = last;
 
 /* ============================================================================
-   mySiss GIF Assistant (NO log)
+   mySiss GIF Assistant (sin log)
 ============================================================================ */
 const gifBtn   = $("mySissGifBtn");
 const overlay  = $("mySissOverlay");
@@ -601,7 +651,17 @@ function closeGif(){
   gifListening = false;
 }
 
+/* CLICK del GIF también activa SR (para que wake/stop funcione luego) */
+gifBtn.addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  openGif();
+});
+closeBtn.addEventListener("click", closeGif);
+overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
+
 micOrb.addEventListener("click", ()=>{
+  enableRecognitionByGesture();
   gifListening = !gifListening;
   if(gifListening){
     modal.classList.add("mysiss-listening");
@@ -611,13 +671,13 @@ micOrb.addEventListener("click", ()=>{
   }
 });
 
-gifBtn.addEventListener("click", openGif);
-closeBtn.addEventListener("click", closeGif);
-overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
-document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
+/* Habilita SR con el primer click en cualquier parte (una sola vez) */
+document.addEventListener("click", function once(){
+  enableRecognitionByGesture();
+  document.removeEventListener("click", once);
+}, { once:true });
 
 /* INIT */
-startRecognitionLoop(); // listener para comandos
 setStatus("listo.", "chip-warn");
 log("MedVoice listo.");
 </script>
