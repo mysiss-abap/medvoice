@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MedVoice</title>
+</head>
+<body>
+<script>
+(function () {
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
+
+  // Guardar TODOS los parámetros que llegan desde SAP
+  params.forEach((value, key) => {
+    const v = (value || "").trim();
+    if(!v) return;
+    sessionStorage.setItem("medvoice." + key, v);
+    localStorage.setItem("medvoice." + key, v);
+  });
+
+  // Ocultar QS
+  try{ history.replaceState({}, document.title, "/static/index.html"); }catch(_e){}
+
+  // Ruta según huella + ambiente
+  const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1";
+  const hasNoise = localStorage.getItem("medvoice.has_noise_profile") === "1" || !!localStorage.getItem("medvoice.noise_rms");
+
+  const destination = (hasVoiceprint && hasNoise)
+    ? "/static/medvoice-transcribe.html"
+    : "/static/medvoice-setup.html";
+
+  window.location.replace(destination);
+})();
+</script>
+</body>
+</html>

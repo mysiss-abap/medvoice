@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MedVoice | Transcripción</title>
+
+  <style>
+    :root{
+      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
+      --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
+      --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--sap-bg);
+      font-family:Segoe UI, Arial, sans-serif;
+      color:var(--sap-text);
+      overflow:hidden; /* sin scroll del browser */
+    }
+
+    /* ===== HEADER ===== */
+    header{
+      background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
+      color:#fff;
+      padding:14px 0;
+    }
+    .head-inner{
+      max-width:980px;
+      margin:0 auto;
+      padding:0 14px;
+    }
+
+    /* Grid: izquierda MedVoice / centro paciente / derecha vacío */
+    .head-grid{
+      display:grid;
+      grid-template-columns: 220px 1fr 60px;
+      align-items:start;
+      gap:10px;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .app-name{font-size:22px;font-weight:800;line-height:1}
+    .app-sub{font-size:13px;opacity:.95;font-weight:600}
+
+    /* Centro paciente (2 líneas, transparente, centrado) */
+    .patient-center{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:center;
+      justify-content:flex-start;
+      text-align:center;
+      min-width:0;
+    }
+    .patient-line{
+      font-size:13.5px;
+      font-weight:800;
+      opacity:.96;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:100%;
+      background:transparent;
+      border:none;
+      padding:0;
+      margin:0;
+    }
+
+    /* ===== LAYOUT ===== */
+    .wrap{
+      max-width:980px;
+      margin:18px auto;
+      padding:0 14px;
+      height:calc(100vh - 92px);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .card{
+      background:var(--sap-card);
+      border:1px solid var(--sap-border);
+      border-radius:12px;
+      box-shadow:0 1px 2px rgba(0,0,0,.05);
+      padding:16px;
+    }
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    .label{font-size:14px;color:var(--sap-muted);line-height:1.5}
+    .label b{color:var(--sap-text)}
+    .chip{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      border:1px solid var(--sap-border);
+      background:#eef2f7;
+      color:var(--sap-muted);
+    }
+    .chip-ok{background:#e7f4ec;color:var(--ok)}
+    .chip-warn{background:#fff3e0;color:var(--warn)}
+    .chip-err{background:#fde8ea;color:var(--err)}
+
+    .btns{display:flex;gap:10px;flex-wrap:wrap;}
+    .btn{
+      border:1px solid var(--sap-blue);
+      background:var(--sap-blue);
+      color:#fff;
+      border-radius:10px;
+      padding:10px 14px;
+      font-size:14px;
+      cursor:pointer;
+      transition:.15s;
+      user-select:none;
+      font-weight:900;
+    }
+    .btn:hover{filter:brightness(.95);}
+    .btn:disabled{opacity:.55;cursor:not-allowed;}
+    .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue);}
+    .btn-warn{background:var(--warn);border-color:var(--warn);}
+
+    .status{margin-top:10px;font-size:13px;color:var(--sap-muted);}
+    .ok{color:var(--ok);font-weight:900}
+    .warn{color:var(--warn);font-weight:900}
+    .err{color:var(--err);font-weight:900}
+
+    textarea{
+      border:1px solid var(--sap-border);
+      border-radius:10px;
+      padding:12px 12px;
+      font-size:14px;
+      outline:none;
+      background:#fff;
+      width:100%;
+      height:320px;
+      resize:none;
+      line-height:1.45;
+      overflow:auto;
+      white-space:pre-wrap; /* respeta ENTER */
+    }
+    textarea:focus{border-color:var(--sap-blue);}
+
+    /* Log con scroll propio */
+    .logcard{flex:1;min-height:0;display:flex;flex-direction:column}
+    .mono{font-family:Consolas, ui-monospace, Menlo, monospace;font-size:12px;white-space:pre-wrap;}
+    #log{
+      flex:1;
+      min-height:0;
+      border:1px solid var(--sap-border);
+      border-radius:12px;
+      padding:12px;
+      background:#fff;
+      overflow:auto;
+    }
+
+    /* mySiss GIF floating */
+    .mysiss-gif-btn{
+      position:fixed; right:18px; bottom:18px;
+      width:86px; height:86px; border-radius:26px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; user-select:none;
+      z-index:9999;
+      backdrop-filter: blur(10px);
+      transition: transform .12s ease;
+    }
+    .mysiss-gif-btn:active{ transform: scale(.98); }
+    .mysiss-gif-btn img{
+      width:72px; height:72px; object-fit:contain;
+      border-radius:20px; display:block;
+    }
+    .mysiss-overlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:flex-end; justify-content:flex-end;
+      padding:18px;
+      z-index:9998;
+    }
+    .mysiss-overlay.show{ display:flex; }
+    .mysiss-modal{
+      width:min(420px, 100%);
+      height:min(240px, 60vh);
+      border-radius:22px;
+      background: rgba(12,16,28,.55);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      backdrop-filter: blur(14px);
+      display:flex; align-items:center; justify-content:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .mysiss-close{
+      position:absolute; top:12px; right:12px;
+      width:40px; height:40px; border-radius:14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;
+    }
+    .mysiss-close::before, .mysiss-close::after{
+      content:"";
+      position:absolute; top:50%; left:50%;
+      width:18px; height:2px;
+      background: rgba(255,255,255,.80);
+      transform-origin:center;
+    }
+    .mysiss-close::before{ transform: translate(-50%,-50%) rotate(45deg); }
+    .mysiss-close::after{  transform: translate(-50%,-50%) rotate(-45deg); }
+
+    .mysiss-mic-orb{
+      width:120px; height:120px; border-radius:999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;
+      position:relative;
+      display:grid; place-items:center;
+      overflow:hidden;
+    }
+    .mysiss-mic-core{
+      width:24px; height:24px; border-radius:999px;
+      background: rgba(124,58,237,.9);
+      box-shadow: 0 0 0 10px rgba(124,58,237,.14);
+    }
+    .mysiss-mic-ring{
+      position:absolute; inset:-30px;
+      border-radius:999px;
+      border: 2px solid rgba(124,58,237,.0);
+      pointer-events:none;
+    }
+    .mysiss-listening .mysiss-mic-core{
+      box-shadow: 0 0 0 14px rgba(124,58,237,.18);
+      animation: mysissPulse 1.1s infinite;
+    }
+    .mysiss-listening .mysiss-mic-ring{
+      border-color: rgba(124,58,237,.20);
+      animation: mysissRing 1.1s infinite;
+    }
+    @keyframes mysissPulse{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+    @keyframes mysissRing{0%{transform:scale(.92);opacity:.25}70%{transform:scale(1.06);opacity:0}100%{transform:scale(1.06);opacity:0}}
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="head-grid">
+      <!-- IZQUIERDA: MedVoice / Transcripción -->
+      <div class="brand">
+        <div class="app-name">MedVoice</div>
+        <div class="app-sub">Transcripción</div>
+      </div>
+
+      <!-- CENTRO: SOLO datos paciente (2 líneas) -->
+      <div class="patient-center">
+        <div class="patient-line" id="hdrLine1">Paciente — | Doc. — | Paciente — | Episodio —</div>
+        <div class="patient-line" id="hdrLine2">Fecha admisión — | Ubicación — | ANAMNESIS</div>
+      </div>
+
+      <!-- DERECHA: vacío -->
+      <div></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Datos médico -->
+  <div class="card">
+    <div class="row">
+      <div class="label">
+        <b>ID_Médico:</b> <span id="doctorId">—</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <b>Médico:</b> <span id="doctorName">—</span>
+      </div>
+      <div class="chip chip-warn" id="modeChip">Listo</div>
+    </div>
+  </div>
+
+  <!-- Dictado -->
+  <div class="card">
+    <div class="btns">
+      <button class="btn" id="btnToggle">Iniciar transcripción</button>
+      <button class="btn btn-warn" id="btnSend">Enviar a SAP</button>
+      <button class="btn btn-ghost" id="btnClear">Limpiar</button>
+    </div>
+
+    <div class="status" id="status">Estado: listo.</div>
+
+    <div style="margin-top:12px">
+      <textarea id="txt" placeholder="Aquí aparecerá la transcripción..."></textarea>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="card logcard">
+    <h3 style="margin:0 0 10px 0;font-size:16px;">Log</h3>
+    <div class="mono" id="log"></div>
+  </div>
+
+</div>
+
+<!-- mySiss GIF floating -->
+<div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
+  <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
+</div>
+
+<div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="mysiss-modal" id="mySissModal">
+    <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
+    <button class="mysiss-mic-orb" id="mySissMic" aria-label="Hablar">
+      <span class="mysiss-mic-core"></span>
+      <span class="mysiss-mic-ring"></span>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   Persistencia de params + ocultar querystring
+============================================================================ */
+(function persistParamsAndHide(){
+  const u = new URL(window.location.href);
+  const sp = u.searchParams;
+
+  // solo persistimos si vienen por QS (normalmente llegan a través de index.html y storage)
+  const keys = [
+    "doctor_id","doctor_name","field","field_label",
+    "patnr","falnr",
+    "patient_name","patient_doc","adm_date","location_line",
+    "wake_word","stop_word","ini_word","fin_word","env_word","lim_word"
+  ];
+
+  keys.forEach(k=>{
+    const v = (sp.get(k) || "").trim();
+    if(v){
+      sessionStorage.setItem("medvoice."+k, v);
+      localStorage.setItem("medvoice."+k, v);
+    }
+  });
+
+  try{ history.replaceState({}, document.title, "/static/medvoice-transcribe.html"); }catch(_e){}
+})();
+
+const $ = (id)=>document.getElementById(id);
+
+function getValue(key, fallback=""){
+  const a = (sessionStorage.getItem("medvoice."+key) || "").trim();
+  const b = (localStorage.getItem("medvoice."+key) || "").trim();
+  return a || b || fallback;
+}
+
+function norm(s){
+  return String(s||"")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9\s]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function log(m){
+  const el = $("log");
+  el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog(){
+  $("log").textContent = "";
+}
+
+function setStatus(html, chipClass){
+  $("status").innerHTML = "Estado: " + html;
+  const chip = $("modeChip");
+  chip.className = "chip " + (chipClass || "chip-warn");
+}
+
+/* ============================================================================
+   Contexto (SIN quemar defaults de comandos)
+============================================================================ */
+const ctx = {
+  doctor_id    : getValue("doctor_id",""),
+  doctor_name  : getValue("doctor_name",""),
+
+  field        : getValue("field","ANAMNESIS"),
+  field_label  : getValue("field_label",""),
+
+  patnr        : getValue("patnr",""),
+  falnr        : getValue("falnr",""),
+
+  patient_name : getValue("patient_name",""),
+  patient_doc  : getValue("patient_doc",""),
+  adm_date     : getValue("adm_date",""),
+  location_line: getValue("location_line",""),
+
+  wake_word    : getValue("wake_word",""),
+  stop_word    : getValue("stop_word",""),
+  ini_word     : getValue("ini_word",""),
+  fin_word     : getValue("fin_word",""),
+  env_word     : getValue("env_word",""),
+  lim_word     : getValue("lim_word",""),
+};
+
+function fieldLabelOnly(v){
+  const t = String(v||"").trim();
+  if(t) return t.toUpperCase();
+  const f = String(ctx.field||"").trim();
+  return (f ? f : "ANAMNESIS").toUpperCase();
+}
+
+/* ===== Header paciente (2 líneas exactas) ===== */
+$("hdrLine1").textContent =
+  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | ` +
+  `Paciente ${ctx.patnr || "—"} | Episodio ${ctx.falnr || "—"}`;
+
+$("hdrLine2").textContent =
+  `Fecha admisión ${ctx.adm_date || "—"} | ${ctx.location_line || "—"} | ${fieldLabelOnly(ctx.field_label)}`;
+
+/* ===== Datos médico (1 línea) ===== */
+$("doctorId").textContent = ctx.doctor_id || "—";
+$("doctorName").textContent = ctx.doctor_name || "—";
+
+/* ============================================================================
+   SpeechRecognition (1 solo SR)
+   - Enter automático por pausa
+   - Wake/Stop del GIF
+============================================================================ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let rec = null;
+let dictActive = false;
+
+let lastCmdAt = 0;
+let pauseTimer = null;
+
+/* normalizados */
+let WAKE = norm(ctx.wake_word);
+let STOP = norm(ctx.stop_word);
+let INI  = norm(ctx.ini_word);
+let FIN  = norm(ctx.fin_word);
+let ENV  = norm(ctx.env_word);
+let LIM  = norm(ctx.lim_word);
+
+/* ENTER por pausa */
+const PAUSE_MS = 1100;
+
+function ensureSpeechSupport(){
+  if(!SR){
+    setStatus('<span class="err">este navegador no soporta SpeechRecognition</span>', "chip-err");
+    return false;
+  }
+  return true;
+}
+
+function schedulePauseEnter(){
+  if(!dictActive) return;
+  if(pauseTimer) clearTimeout(pauseTimer);
+  pauseTimer = setTimeout(()=>{
+    if(!dictActive) return;
+    const t = $("txt").value || "";
+    if(t && !t.endsWith("\n")){
+      $("txt").value = t + "\n";
+    }
+  }, PAUSE_MS);
+}
+
+function maybeHandleCommand(textNorm){
+  const now = Date.now();
+  if(now - lastCmdAt < 650) return false;
+
+  // GIF
+  if(!gifOpen && WAKE && textNorm.includes(WAKE)){ lastCmdAt = now; openGif(); return true; }
+  if(gifOpen && STOP && textNorm.includes(STOP)){ lastCmdAt = now; closeGif(); return true; }
+
+  // Dictado
+  if(!dictActive && INI && textNorm.includes(INI)){ lastCmdAt = now; startDictation(); return true; }
+  if(dictActive && FIN && textNorm.includes(FIN)){ lastCmdAt = now; stopDictation(); return true; }
+
+  // Enviar / limpiar
+  if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; sendToSAP(); return true; }
+  if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearText(); return true; }
+
+  return false;
+}
+
+function initRecognition(){
+  if(!ensureSpeechSupport()) return null;
+
+  const r = new SR();
+  r.lang = "es-CO";
+  r.continuous = true;
+  r.interimResults = true;
+
+  r.onend = ()=>{
+    // loop mientras esté habilitado por gesto del usuario
+    if(r.__enabledByGesture){
+      try{ r.start(); }catch(_e){}
+    }
+  };
+
+  r.onresult = (event)=>{
+    let finalChunk = "";
+    let interimChunk = "";
+
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const res = event.results[i];
+      const t = (res[0] && res[0].transcript) ? res[0].transcript : "";
+      if(res.isFinal) finalChunk += " " + t;
+      else interimChunk += " " + t;
+    }
+
+    const finalText = finalChunk.trim();
+    const interimText = interimChunk.trim();
+
+    // comandos con final o interim
+    const probe = norm(finalText || interimText);
+    if(probe && maybeHandleCommand(probe)) return;
+
+    if(dictActive){
+      if(finalText || interimText) schedulePauseEnter();
+
+      // escribir solo FINAL
+      if(finalText){
+        const cur = $("txt").value || "";
+        const add = finalText.trim();
+
+        // si veníamos de un \n, no mete espacio
+        const needSpace = cur && !cur.endsWith("\n") && !cur.endsWith(" ");
+        $("txt").value = cur + (needSpace ? " " : "") + add;
+      }
+    }
+  };
+
+  return r;
+}
+
+/* Nota real:
+   SpeechRecognition.start() suele requerir gesto del usuario en navegadores.
+   Por eso: se habilita con el primer click en cualquier parte o con el botón. */
+function enableRecognitionByGesture(){
+  if(rec) return;
+  rec = initRecognition();
+  if(!rec) return;
+  rec.__enabledByGesture = true;
+  try{ rec.start(); }catch(_e){}
+}
+
+function startDictation(){
+  dictActive = true;
+  $("btnToggle").textContent = "Terminar transcripción";
+  setStatus('<span class="ok">escuchando...</span>', "chip-ok");
+  enableRecognitionByGesture();
+  schedulePauseEnter();
+  log(`Transcripción iniciada.`);
+}
+
+function stopDictation(){
+  dictActive = false;
+  $("btnToggle").textContent = "Iniciar transcripción";
+  setStatus('<span class="ok">lista</span>', "chip-ok");
+  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer=null; }
+  log(`Transcripción detenida.`);
+}
+
+function clearText(){
+  $("txt").value = "";
+  setStatus("listo.", "chip-warn");
+  log(`Texto limpiado.`);
+}
+
+/* ============================================================================
+   Enviar a SAP + cerrar + limpiar (texto y log)
+============================================================================ */
+function cleanupAll(){
+  $("txt").value = "";
+  clearLog();
+}
+
+function sendToSAP(){
+  const text = ($("txt").value || "").trim();
+  if(!text){
+    setStatus('<span class="warn">no hay texto para enviar</span>', "chip-warn");
+    return;
+  }
+
+  const target = fieldLabelOnly(ctx.field_label);
+
+  // 1) enviar el texto al handler ABAP
+  const urlSet = "sapevent:MEDVOICE_SET_FIELD"
+    + "?target=" + encodeURIComponent(target)
+    + "&text=" + encodeURIComponent(text);
+
+  try{
+    window.location.href = urlSet;
+    setStatus('<span class="ok">enviado a SAP</span>', "chip-ok");
+    log("Enviado a SAP por sapevent.");
+
+    // 2) limpiar UI inmediatamente
+    cleanupAll();
+
+    // 3) intentar cerrar/volver a SAP
+    //    (si tu ABAP maneja MEDVOICE_CLOSE, perfecto)
+    setTimeout(()=>{
+      try{ window.location.href = "sapevent:MEDVOICE_CLOSE"; }catch(_e){}
+      try{ window.close(); }catch(_e){}
+    }, 300);
+
+  }catch(_e){
+    setStatus('<span class="warn">sapevent no disponible</span>', "chip-warn");
+    log("sapevent no disponible.");
+  }
+}
+
+/* Botones */
+$("btnToggle").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  if(dictActive) stopDictation();
+  else startDictation();
+});
+$("btnSend").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  sendToSAP();
+});
+$("btnClear").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  clearText();
+});
+
+/* Limpieza al cerrar/navegar */
+window.addEventListener("beforeunload", ()=>{
+  cleanupAll();
+});
+
+/* ============================================================================
+   mySiss GIF Assistant
+============================================================================ */
+const gifBtn   = $("mySissGifBtn");
+const overlay  = $("mySissOverlay");
+const modal    = $("mySissModal");
+const closeBtn = $("mySissClose");
+const micOrb   = $("mySissMic");
+
+let gifOpen = false;
+let gifListening = false;
+
+function speakES(text){
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "es-CO";
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    window.speechSynthesis.speak(u);
+  }catch(_e){}
+}
+
+function openGif(){
+  gifOpen = true;
+  overlay.classList.add("show");
+  overlay.setAttribute("aria-hidden","false");
+  speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
+}
+
+function closeGif(){
+  gifOpen = false;
+  overlay.classList.remove("show");
+  overlay.setAttribute("aria-hidden","true");
+  modal.classList.remove("mysiss-listening");
+  gifListening = false;
+}
+
+/* Click del GIF: también habilita SR (para que wake/stop funcione luego) */
+gifBtn.addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  openGif();
+});
+
+closeBtn.addEventListener("click", closeGif);
+overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
+
+micOrb.addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  gifListening = !gifListening;
+  if(gifListening){
+    modal.classList.add("mysiss-listening");
+    speakES("Listo. Hable ahora.");
+  }else{
+    modal.classList.remove("mysiss-listening");
+  }
+});
+
+/* Habilita SR con el primer click en cualquier parte (una sola vez) */
+document.addEventListener("click", function once(){
+  enableRecognitionByGesture();
+  document.removeEventListener("click", once);
+}, { once:true });
+
+/* INIT */
+setStatus("listo.", "chip-warn");
+log("MedVoice listo.");
+</script>
+
+</body>
+</html>
