@@ -1,6 +1,3 @@
-<!doctype html>
-<html lang="es">
-<head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MedVoice | Configuración</title>
@@ -10,28 +7,12 @@
       --muted:#6a6d70;--border:#d9d9d9;--ok:#107e3e;--warn:#e9730c;--err:#bb0000;
     }
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);overflow:hidden}
-
-    header{
-      background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
-      color:#fff;padding:18px 16px
-    }
+    body{margin:0;background:var(--bg);color:var(--text)}
+    header{background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));color:#fff;padding:18px 16px}
     header h1{margin:0;font-size:20px}
     header p{margin:6px 0 0;opacity:.92;font-size:13px}
 
-    /* Layout sin scroll del browser */
-    .wrap{
-      max-width:980px;
-      margin:18px auto;
-      padding:0 14px;
-      height:calc(100vh - 96px);
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-      overflow:hidden;
-    }
-
+    .wrap{max-width:980px;margin:18px auto;padding:0 14px;display:flex;flex-direction:column;gap:14px}
     .card{
       background:var(--card);
       border:1px solid var(--border);
@@ -66,16 +47,13 @@
     .btn-ghost{background:#fff;color:var(--sap-blue);border:1px solid var(--sap-blue)}
     .btn-primary:disabled{opacity:.6;cursor:not-allowed}
 
-    /* Log con scroll propio, sin scroll del browser */
-    .logcard{flex:1;min-height:0;display:flex;flex-direction:column}
     .logtitle{font-size:14px;font-weight:900;margin:0 0 8px}
     .logbox{
-      flex:1;
-      min-height:0;
       border:1px solid var(--border);
       border-radius:12px;
       padding:12px;
       background:#fff;
+      height:150px;
       overflow:auto;
       font-family:ui-monospace,Menlo,Consolas,monospace;
       font-size:12.5px;
@@ -100,7 +78,7 @@
 
 <div class="wrap">
 
-  <!-- Datos médico (solo ID y Médico) -->
+  <!-- Datos médico -->
   <div class="card">
     <div class="meta">
       <div class="line">
@@ -133,13 +111,14 @@
 
     <div class="btns">
       <button id="btnVoiceAction" class="btn-primary">Iniciar grabación</button>
+      <button id="btnSkip" class="btn-ghost" title="Volver a transcripción si ya existe huella guardada">Ir a transcripción</button>
     </div>
 
     <div class="status">Estado: <span id="voiceStatus">listo.</span></div>
   </div>
 
-  <!-- Log (único con scroll) -->
-  <div class="card logcard">
+  <!-- Log -->
+  <div class="card">
     <div class="logtitle">Log</div>
     <div class="logbox" id="logBox"></div>
   </div>
@@ -171,9 +150,11 @@ function readValue(key, fallback){
 
 const doctorId   = readValue("doctor_id", "No informado");
 const doctorName = readValue("doctor_name", "No informado");
+const field      = readValue("field", "ANAMNESIS");
 
 document.getElementById("mDoctorId").textContent   = doctorId;
 document.getElementById("mDoctorName").textContent = doctorName;
+document.getElementById("mField").textContent      = field;
 
 const logBox = document.getElementById("logBox");
 function log(msg){
@@ -255,7 +236,6 @@ async function runAmbientAuto(){
 
       try{
         localStorage.setItem("medvoice.noise_rms", String(noiseRmsValue.toFixed(3)));
-        localStorage.setItem("medvoice.has_noise_profile", "1");
         noiseStatus.textContent = "calibración lista y guardada.";
         noiseStatus.className = "ok";
         log("Ambiente calibrado y guardado (RMS: " + noiseRmsValue.toFixed(3) + ").");
@@ -286,10 +266,7 @@ async function runAmbientAuto(){
 /* =========================
    HUELLA VOCAL
 ========================= */
-const enrollmentMessage =
-`Soy Doctor especialista en medicina general. Voy a realizar una grabación de mi voz para crear una huella vocal única que me permitirá ser identificado durante las consultas médicas.
-Durante la consulta médica, el sistema identificará mi voz y la diferenciará de la voz del paciente y sus acompañantes.
-La precisión del reconocimiento depende de esta grabación inicial, por lo que es importante que hable de forma clara y natural.`;
+const enrollmentMessage = `Soy Doctor especialista en medicina general. Voy a realizar una grabación de mi voz para crear una huella vocal única que me permitirá ser identificado durante las consultas médicas. Durante la consulta médica, el sistema identificará mi voz y la diferenciará de la voz del paciente y sus acompañantes. La precisión del reconocimiento depende de esta grabación inicial, por lo que es importante que hable de forma clara y natural.`;
 
 function showModal(){
   document.getElementById("modalBody").textContent = enrollmentMessage;
