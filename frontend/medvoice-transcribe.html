@@ -17,45 +17,45 @@
     header{
       background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
       color:#fff;
-      padding:14px 18px;
+      padding:14px 0; /* el padding lateral lo maneja head-inner para alinear con cards */
     }
 
-    /* ✅ CAMBIO: el top ahora permite centrar un box */
+    /* Alinea TODO el header al mismo ancho/padding de los cards */
+    .head-inner{
+      max-width:980px;
+      margin:0 auto;
+      padding:0 14px;
+    }
+
     .head-top{
-      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
     }
     .app-name{font-size:22px;font-weight:800;line-height:1}
     .app-sub{font-size:13px;opacity:.95;margin-top:4px;font-weight:600}
 
-    /* ✅ CAMBIO: wrapper centrado */
-    .head-center{
-      flex:1;
-      display:flex;
-      justify-content:center;
-    }
-
-    /* ✅ CAMBIO: caja estilo foto (centrada, texto alineado a izquierda) */
-    .patient-box{
-      display:inline-block;
-      text-align:left;
-      background:rgba(0,0,0,.14);
-      border:1px solid rgba(255,255,255,.18);
-      padding:10px 14px;
-      border-radius:12px;
-      max-width:880px;
-      width:min(880px, 100%);
-    }
-
-    /* ✅ CAMBIO: las líneas ahora van dentro del box */
+    /* ===== Header paciente (TRANSPARENTE, sin cajón) ===== */
     .head-lines{
-      display:flex;flex-direction:column;gap:6px;
-      margin:0;
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
     }
     .head-line{
       font-size:13.5px;
       font-weight:700;
       opacity:.96;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      /* transparente */
+      background:transparent;
+      border:none;
+      padding:0;
+      border-radius:0;
+      max-width:100%;
     }
 
     .wrap{
@@ -236,24 +236,19 @@
 <body>
 
 <header>
-  <div class="head-top">
-    <div>
-      <div class="app-name">MedVoice</div>
-      <div class="app-sub">Transcripción</div>
-    </div>
-
-    <!-- ✅ CAMBIO: box centrado con las 3 líneas -->
-    <div class="head-center">
-      <div class="patient-box">
-        <div class="head-lines">
-          <div class="head-line" id="hdrLine1">Paciente — | Documento identidad —</div>
-          <div class="head-line" id="hdrLine2">Paciente — | Episodio — | Fecha admisión —</div>
-          <div class="head-line" id="hdrLine3">Ubicación — | ANAMNESIS</div>
-        </div>
+  <div class="head-inner">
+    <div class="head-top">
+      <div>
+        <div class="app-name">MedVoice</div>
+        <div class="app-sub">Transcripción</div>
       </div>
     </div>
 
-    <div style="width:1px"></div>
+    <!-- SOLO 2 LINEAS -->
+    <div class="head-lines">
+      <div class="head-line" id="hdrLine1">Paciente — | Documento identidad — | Paciente — | Episodio — | Fecha admisión —</div>
+      <div class="head-line" id="hdrLine2">Ubicación — | ANAMNESIS</div>
+    </div>
   </div>
 </header>
 
@@ -322,7 +317,8 @@
     "doctor_id","doctor_name","field","field_label",
     "patnr","falnr",
     "patient_name","patient_doc","adm_date","location_line",
-    "wake_word","stop_word","ini_word","fin_word","env_word"
+    "wake_word","stop_word","ini_word","fin_word","env_word",
+    "lim_word"
   ];
 
   keys.forEach(k=>{
@@ -385,6 +381,7 @@ const ctx = {
   ini_word    : getValue("ini_word","INICIAR"),
   fin_word    : getValue("fin_word","FIN"),
   env_word    : getValue("env_word","ENVIAR"),
+  lim_word    : getValue("lim_word","LIMPIAR"),
 };
 
 function fieldLabelOnly(v){
@@ -393,10 +390,13 @@ function fieldLabelOnly(v){
   return t.toUpperCase();
 }
 
-/* ===== Header (3 líneas) ===== */
-$("hdrLine1").textContent = `Paciente ${ctx.patient_name} | Documento identidad ${ctx.patient_doc}`;
-$("hdrLine2").textContent = `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | Fecha admisión ${ctx.adm_date}`;
-$("hdrLine3").textContent = `${ctx.location_line} | ${fieldLabelOnly(ctx.field_label)}`;
+/* ===== Header (2 líneas) ===== */
+$("hdrLine1").textContent =
+  `Paciente ${ctx.patient_name} | Documento identidad ${ctx.patient_doc} | ` +
+  `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | Fecha admisión ${ctx.adm_date}`;
+
+$("hdrLine2").textContent =
+  `${ctx.location_line} | ${fieldLabelOnly(ctx.field_label)}`;
 
 /* ===== Datos médico (1 línea ID/Médico) ===== */
 $("doctorId").textContent = ctx.doctor_id || "—";
@@ -417,6 +417,7 @@ const STOP = norm(ctx.stop_word);
 const INI  = norm(ctx.ini_word);
 const FIN  = norm(ctx.fin_word);
 const ENV  = norm(ctx.env_word);
+const LIM  = norm(ctx.lim_word);
 
 function ensureSpeechSupport(){
   if(!SR){
@@ -438,6 +439,8 @@ function maybeHandleCommand(textNorm){
 
   if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; sendToSAP(); return true; }
 
+  if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearText(); return true; }
+
   return false;
 }
 
@@ -449,17 +452,12 @@ function initRecognition(){
   r.continuous = true;
   r.interimResults = true;
 
-  r.onstart = ()=>{
-    recRunning = true;
-  };
+  r.onstart = ()=>{ recRunning = true; };
 
-  r.onerror = ()=>{
-    // silencioso: el usuario está en SAP embebido, a veces da "no-speech"
-  };
+  r.onerror = ()=>{ /* silencioso */ };
 
-  r.onend = ()=>{
+  r.onend = ()=> {
     recRunning = false;
-    // loop permanente
     try{ r.start(); }catch(_e){}
   };
 
@@ -477,13 +475,10 @@ function initRecognition(){
     const finalText = finalChunk.trim();
     const interimText = interimChunk.trim();
 
-    // Primero comandos (con final o interim)
     const probe = norm(finalText || interimText);
     if(probe && maybeHandleCommand(probe)) return;
 
-    // Si está dictando, escribir
     if(dictActive){
-      // Solo escribimos FINAL para evitar “parpadeo” y duplicados
       if(finalText){
         const cur = $("txt").value || "";
         const add = finalText.trim();
@@ -524,7 +519,7 @@ function clearText(){
   $("txt").value = "";
   localStorage.removeItem("medvoice.last_transcript_text");
   setStatus("listo.", "chip-warn");
-  log("Texto limpiado.");
+  log(`Texto limpiado (palabra: "${ctx.lim_word}").`);
 }
 
 /* ============================================================================
@@ -606,36 +601,11 @@ function closeGif(){
   gifListening = false;
 }
 
-function respondToQueryByVoice(query){
-  const q = norm(query);
-
-  if(q.includes("hemograma") || q.includes("cuadro hematico") || q.includes("cbc")){
-    speakES("Entendido. Consultando el hemograma más reciente. En este prototipo, la respuesta es simulada.");
-    return;
-  }
-  if(q.includes("alerg")){
-    speakES("Entendido. Consultando alergias registradas. En este prototipo, la respuesta es simulada.");
-    return;
-  }
-  if(q.includes("diagnost") || q.includes("dx")){
-    speakES("Entendido. Consultando diagnósticos activos. En este prototipo, la respuesta es simulada.");
-    return;
-  }
-  if(q.includes("medic") || q.includes("tratam")){
-    speakES("Entendido. Consultando medicación y tratamiento actual. En este prototipo, la respuesta es simulada.");
-    return;
-  }
-
-  speakES("Recibido. Confirmo la consulta solicitada. En este prototipo la respuesta es simulada, quedará lista para integración con SAP.");
-}
-
 micOrb.addEventListener("click", ()=>{
-  // Visual “listening” solo de UI (no abre otro SR para no chocar mic)
   gifListening = !gifListening;
   if(gifListening){
     modal.classList.add("mysiss-listening");
     speakES("Listo. Hable ahora.");
-    // Nota: aquí NO capturamos voz aparte para evitar conflicto. Se puede integrar con el mismo SR si lo quieres luego.
   }else{
     modal.classList.remove("mysiss-listening");
   }
@@ -647,7 +617,7 @@ overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); })
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
 
 /* INIT */
-startRecognitionLoop(); // deja activo el listener para comandos
+startRecognitionLoop(); // listener para comandos
 setStatus("listo.", "chip-warn");
 log("MedVoice listo.");
 </script>
