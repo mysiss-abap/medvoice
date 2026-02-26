@@ -490,7 +490,7 @@ function fieldLabelOnly(v){
 }
 
 $("hdrLine1").textContent =
-  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | Paciente ${ctx.patnr || "—"} | Episodio ${ctx.falnr || "—"}`;
+  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | patnr ${ctx.patnr || "—"} | falnr ${ctx.falnr || "—"}`;
 
 $("hdrLine2").textContent =
   `Fecha admisión ${ctx.adm_date || "—"} | ${ctx.location_line || "—"} | ${fieldLabelOnly(ctx.field_label)}`;
