@@ -25,15 +25,15 @@
     header{
       background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
       color:#fff;
-      padding:14px 0; /* padding lateral lo maneja .head-inner */
+      padding:14px 0;
     }
     .head-inner{
       max-width:980px;
       margin:0 auto;
-      padding:0 14px; /* igual que .wrap */
+      padding:0 14px;
     }
 
-    /* Grid: izquierda MedVoice / derecha vacío, centro datos paciente */
+    /* Grid: izquierda MedVoice / centro paciente / derecha vacío */
     .head-grid{
       display:grid;
       grid-template-columns: 220px 1fr 60px;
@@ -49,12 +49,12 @@
     .app-name{font-size:22px;font-weight:800;line-height:1}
     .app-sub{font-size:13px;opacity:.95;font-weight:600}
 
-    /* Datos paciente centrados, 2 líneas, transparente */
+    /* Centro paciente (2 líneas, transparente, centrado) */
     .patient-center{
       display:flex;
       flex-direction:column;
       gap:6px;
-      align-items:center;   /* CENTRADO */
+      align-items:center;
       justify-content:flex-start;
       text-align:center;
       min-width:0;
@@ -149,7 +149,7 @@
     }
     textarea:focus{border-color:var(--sap-blue);}
 
-    /* Log con scroll propio, sin scroll del browser */
+    /* Log con scroll propio */
     .logcard{flex:1;min-height:0;display:flex;flex-direction:column}
     .mono{font-family:Consolas, ui-monospace, Menlo, monospace;font-size:12px;white-space:pre-wrap;}
     #log{
@@ -159,7 +159,7 @@
       border-radius:12px;
       padding:12px;
       background:#fff;
-      overflow:auto; /* único scroll */
+      overflow:auto;
     }
 
     /* mySiss GIF floating */
@@ -256,7 +256,7 @@
 <header>
   <div class="head-inner">
     <div class="head-grid">
-      <!-- IZQUIERDA: MedVoice / Transcripción (como estaba) -->
+      <!-- IZQUIERDA: MedVoice / Transcripción -->
       <div class="brand">
         <div class="app-name">MedVoice</div>
         <div class="app-sub">Transcripción</div>
@@ -264,15 +264,11 @@
 
       <!-- CENTRO: SOLO datos paciente (2 líneas) -->
       <div class="patient-center">
-        <div class="patient-line" id="hdrLine1">
-          Paciente — | Doc. identidad — | Paciente — | Episodio 
-        </div>
-        <div class="patient-line" id="hdrLine2">
-          Fecha admisión — | Ubicación — | ANAMNESIS
-        </div>
+        <div class="patient-line" id="hdrLine1">Paciente — | Doc. — | Paciente — | Episodio —</div>
+        <div class="patient-line" id="hdrLine2">Fecha admisión — | Ubicación — | ANAMNESIS</div>
       </div>
 
-      <!-- DERECHA: vacío para balance visual -->
+      <!-- DERECHA: vacío -->
       <div></div>
     </div>
   </div>
@@ -286,7 +282,7 @@
       <div class="label">
         <b>ID_Médico:</b> <span id="doctorId">—</span>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <b>Médico:</b> <span id="doctorName">No informado</span>
+        <b>Médico:</b> <span id="doctorName">—</span>
       </div>
       <div class="chip chip-warn" id="modeChip">Listo</div>
     </div>
@@ -338,6 +334,7 @@
   const u = new URL(window.location.href);
   const sp = u.searchParams;
 
+  // solo persistimos si vienen por QS (normalmente llegan a través de index.html y storage)
   const keys = [
     "doctor_id","doctor_name","field","field_label",
     "patnr","falnr",
@@ -357,6 +354,7 @@
 })();
 
 const $ = (id)=>document.getElementById(id);
+
 function getValue(key, fallback=""){
   const a = (sessionStorage.getItem("medvoice."+key) || "").trim();
   const b = (localStorage.getItem("medvoice."+key) || "").trim();
@@ -379,75 +377,83 @@ function log(m){
   el.scrollTop = el.scrollHeight;
 }
 
+function clearLog(){
+  $("log").textContent = "";
+}
+
 function setStatus(html, chipClass){
   $("status").innerHTML = "Estado: " + html;
   const chip = $("modeChip");
   chip.className = "chip " + (chipClass || "chip-warn");
 }
 
+/* ============================================================================
+   Contexto (SIN quemar defaults de comandos)
+============================================================================ */
 const ctx = {
-  doctor_id   : getValue("doctor_id",""),
-  doctor_name : getValue("doctor_name","No informado"),
+  doctor_id    : getValue("doctor_id",""),
+  doctor_name  : getValue("doctor_name",""),
 
-  field       : getValue("field","ANAMNESIS"),
-  field_label : getValue("field_label","") || getValue("field","ANAMNESIS"),
+  field        : getValue("field","ANAMNESIS"),
+  field_label  : getValue("field_label",""),
 
-  patnr       : getValue("patnr","—"),
-  falnr       : getValue("falnr","—"),
+  patnr        : getValue("patnr",""),
+  falnr        : getValue("falnr",""),
 
-  patient_name: getValue("patient_name","—"),
-  patient_doc : getValue("patient_doc","—"),
-  adm_date    : getValue("adm_date","—"),
-  location_line: getValue("location_line","—"),
+  patient_name : getValue("patient_name",""),
+  patient_doc  : getValue("patient_doc",""),
+  adm_date     : getValue("adm_date",""),
+  location_line: getValue("location_line",""),
 
-  wake_word   : getValue("wake_word","MAISIS"),
-  stop_word   : getValue("stop_word","APAGAR"),
-  ini_word    : getValue("ini_word","INICIAR"),
-  fin_word    : getValue("fin_word","FIN"),
-  env_word    : getValue("env_word","ENVIAR"),
-  lim_word    : getValue("lim_word","LIMPIAR"),
+  wake_word    : getValue("wake_word",""),
+  stop_word    : getValue("stop_word",""),
+  ini_word     : getValue("ini_word",""),
+  fin_word     : getValue("fin_word",""),
+  env_word     : getValue("env_word",""),
+  lim_word     : getValue("lim_word",""),
 };
 
 function fieldLabelOnly(v){
   const t = String(v||"").trim();
-  if(!t) return "ANAMNESIS";
-  return t.toUpperCase();
+  if(t) return t.toUpperCase();
+  const f = String(ctx.field||"").trim();
+  return (f ? f : "ANAMNESIS").toUpperCase();
 }
 
-/* ===== Header paciente (2 líneas) ===== */
+/* ===== Header paciente (2 líneas exactas) ===== */
 $("hdrLine1").textContent =
-  `Paciente ${ctx.patient_name} | Doc. ${ctx.patient_doc} | ` +
-  `Paciente ${ctx.patnr} | Episodio ${ctx.falnr}`;
+  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | ` +
+  `Paciente ${ctx.patnr || "—"} | Episodio ${ctx.falnr || "—"}`;
 
 $("hdrLine2").textContent =
-  `Fecha admisión ${ctx.adm_date}  |  ${ctx.location_line} | ${fieldLabelOnly(ctx.field_label)}`;
+  `Fecha admisión ${ctx.adm_date || "—"} | ${ctx.location_line || "—"} | ${fieldLabelOnly(ctx.field_label)}`;
 
-/* ===== Datos médico ===== */
+/* ===== Datos médico (1 línea) ===== */
 $("doctorId").textContent = ctx.doctor_id || "—";
-$("doctorName").textContent = ctx.doctor_name || "No informado";
+$("doctorName").textContent = ctx.doctor_name || "—";
 
 /* ============================================================================
-   SpeechRecognition (un solo SR)
+   SpeechRecognition (1 solo SR)
    - Enter automático por pausa
-   - GIF wake/stop funciona (inicia SR tras primer gesto del usuario)
+   - Wake/Stop del GIF
 ============================================================================ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 let rec = null;
-let recRunning = false;
 let dictActive = false;
 
 let lastCmdAt = 0;
 let pauseTimer = null;
 
-const WAKE = norm(ctx.wake_word);
-const STOP = norm(ctx.stop_word);
-const INI  = norm(ctx.ini_word);
-const FIN  = norm(ctx.fin_word);
-const ENV  = norm(ctx.env_word);
-const LIM  = norm(ctx.lim_word);
+/* normalizados */
+let WAKE = norm(ctx.wake_word);
+let STOP = norm(ctx.stop_word);
+let INI  = norm(ctx.ini_word);
+let FIN  = norm(ctx.fin_word);
+let ENV  = norm(ctx.env_word);
+let LIM  = norm(ctx.lim_word);
 
-/* ENTER por pausa: si pasan X ms sin texto final, inserta salto de línea */
+/* ENTER por pausa */
 const PAUSE_MS = 1100;
 
 function ensureSpeechSupport(){
@@ -466,21 +472,23 @@ function schedulePauseEnter(){
     const t = $("txt").value || "";
     if(t && !t.endsWith("\n")){
       $("txt").value = t + "\n";
-      localStorage.setItem("medvoice.last_transcript_text", $("txt").value);
     }
   }, PAUSE_MS);
 }
 
 function maybeHandleCommand(textNorm){
   const now = Date.now();
-  if(now - lastCmdAt < 900) return false;
+  if(now - lastCmdAt < 650) return false;
 
+  // GIF
   if(!gifOpen && WAKE && textNorm.includes(WAKE)){ lastCmdAt = now; openGif(); return true; }
   if(gifOpen && STOP && textNorm.includes(STOP)){ lastCmdAt = now; closeGif(); return true; }
 
+  // Dictado
   if(!dictActive && INI && textNorm.includes(INI)){ lastCmdAt = now; startDictation(); return true; }
   if(dictActive && FIN && textNorm.includes(FIN)){ lastCmdAt = now; stopDictation(); return true; }
 
+  // Enviar / limpiar
   if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; sendToSAP(); return true; }
   if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearText(); return true; }
 
@@ -495,13 +503,9 @@ function initRecognition(){
   r.continuous = true;
   r.interimResults = true;
 
-  r.onstart = ()=>{ recRunning = true; };
-  r.onerror = ()=>{ /* silencioso */ };
-
   r.onend = ()=>{
-    recRunning = false;
-    // loop si ya fue activado por gesto del usuario
-    if(rec && rec.__enabledByGesture){
+    // loop mientras esté habilitado por gesto del usuario
+    if(r.__enabledByGesture){
       try{ r.start(); }catch(_e){}
     }
   };
@@ -520,20 +524,21 @@ function initRecognition(){
     const finalText = finalChunk.trim();
     const interimText = interimChunk.trim();
 
+    // comandos con final o interim
     const probe = norm(finalText || interimText);
     if(probe && maybeHandleCommand(probe)) return;
 
     if(dictActive){
-      // Enter por pausa se reprograma con cualquier señal de voz
       if(finalText || interimText) schedulePauseEnter();
 
-      // Escribe solo FINAL para no duplicar
+      // escribir solo FINAL
       if(finalText){
         const cur = $("txt").value || "";
         const add = finalText.trim();
-        const next = (cur + (cur && !cur.endsWith("\n") && !cur.endsWith(" ") ? " " : "") + add).trimEnd();
-        $("txt").value = next;
-        localStorage.setItem("medvoice.last_transcript_text", next);
+
+        // si veníamos de un \n, no mete espacio
+        const needSpace = cur && !cur.endsWith("\n") && !cur.endsWith(" ");
+        $("txt").value = cur + (needSpace ? " " : "") + add;
       }
     }
   };
@@ -541,9 +546,9 @@ function initRecognition(){
   return r;
 }
 
-/* Importante:
-   SpeechRecognition.start() se bloquea sin interacción del usuario.
-   Por eso activamos el loop la primera vez que el usuario haga click. */
+/* Nota real:
+   SpeechRecognition.start() suele requerir gesto del usuario en navegadores.
+   Por eso: se habilita con el primer click en cualquier parte o con el botón. */
 function enableRecognitionByGesture(){
   if(rec) return;
   rec = initRecognition();
@@ -556,9 +561,9 @@ function startDictation(){
   dictActive = true;
   $("btnToggle").textContent = "Terminar transcripción";
   setStatus('<span class="ok">escuchando...</span>', "chip-ok");
-  enableRecognitionByGesture(); // asegura SR activo
+  enableRecognitionByGesture();
   schedulePauseEnter();
-  log(`Transcripción iniciada (palabra: "${ctx.ini_word}").`);
+  log(`Transcripción iniciada.`);
 }
 
 function stopDictation(){
@@ -566,15 +571,21 @@ function stopDictation(){
   $("btnToggle").textContent = "Iniciar transcripción";
   setStatus('<span class="ok">lista</span>', "chip-ok");
   if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer=null; }
-  localStorage.setItem("medvoice.last_transcript_text", $("txt").value || "");
-  log(`Transcripción detenida (palabra: "${ctx.fin_word}").`);
+  log(`Transcripción detenida.`);
 }
 
 function clearText(){
   $("txt").value = "";
-  localStorage.removeItem("medvoice.last_transcript_text");
   setStatus("listo.", "chip-warn");
-  log(`Texto limpiado (palabra: "${ctx.lim_word}").`);
+  log(`Texto limpiado.`);
+}
+
+/* ============================================================================
+   Enviar a SAP + cerrar + limpiar (texto y log)
+============================================================================ */
+function cleanupAll(){
+  $("txt").value = "";
+  clearLog();
 }
 
 function sendToSAP(){
@@ -584,37 +595,56 @@ function sendToSAP(){
     return;
   }
 
-  localStorage.setItem("medvoice.last_transcript_text", text);
-
   const target = fieldLabelOnly(ctx.field_label);
-  const url = "sapevent:MEDVOICE_SET_FIELD"
+
+  // 1) enviar el texto al handler ABAP
+  const urlSet = "sapevent:MEDVOICE_SET_FIELD"
     + "?target=" + encodeURIComponent(target)
     + "&text=" + encodeURIComponent(text);
 
   try{
-    window.location.href = url;
-    log("Enviado a SAP por sapevent.");
+    window.location.href = urlSet;
     setStatus('<span class="ok">enviado a SAP</span>', "chip-ok");
+    log("Enviado a SAP por sapevent.");
+
+    // 2) limpiar UI inmediatamente
+    cleanupAll();
+
+    // 3) intentar cerrar/volver a SAP
+    //    (si tu ABAP maneja MEDVOICE_CLOSE, perfecto)
+    setTimeout(()=>{
+      try{ window.location.href = "sapevent:MEDVOICE_CLOSE"; }catch(_e){}
+      try{ window.close(); }catch(_e){}
+    }, 300);
+
   }catch(_e){
-    setStatus('<span class="warn">sapevent no disponible (abre embebido en SAP)</span>', "chip-warn");
-    log("sapevent no disponible en este navegador.");
+    setStatus('<span class="warn">sapevent no disponible</span>', "chip-warn");
+    log("sapevent no disponible.");
   }
 }
 
 /* Botones */
 $("btnToggle").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
   if(dictActive) stopDictation();
   else startDictation();
 });
-$("btnSend").addEventListener("click", ()=>{ enableRecognitionByGesture(); sendToSAP(); });
-$("btnClear").addEventListener("click", ()=>{ enableRecognitionByGesture(); clearText(); });
+$("btnSend").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  sendToSAP();
+});
+$("btnClear").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  clearText();
+});
 
-/* Texto previo */
-const last = (localStorage.getItem("medvoice.last_transcript_text") || "").trim();
-if(last) $("txt").value = last;
+/* Limpieza al cerrar/navegar */
+window.addEventListener("beforeunload", ()=>{
+  cleanupAll();
+});
 
 /* ============================================================================
-   mySiss GIF Assistant (sin log)
+   mySiss GIF Assistant
 ============================================================================ */
 const gifBtn   = $("mySissGifBtn");
 const overlay  = $("mySissOverlay");
@@ -651,11 +681,12 @@ function closeGif(){
   gifListening = false;
 }
 
-/* CLICK del GIF también activa SR (para que wake/stop funcione luego) */
+/* Click del GIF: también habilita SR (para que wake/stop funcione luego) */
 gifBtn.addEventListener("click", ()=>{
   enableRecognitionByGesture();
   openGif();
 });
+
 closeBtn.addEventListener("click", closeGif);
 overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
