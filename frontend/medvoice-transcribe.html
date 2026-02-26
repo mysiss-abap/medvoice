@@ -333,41 +333,40 @@
 (function persistParamsAndHide(){
   const u = new URL(window.location.href);
   const sp = u.searchParams;
-
-  // solo persistimos si vienen por QS (normalmente llegan a través de index.html y storage)
   const keys = [
     "doctor_id","doctor_name","field","field_label",
-    "patnr","falnr",
-    "patient_name","patient_doc","adm_date","location_line",
-    "wake_word","stop_word","ini_word","fin_word","env_word","lim_word"
+    "patnr","falnr","patient_name","patient_doc","adm_date","location_line",
+    "session_id",
+    "wake_word","stop_word","ini_word","fin_word","env_word","lim_word",
+    "ana_word","evo_word","epi_word","api"
   ];
 
-  keys.forEach(k=>{
+  keys.forEach((k)=>{
     const v = (sp.get(k) || "").trim();
-    if(v){
-      sessionStorage.setItem("medvoice."+k, v);
-      localStorage.setItem("medvoice."+k, v);
-    }
+    if(!v) return;
+    sessionStorage.setItem("medvoice." + k, v);
+    localStorage.setItem("medvoice." + k, v);
   });
 
   try{ history.replaceState({}, document.title, "/static/medvoice-transcribe.html"); }catch(_e){}
 })();
 
 const $ = (id)=>document.getElementById(id);
+const NLP_ENABLED = true;
 
 function getValue(key, fallback=""){
-  const a = (sessionStorage.getItem("medvoice."+key) || "").trim();
-  const b = (localStorage.getItem("medvoice."+key) || "").trim();
+  const a = (sessionStorage.getItem("medvoice." + key) || "").trim();
+  const b = (localStorage.getItem("medvoice." + key) || "").trim();
   return a || b || fallback;
 }
 
 function norm(s){
-  return String(s||"")
+  return String(s || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g,"")
-    .replace(/[^a-z0-9\s]/g," ")
-    .replace(/\s+/g," ")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -377,83 +376,146 @@ function log(m){
   el.scrollTop = el.scrollHeight;
 }
 
-function clearLog(){
-  $("log").textContent = "";
-}
-
 function setStatus(html, chipClass){
   $("status").innerHTML = "Estado: " + html;
   const chip = $("modeChip");
   chip.className = "chip " + (chipClass || "chip-warn");
 }
 
-/* ============================================================================
-   Contexto (SIN quemar defaults de comandos)
-============================================================================ */
+function isValidAudioDataUrl(value){
+  return /^data:audio\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(String(value || "").trim());
+}
+
+function getVoiceprint(){
+  const voiceprintAudio = (localStorage.getItem("medvoice.voiceprint_audio") || "").trim();
+  const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1";
+  if(!hasVoiceprint || !isValidAudioDataUrl(voiceprintAudio)){
+    window.location.replace("/static/medvoice-setup.html");
+    return null;
+  }
+  return voiceprintAudio;
+}
+
+async function ensureVoiceprintId(voiceprintDataUrl){
+  const existing = (localStorage.getItem("medvoice.voiceprint_id") || "").trim();
+  if(existing) return existing;
+
+  const base64 = String(voiceprintDataUrl).split(",")[1] || "";
+  const input = new TextEncoder().encode(base64);
+  let shortId = "";
+
+  try{
+    const digest = await crypto.subtle.digest("SHA-256", input);
+    const hex = Array.from(new Uint8Array(digest)).map((b)=>b.toString(16).padStart(2, "0")).join("");
+    shortId = hex.slice(0, 16);
+  }catch(_e){
+    let h = 0;
+    for(let i=0;i<base64.length;i++) h = ((h<<5)-h + base64.charCodeAt(i)) | 0;
+    shortId = Math.abs(h).toString(16).padStart(16, "0").slice(0, 16);
+  }
+
+  localStorage.setItem("medvoice.voiceprint_id", shortId);
+  return shortId;
+}
+
+function cleanTranscript(text){
+  let out = String(text || "");
+  out = out.replace(/\s+/g, " ").trim();
+  out = out.replace(/\b(eh|em|mmm|pues)\b/gi, " ");
+  out = out.replace(/\b(punto y coma)\b/gi, ";");
+  out = out.replace(/\b(dos puntos)\b/gi, ":");
+  out = out.replace(/\b(coma)\b/gi, ",");
+  out = out.replace(/\b(nueva linea|nueva línea)\b/gi, "\n");
+  out = out.replace(/\bpunto\b/gi, ".");
+
+  out = out
+    .replace(/\s*([,.;:!?])\s*/g, "$1 ")
+    .replace(/\n\s+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  out = out.replace(/\b(\w+)(\s+\1\b)+/gi, "$1");
+
+  let result = "";
+  let capNext = true;
+  for(let i=0;i<out.length;i++){
+    const ch = out[i];
+    if(capNext && /[a-záéíóúñ]/i.test(ch)){
+      result += ch.toUpperCase();
+      capNext = false;
+    }else{
+      result += ch;
+    }
+    if(/[.!?\n]/.test(ch)) capNext = true;
+  }
+  return result.trim();
+}
+
+const voiceprint = getVoiceprint();
+let voiceprintId = "";
+
 const ctx = {
-  doctor_id    : getValue("doctor_id",""),
-  doctor_name  : getValue("doctor_name",""),
-
-  field        : getValue("field","ANAMNESIS"),
-  field_label  : getValue("field_label",""),
-
-  patnr        : getValue("patnr",""),
-  falnr        : getValue("falnr",""),
-
-  patient_name : getValue("patient_name",""),
-  patient_doc  : getValue("patient_doc",""),
-  adm_date     : getValue("adm_date",""),
-  location_line: getValue("location_line",""),
-
-  wake_word    : getValue("wake_word",""),
-  stop_word    : getValue("stop_word",""),
-  ini_word     : getValue("ini_word",""),
-  fin_word     : getValue("fin_word",""),
-  env_word     : getValue("env_word",""),
-  lim_word     : getValue("lim_word",""),
+  doctor_id    : getValue("doctor_id", ""),
+  doctor_name  : getValue("doctor_name", ""),
+  field        : getValue("field", "ANAMNESIS"),
+  field_label  : getValue("field_label", ""),
+  patnr        : getValue("patnr", ""),
+  falnr        : getValue("falnr", ""),
+  patient_name : getValue("patient_name", ""),
+  patient_doc  : getValue("patient_doc", ""),
+  adm_date     : getValue("adm_date", ""),
+  location_line: getValue("location_line", ""),
+  session_id   : getValue("session_id", `sess_${Date.now()}`),
+  wake_word    : getValue("wake_word", ""),
+  stop_word    : getValue("stop_word", ""),
+  ini_word     : getValue("ini_word", ""),
+  fin_word     : getValue("fin_word", ""),
+  env_word     : getValue("env_word", ""),
+  lim_word     : getValue("lim_word", ""),
+  ana_word     : getValue("ana_word", "anamnesis"),
+  evo_word     : getValue("evo_word", "evolucion"),
+  epi_word     : getValue("epi_word", "epicrisis"),
+  api          : getValue("api", "")
 };
 
+sessionStorage.setItem("medvoice.session_id", ctx.session_id);
+localStorage.setItem("medvoice.session_id", ctx.session_id);
+
 function fieldLabelOnly(v){
-  const t = String(v||"").trim();
+  const t = String(v || "").trim();
   if(t) return t.toUpperCase();
-  const f = String(ctx.field||"").trim();
+  const f = String(ctx.field || "").trim();
   return (f ? f : "ANAMNESIS").toUpperCase();
 }
 
-/* ===== Header paciente (2 líneas exactas) ===== */
 $("hdrLine1").textContent =
-  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | ` +
-  `Paciente ${ctx.patnr || "—"} | Episodio ${ctx.falnr || "—"}`;
+  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | Paciente ${ctx.patnr || "—"} | Episodio ${ctx.falnr || "—"}`;
 
 $("hdrLine2").textContent =
   `Fecha admisión ${ctx.adm_date || "—"} | ${ctx.location_line || "—"} | ${fieldLabelOnly(ctx.field_label)}`;
 
-/* ===== Datos médico (1 línea) ===== */
 $("doctorId").textContent = ctx.doctor_id || "—";
 $("doctorName").textContent = ctx.doctor_name || "—";
 
-/* ============================================================================
-   SpeechRecognition (1 solo SR)
-   - Enter automático por pausa
-   - Wake/Stop del GIF
-============================================================================ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-
 let rec = null;
 let dictActive = false;
-
 let lastCmdAt = 0;
 let pauseTimer = null;
+let currentSection = null;
+const buffers = { ANAMNESIS:"", EVOLUCION:"", EPICRISIS:"" };
 
-/* normalizados */
-let WAKE = norm(ctx.wake_word);
-let STOP = norm(ctx.stop_word);
-let INI  = norm(ctx.ini_word);
-let FIN  = norm(ctx.fin_word);
-let ENV  = norm(ctx.env_word);
-let LIM  = norm(ctx.lim_word);
+const WAKE = norm(ctx.wake_word);
+const STOP = norm(ctx.stop_word);
+const INI  = norm(ctx.ini_word);
+const FIN  = norm(ctx.fin_word);
+const ENV  = norm(ctx.env_word);
+const LIM  = norm(ctx.lim_word);
+const ANA  = norm(ctx.ana_word);
+const EVO  = norm(ctx.evo_word);
+const EPI  = norm(ctx.epi_word);
 
-/* ENTER por pausa */
 const PAUSE_MS = 1100;
 
 function ensureSpeechSupport(){
@@ -464,15 +526,30 @@ function ensureSpeechSupport(){
   return true;
 }
 
+function appendSectionTitle(section){
+  $("txt").value += `\n\n=== ${section} ===\n`;
+}
+
+function switchSection(section){
+  currentSection = section;
+  appendSectionTitle(section);
+  setStatus(`<span class="ok">sección ${section.toLowerCase()} activa</span>`, "chip-ok");
+  log(`Sección activa: ${section}.`);
+}
+
+function addToCurrentSection(text){
+  const section = currentSection || "ANAMNESIS";
+  const prev = buffers[section] || "";
+  buffers[section] = (prev + (prev ? " " : "") + text).trim();
+}
+
 function schedulePauseEnter(){
   if(!dictActive) return;
   if(pauseTimer) clearTimeout(pauseTimer);
   pauseTimer = setTimeout(()=>{
     if(!dictActive) return;
     const t = $("txt").value || "";
-    if(t && !t.endsWith("\n")){
-      $("txt").value = t + "\n";
-    }
+    if(t && !t.endsWith("\n")) $("txt").value = t + "\n";
   }, PAUSE_MS);
 }
 
@@ -480,16 +557,17 @@ function maybeHandleCommand(textNorm){
   const now = Date.now();
   if(now - lastCmdAt < 650) return false;
 
-  // GIF
   if(!gifOpen && WAKE && textNorm.includes(WAKE)){ lastCmdAt = now; openGif(); return true; }
   if(gifOpen && STOP && textNorm.includes(STOP)){ lastCmdAt = now; closeGif(); return true; }
 
-  // Dictado
   if(!dictActive && INI && textNorm.includes(INI)){ lastCmdAt = now; startDictation(); return true; }
   if(dictActive && FIN && textNorm.includes(FIN)){ lastCmdAt = now; stopDictation(); return true; }
 
-  // Enviar / limpiar
-  if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; sendToSAP(); return true; }
+  if(ANA && textNorm.includes(ANA)){ lastCmdAt = now; switchSection("ANAMNESIS"); return true; }
+  if(EVO && textNorm.includes(EVO)){ lastCmdAt = now; switchSection("EVOLUCION"); return true; }
+  if(EPI && textNorm.includes(EPI)){ lastCmdAt = now; switchSection("EPICRISIS"); return true; }
+
+  if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; queueSubmit(); return true; }
   if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearText(); return true; }
 
   return false;
@@ -504,7 +582,6 @@ function initRecognition(){
   r.interimResults = true;
 
   r.onend = ()=>{
-    // loop mientras esté habilitado por gesto del usuario
     if(r.__enabledByGesture){
       try{ r.start(); }catch(_e){}
     }
@@ -523,32 +600,25 @@ function initRecognition(){
 
     const finalText = finalChunk.trim();
     const interimText = interimChunk.trim();
-
-    // comandos con final o interim
     const probe = norm(finalText || interimText);
+
     if(probe && maybeHandleCommand(probe)) return;
 
-    if(dictActive){
-      if(finalText || interimText) schedulePauseEnter();
+    if(dictActive && finalText){
+      schedulePauseEnter();
+      const cleaned = NLP_ENABLED ? cleanTranscript(finalText) : finalText.trim();
+      if(!cleaned) return;
+      addToCurrentSection(cleaned);
 
-      // escribir solo FINAL
-      if(finalText){
-        const cur = $("txt").value || "";
-        const add = finalText.trim();
-
-        // si veníamos de un \n, no mete espacio
-        const needSpace = cur && !cur.endsWith("\n") && !cur.endsWith(" ");
-        $("txt").value = cur + (needSpace ? " " : "") + add;
-      }
+      const cur = $("txt").value || "";
+      const needSpace = cur && !cur.endsWith("\n") && !cur.endsWith(" ");
+      $("txt").value = cur + (needSpace ? " " : "") + cleaned;
     }
   };
 
   return r;
 }
 
-/* Nota real:
-   SpeechRecognition.start() suele requerir gesto del usuario en navegadores.
-   Por eso: se habilita con el primer click en cualquier parte o con el botón. */
 function enableRecognitionByGesture(){
   if(rec) return;
   rec = initRecognition();
@@ -557,95 +627,113 @@ function enableRecognitionByGesture(){
   try{ rec.start(); }catch(_e){}
 }
 
+function canUseDictation(){
+  return !!voiceprint;
+}
+
 function startDictation(){
+  if(!canUseDictation()){
+    window.location.replace("/static/medvoice-setup.html");
+    return;
+  }
   dictActive = true;
   $("btnToggle").textContent = "Terminar transcripción";
   setStatus('<span class="ok">escuchando...</span>', "chip-ok");
   enableRecognitionByGesture();
   schedulePauseEnter();
-  log(`Transcripción iniciada.`);
+  log("Transcripción iniciada.");
 }
 
 function stopDictation(){
   dictActive = false;
   $("btnToggle").textContent = "Iniciar transcripción";
   setStatus('<span class="ok">lista</span>', "chip-ok");
-  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer=null; }
-  log(`Transcripción detenida.`);
+  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer = null; }
+  log("Transcripción detenida.");
 }
 
 function clearText(){
   $("txt").value = "";
+  buffers.ANAMNESIS = "";
+  buffers.EVOLUCION = "";
+  buffers.EPICRISIS = "";
+  currentSection = null;
   setStatus("listo.", "chip-warn");
-  log(`Texto limpiado.`);
+  log("Texto y buffers limpiados.");
 }
 
-/* ============================================================================
-   Enviar a SAP + cerrar + limpiar (texto y log)
-============================================================================ */
-function cleanupAll(){
-  $("txt").value = "";
-  clearLog();
+function buildPayload(){
+  const fullTextRaw = $("txt").value || "";
+  return {
+    session_id: ctx.session_id,
+    voiceprint_id: voiceprintId || (localStorage.getItem("medvoice.voiceprint_id") || ""),
+    doctor_id: ctx.doctor_id,
+    doctor_name: ctx.doctor_name,
+    patient: {
+      patnr: ctx.patnr,
+      falnr: ctx.falnr,
+      patient_name: ctx.patient_name,
+      patient_doc: ctx.patient_doc,
+      adm_date: ctx.adm_date,
+      location_line: ctx.location_line
+    },
+    field_label: fieldLabelOnly(ctx.field_label),
+    commands: {
+      wake_word: ctx.wake_word,
+      stop_word: ctx.stop_word,
+      ini_word: ctx.ini_word,
+      fin_word: ctx.fin_word,
+      env_word: ctx.env_word,
+      lim_word: ctx.lim_word,
+      ana_word: ctx.ana_word,
+      evo_word: ctx.evo_word,
+      epi_word: ctx.epi_word
+    },
+    sections: {
+      anamnesis: NLP_ENABLED ? cleanTranscript(buffers.ANAMNESIS) : buffers.ANAMNESIS.trim(),
+      evolucion: NLP_ENABLED ? cleanTranscript(buffers.EVOLUCION) : buffers.EVOLUCION.trim(),
+      epicrisis: NLP_ENABLED ? cleanTranscript(buffers.EPICRISIS) : buffers.EPICRISIS.trim()
+    },
+    full_text: NLP_ENABLED ? cleanTranscript(fullTextRaw) : fullTextRaw.trim(),
+    created_at: new Date().toISOString()
+  };
 }
 
-function sendToSAP(){
+function queueSubmit(){
+  if(!canUseDictation()){
+    window.location.replace("/static/medvoice-setup.html");
+    return;
+  }
+
   const text = ($("txt").value || "").trim();
   if(!text){
     setStatus('<span class="warn">no hay texto para enviar</span>', "chip-warn");
     return;
   }
 
-  const target = fieldLabelOnly(ctx.field_label);
-
-  // 1) enviar el texto al handler ABAP
-  const urlSet = "sapevent:MEDVOICE_SET_FIELD"
-    + "?target=" + encodeURIComponent(target)
-    + "&text=" + encodeURIComponent(text);
-
-  try{
-    window.location.href = urlSet;
-    setStatus('<span class="ok">enviado a SAP</span>', "chip-ok");
-    log("Enviado a SAP por sapevent.");
-
-    // 2) limpiar UI inmediatamente
-    cleanupAll();
-
-    // 3) intentar cerrar/volver a SAP
-    //    (si tu ABAP maneja MEDVOICE_CLOSE, perfecto)
-    setTimeout(()=>{
-      try{ window.location.href = "sapevent:MEDVOICE_CLOSE"; }catch(_e){}
-      try{ window.close(); }catch(_e){}
-    }, 300);
-
-  }catch(_e){
-    setStatus('<span class="warn">sapevent no disponible</span>', "chip-warn");
-    log("sapevent no disponible.");
-  }
+  const payload = buildPayload();
+  localStorage.setItem("medvoice.pending_payload", JSON.stringify(payload));
+  setStatus('<span class="ok">preparando envío...</span>', "chip-ok");
+  log("Payload preparado. Redirigiendo a envío SAP.");
+  window.location.href = "/static/medvoice-submit.html";
 }
 
-/* Botones */
 $("btnToggle").addEventListener("click", ()=>{
   enableRecognitionByGesture();
   if(dictActive) stopDictation();
   else startDictation();
 });
+
 $("btnSend").addEventListener("click", ()=>{
   enableRecognitionByGesture();
-  sendToSAP();
+  queueSubmit();
 });
+
 $("btnClear").addEventListener("click", ()=>{
   enableRecognitionByGesture();
   clearText();
 });
 
-/* Limpieza al cerrar/navegar */
-window.addEventListener("beforeunload", ()=>{
-  cleanupAll();
-});
-
-/* ============================================================================
-   mySiss GIF Assistant
-============================================================================ */
 const gifBtn   = $("mySissGifBtn");
 const overlay  = $("mySissOverlay");
 const modal    = $("mySissModal");
@@ -669,19 +757,18 @@ function speakES(text){
 function openGif(){
   gifOpen = true;
   overlay.classList.add("show");
-  overlay.setAttribute("aria-hidden","false");
+  overlay.setAttribute("aria-hidden", "false");
   speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
 }
 
 function closeGif(){
   gifOpen = false;
   overlay.classList.remove("show");
-  overlay.setAttribute("aria-hidden","true");
+  overlay.setAttribute("aria-hidden", "true");
   modal.classList.remove("mysiss-listening");
   gifListening = false;
 }
 
-/* Click del GIF: también habilita SR (para que wake/stop funcione luego) */
 gifBtn.addEventListener("click", ()=>{
   enableRecognitionByGesture();
   openGif();
@@ -689,7 +776,7 @@ gifBtn.addEventListener("click", ()=>{
 
 closeBtn.addEventListener("click", closeGif);
 overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
-document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && gifOpen) closeGif(); });
 
 micOrb.addEventListener("click", ()=>{
   enableRecognitionByGesture();
@@ -702,15 +789,22 @@ micOrb.addEventListener("click", ()=>{
   }
 });
 
-/* Habilita SR con el primer click en cualquier parte (una sola vez) */
 document.addEventListener("click", function once(){
   enableRecognitionByGesture();
   document.removeEventListener("click", once);
 }, { once:true });
 
-/* INIT */
-setStatus("listo.", "chip-warn");
-log("MedVoice listo.");
+document.addEventListener("keydown", function onceKey(){
+  enableRecognitionByGesture();
+  document.removeEventListener("keydown", onceKey);
+}, { once:true });
+
+(async function init(){
+  if(!voiceprint) return;
+  voiceprintId = await ensureVoiceprintId(voiceprint);
+  setStatus("listo.", "chip-warn");
+  log("MedVoice listo.");
+})();
 </script>
 
 </body>
