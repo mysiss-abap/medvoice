@@ -416,11 +416,11 @@ function fieldLabelOnly(v){
 
 /* ===== Header paciente (2 líneas) ===== */
 $("hdrLine1").textContent =
-  `Paciente ${ctx.patient_name} | Documento identidad ${ctx.patient_doc} | ` +
-  `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | Fecha admisión ${ctx.adm_date}`;
+  `Paciente ${ctx.patient_name} | Doc. ${ctx.patient_doc} | ` +
+  `Paciente ${ctx.patnr} | Episodio ${ctx.falnr}`;
 
 $("hdrLine2").textContent =
-  `${ctx.location_line} | ${fieldLabelOnly(ctx.field_label)}`;
+  `Fecha admisión ${ctx.adm_date}  |  ${ctx.location_line} | ${fieldLabelOnly(ctx.field_label)}`;
 
 /* ===== Datos médico ===== */
 $("doctorId").textContent = ctx.doctor_id || "—";
