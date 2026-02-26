@@ -19,12 +19,38 @@
       color:#fff;
       padding:14px 18px;
     }
+
+    /* ✅ CAMBIO: el top ahora permite centrar un box */
     .head-top{
-      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
     }
     .app-name{font-size:22px;font-weight:800;line-height:1}
     .app-sub{font-size:13px;opacity:.95;margin-top:4px;font-weight:600}
-    .head-lines{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+
+    /* ✅ CAMBIO: wrapper centrado */
+    .head-center{
+      flex:1;
+      display:flex;
+      justify-content:center;
+    }
+
+    /* ✅ CAMBIO: caja estilo foto (centrada, texto alineado a izquierda) */
+    .patient-box{
+      display:inline-block;
+      text-align:left;
+      background:rgba(0,0,0,.14);
+      border:1px solid rgba(255,255,255,.18);
+      padding:10px 14px;
+      border-radius:12px;
+      max-width:880px;
+      width:min(880px, 100%);
+    }
+
+    /* ✅ CAMBIO: las líneas ahora van dentro del box */
+    .head-lines{
+      display:flex;flex-direction:column;gap:6px;
+      margin:0;
+    }
     .head-line{
       font-size:13.5px;
       font-weight:700;
@@ -215,12 +241,19 @@
       <div class="app-name">MedVoice</div>
       <div class="app-sub">Transcripción</div>
     </div>
-  </div>
 
-  <div class="head-lines">
-    <div class="head-line" id="hdrLine1">Paciente — | Documento identidad —</div>
-    <div class="head-line" id="hdrLine2">Paciente — | Episodio — | Fecha admisión —</div>
-    <div class="head-line" id="hdrLine3">Ubicación — | ANAMNESIS</div>
+    <!-- ✅ CAMBIO: box centrado con las 3 líneas -->
+    <div class="head-center">
+      <div class="patient-box">
+        <div class="head-lines">
+          <div class="head-line" id="hdrLine1">Paciente — | Documento identidad —</div>
+          <div class="head-line" id="hdrLine2">Paciente — | Episodio — | Fecha admisión —</div>
+          <div class="head-line" id="hdrLine3">Ubicación — | ANAMNESIS</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="width:1px"></div>
   </div>
 </header>
 
