@@ -13,34 +13,20 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# =========================
-# BIOMETRÍA (COMENTADA PERO CONSERVADA)
-# =========================
 # from resemblyzer import VoiceEncoder, preprocess_wav
-
 from faster_whisper import WhisperModel
 
-# =========================
-# Config
-# =========================
 APP_TITLE = "MedVoice Backend"
 DEFAULT_MODEL = "small"
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 
-# Directorios base
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-# GitHub Pages origin (tu repo)
 GHP_ORIGIN = "https://mysiss-abap.github.io"
-
-# =========================
-# Init models
-# =========================
-# encoder = VoiceEncoder()   # ← COMENTADO PARA QUE NO GENERE ERROR
 
 whisper = WhisperModel(DEFAULT_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
 
@@ -56,14 +42,8 @@ class NoCacheStaticFiles(StaticFiles):
         return response
 
 
-# Servir frontend local
-app.mount(
-    "/static",
-    NoCacheStaticFiles(directory=FRONTEND_DIR),
-    name="static",
-)
+app.mount("/static", NoCacheStaticFiles(directory=FRONTEND_DIR), name="static")
 
-# CORS para que el HTML en GitHub Pages pueda llamar tu API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -78,15 +58,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
-# Persistencia (archivos)
-# =========================
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
-
-# cache RAM (solo performance, la verdad está en archivo)
-VOICEPRINTS: dict[str, np.ndarray] = {}  # doctor_id -> embedding
+VOICEPRINTS: dict[str, np.ndarray] = {}
 PUSH_RESULTS: list[dict] = []
 CONTEXT_STORE: dict[str, dict] = {}
 RESULT_BY_SESSION: dict[str, dict] = {}
@@ -95,16 +67,13 @@ RESULT_BY_SESSION: dict[str, dict] = {}
 def _safe_key(k: str) -> str:
     return "".join(c for c in k.strip() if c.isalnum() or c in ("_", "-", "."))
 
-
 def _voiceprint_path(doctor_id: str) -> Path:
     return DATA_DIR / f"voiceprint_{_safe_key(doctor_id)}.json"
-
 
 def _save_emb(doctor_id: str, emb: np.ndarray) -> None:
     f = _voiceprint_path(doctor_id)
     payload = {"doctor_id": doctor_id, "embedding": emb.astype(float).tolist()}
     f.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-
 
 def _load_emb(doctor_id: str) -> Optional[np.ndarray]:
     f = _voiceprint_path(doctor_id)
@@ -119,17 +88,14 @@ def _load_emb(doctor_id: str) -> Optional[np.ndarray]:
     except Exception:
         return None
 
-
 def _exists_emb(doctor_id: str) -> bool:
     f = _voiceprint_path(doctor_id)
     return f.exists() and f.stat().st_size > 0
-
 
 def _delete_emb(doctor_id: str) -> None:
     f = _voiceprint_path(doctor_id)
     if f.exists():
         f.unlink()
-
 
 def _get_emb(doctor_id: str) -> Optional[np.ndarray]:
     if doctor_id in VOICEPRINTS:
@@ -139,20 +105,11 @@ def _get_emb(doctor_id: str) -> Optional[np.ndarray]:
         VOICEPRINTS[doctor_id] = emb
     return emb
 
-
-# =========================
-# Audio helpers
-# =========================
 def read_audio(file_bytes: bytes) -> tuple[np.ndarray, int]:
-    """
-    Lee WAV/OGG/FLAC/WEBM si soundfile lo soporta en tu Windows.
-    Si algún día falla WEBM/OPUS, lo cambiamos a ffmpeg.
-    """
     data, sr = sf.read(io.BytesIO(file_bytes))
     if isinstance(data, np.ndarray) and data.ndim > 1:
         data = np.mean(data, axis=1)
     return data.astype(np.float32), sr
-
 
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
     a = a / (np.linalg.norm(a) + 1e-12)
@@ -160,35 +117,67 @@ def cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b))
 
 
-# =========================
-# Health
-# =========================
 @app.get("/health")
 def health():
     return {"ok": True, "service": "medvoice"}
-
 
 @app.get("/api/health")
 def api_health():
     return {"ok": True, "service": "medvoice"}
 
 
+# =============================================
+# Guardar JSON en disco — 2 rutas Windows + backup servidor
+# =============================================
+@app.post("/api/save-json")
+async def save_json(payload: dict = Body(...)):
+    """
+    Guarda json_medvoice.json en:
+      A) C:\\Users\\ramiju\\Desktop\\MedVoice\\json_medvoice.json
+      B) C:\\MedVoice\\json_medvoice.json
+    Crea el directorio si no existe.
+    """
+    target_paths = [
+        Path(r"C:\Users\ramiju\Desktop\MedVoice\json_medvoice.json"),
+        Path(r"C:\MedVoice\json_medvoice.json"),
+    ]
+    json_str = json.dumps(payload, ensure_ascii=False, indent=2)
+    saved: list[str] = []
+    errors: list[dict] = []
+
+    for tp in target_paths:
+        try:
+            tp.parent.mkdir(parents=True, exist_ok=True)
+            tp.write_text(json_str, encoding="utf-8")
+            saved.append(str(tp))
+        except Exception as exc:
+            errors.append({"path": str(tp), "error": str(exc)})
+
+    # Backup en servidor (siempre)
+    try:
+        backup = DATA_DIR / "json_medvoice.json"
+        backup.write_text(json_str, encoding="utf-8")
+        saved.append(str(backup))
+    except Exception:
+        pass
+
+    if saved:
+        return {"ok": True, "saved": saved, "errors": errors}
+    return JSONResponse({"ok": False, "saved": [], "errors": errors}, status_code=500)
+
+
+# Alias de compatibilidad
 @app.post("/api/medvoice/save-json")
-async def save_medvoice_json(payload: dict = Body(...)):
-    target_dir = Path(r"C:\MedVoice")
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_file = target_dir / "json_medvoice.json"
-    target_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    return {"ok": True, "path": r"C:\MedVoice\json_medvoice.json"}
+async def save_medvoice_json_legacy(payload: dict = Body(...)):
+    return await save_json(payload)
 
 
-# =========================
-# Voiceprint management
-# =========================
+# =============================================
+# Voiceprint
+# =============================================
 @app.get("/api/voiceprint/exists")
 def voiceprint_exists(doctor_id: str = Query(..., min_length=1)):
     return {"ok": True, "exists": bool(_exists_emb(doctor_id))}
-
 
 @app.post("/api/voiceprint/delete")
 def voiceprint_delete(doctor_id: str = Query(..., min_length=1)):
@@ -196,52 +185,19 @@ def voiceprint_delete(doctor_id: str = Query(..., min_length=1)):
     VOICEPRINTS.pop(doctor_id, None)
     return {"ok": True, "deleted": True}
 
-
 @app.get("/api/voice/exists")
 def voice_exists(doctor_id: str = Query(..., min_length=1)):
     return {"ok": True, "exists": bool(_exists_emb(doctor_id))}
 
-
-# =========================
-# (Opcional) Noise profile
-# =========================
 @app.post("/api/noise-profile")
-async def noise_profile(
-    doctor_id: str = Form(...),
-    audio: UploadFile = File(...),
-):
+async def noise_profile(doctor_id: str = Form(...), audio: UploadFile = File(...)):
     _ = await audio.read()
     return {"ok": True, "message": "Noise profile received", "doctor_id": doctor_id}
 
-
-# =========================
-# Enroll (BIOMETRÍA DESACTIVADA)
-# =========================
 @app.post("/api/enroll")
-async def enroll(
-    doctor_id: str = Form(...),
-    audio: UploadFile = File(...),
-):
-    return {
-        "ok": False,
-        "message": "Voice enrollment disabled (resemblyzer commented)"
-    }
+async def enroll(doctor_id: str = Form(...), audio: UploadFile = File(...)):
+    return {"ok": False, "message": "Voice enrollment disabled (resemblyzer commented)"}
 
-    # === CÓDIGO ORIGINAL CONSERVADO ===
-    # raw = await audio.read()
-    # wav, sr = read_audio(raw)
-    # wav_rs = preprocess_wav(wav, source_sr=sr)
-    #
-    # emb = encoder.embed_utterance(wav_rs)
-    # VOICEPRINTS[doctor_id] = emb
-    # _save_emb(doctor_id, emb)
-    #
-    # return {"ok": True, "message": "Voice enrolled", "doctor_id": doctor_id}
-
-
-# =========================
-# Transcribe (SIN BIOMETRÍA ACTIVA)
-# =========================
 @app.post("/api/transcribe")
 async def transcribe(
     doctor_id: str = Form(...),
@@ -251,45 +207,16 @@ async def transcribe(
 ):
     raw = await audio.read()
     wav, sr = read_audio(raw)
-
-    # === BIOMETRÍA COMENTADA PERO CONSERVADA ===
-    # wav_rs = preprocess_wav(wav, source_sr=sr)
-    #
-    # emb_saved = _get_emb(doctor_id)
-    # if emb_saved is None:
-    #     return JSONResponse(
-    #         {"ok": False, "message": "No voice enrolled for doctor_id"},
-    #         status_code=400,
-    #     )
-    #
-    # emb_now = encoder.embed_utterance(wav_rs)
-    # score = cosine(emb_saved, emb_now)
-    # verify_ok = score >= float(verify_threshold)
-    #
-    # if not verify_ok:
-    #     return {
-    #         "ok": True,
-    #         "doctor_id": doctor_id,
-    #         "target_field": target_field,
-    #         "verify_ok": False,
-    #         "verify_score": score,
-    #         "text": "",
-    #     }
-
     segments, _info = whisper.transcribe(wav, language="es")
     text = "".join([seg.text for seg in segments]).strip()
-
     return {
         "ok": True,
         "doctor_id": doctor_id,
         "target_field": target_field,
-        "verify_ok": True,  # forzado mientras biometría está desactivada
+        "verify_ok": True,
         "verify_score": 1.0,
         "text": text,
     }
-
-
-
 
 @app.post("/api/context")
 async def set_context(payload: dict = Body(...)):
@@ -301,7 +228,6 @@ async def set_context(payload: dict = Body(...)):
     CONTEXT_STORE[session_id] = item
     return {"ok": True, "session_id": session_id, "stored": True}
 
-
 @app.get("/api/context")
 def get_context(session_id: str = Query(..., min_length=1)):
     sid = str(session_id).strip()
@@ -310,7 +236,6 @@ def get_context(session_id: str = Query(..., min_length=1)):
         return JSONResponse({"ok": False, "msg": "no context"}, status_code=404)
     return {"ok": True, "context": item}
 
-
 @app.get("/api/result")
 def get_result(session_id: str = Query(..., min_length=1)):
     sid = str(session_id).strip()
@@ -318,7 +243,6 @@ def get_result(session_id: str = Query(..., min_length=1)):
     if not item:
         return {"ok": False, "msg": "no result"}
     return {"ok": True, **item}
-
 
 @app.post("/api/push_result")
 async def push_result(payload: dict = Body(...)):
@@ -330,12 +254,10 @@ async def push_result(payload: dict = Body(...)):
         "field": str(payload.get("field", "")).strip(),
         "text": str(payload.get("text", "")).strip(),
     }
-
     required = ("session_id", "doctor_id", "patnr", "falnr", "field", "text")
     missing = [k for k in required if not item.get(k)]
     if missing:
         return JSONResponse({"ok": False, "msg": "missing fields", "missing": missing}, status_code=400)
-
     PUSH_RESULTS.append(item)
     RESULT_BY_SESSION[item["session_id"]] = {
         "session_id": item["session_id"],
