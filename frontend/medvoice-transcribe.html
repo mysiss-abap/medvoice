@@ -333,9 +333,9 @@
   const keys = [
     "doctor_id","doctor_name","field","field_label",
     "patnr","falnr","patient_name","patient_doc","adm_date","location_line",
-    "session_id","api",
+    "session_id",
     "wake_word","stop_word","ini_word","fin_word","env_word","lim_word",
-    "ana_word","evo_word","epi_word"
+    "ana_word","evo_word","epi_word","api"
   ];
 
   keys.forEach((k)=>{
@@ -396,33 +396,57 @@ function getVoiceprint(){
 async function ensureVoiceprintId(voiceprintDataUrl){
   const existing = (localStorage.getItem("medvoice.voiceprint_id") || "").trim();
   if(existing) return existing;
+
   const base64 = String(voiceprintDataUrl).split(",")[1] || "";
-  const bytes = new TextEncoder().encode(base64);
+  const input = new TextEncoder().encode(base64);
   let shortId = "";
+
   try{
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const digest = await crypto.subtle.digest("SHA-256", input);
     const hex = Array.from(new Uint8Array(digest)).map((b)=>b.toString(16).padStart(2, "0")).join("");
     shortId = hex.slice(0, 16);
   }catch(_e){
     let h = 0;
-    for(let i=0;i<base64.length;i++) h = ((h << 5) - h + base64.charCodeAt(i)) | 0;
+    for(let i=0;i<base64.length;i++) h = ((h<<5)-h + base64.charCodeAt(i)) | 0;
     shortId = Math.abs(h).toString(16).padStart(16, "0").slice(0, 16);
   }
+
   localStorage.setItem("medvoice.voiceprint_id", shortId);
   return shortId;
 }
 
 function cleanTranscript(text){
   let out = String(text || "");
+  out = out.replace(/\s+/g, " ").trim();
+  out = out.replace(/\b(eh|em|mmm|pues)\b/gi, " ");
   out = out.replace(/\b(punto y coma)\b/gi, ";");
   out = out.replace(/\b(dos puntos)\b/gi, ":");
   out = out.replace(/\b(coma)\b/gi, ",");
-  out = out.replace(/\bpunto\b/gi, ".");
   out = out.replace(/\b(nueva linea|nueva línea)\b/gi, "\n");
-  out = out.replace(/\b(eh|em|mmm|este|aja|ajá)\b/gi, " ");
-  out = out.replace(/\s*([,.;:!?])\s*/g, "$1 ");
-  out = out.replace(/\n\s+/g, "\n").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
-  return out;
+  out = out.replace(/\bpunto\b/gi, ".");
+
+  out = out
+    .replace(/\s*([,.;:!?])\s*/g, "$1 ")
+    .replace(/\n\s+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  out = out.replace(/\b(\w+)(\s+\1\b)+/gi, "$1");
+
+  let result = "";
+  let capNext = true;
+  for(let i=0;i<out.length;i++){
+    const ch = out[i];
+    if(capNext && /[a-záéíóúñ]/i.test(ch)){
+      result += ch.toUpperCase();
+      capNext = false;
+    }else{
+      result += ch;
+    }
+    if(/[.!?\n]/.test(ch)) capNext = true;
+  }
+  return result.trim();
 }
 
 const voiceprint = getVoiceprint();
@@ -440,7 +464,6 @@ const ctx = {
   adm_date     : getValue("adm_date", ""),
   location_line: getValue("location_line", ""),
   session_id   : getValue("session_id", `sess_${Date.now()}`),
-  api          : getValue("api", ""),
   wake_word    : getValue("wake_word", ""),
   stop_word    : getValue("stop_word", ""),
   ini_word     : getValue("ini_word", ""),
@@ -449,7 +472,8 @@ const ctx = {
   lim_word     : getValue("lim_word", ""),
   ana_word     : getValue("ana_word", "anamnesis"),
   evo_word     : getValue("evo_word", "evolucion"),
-  epi_word     : getValue("epi_word", "epicrisis")
+  epi_word     : getValue("epi_word", "epicrisis"),
+  api          : getValue("api", "")
 };
 
 sessionStorage.setItem("medvoice.session_id", ctx.session_id);
@@ -462,23 +486,22 @@ function fieldLabelOnly(v){
   return (f ? f : "ANAMNESIS").toUpperCase();
 }
 
-$("hdrLine1").textContent = `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"}`;
-$("hdrLine2").textContent = `Paciente ${ctx.patnr || "—"} | Episodio ${ctx.falnr || "—"} | Fecha admisión ${ctx.adm_date || "—"} | ${ctx.location_line || "—"} | ${fieldLabelOnly(ctx.field_label)}`;
+$("hdrLine1").textContent =
+  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | patnr ${ctx.patnr || "—"} | falnr ${ctx.falnr || "—"}`;
+
+$("hdrLine2").textContent =
+  `Fecha admisión ${ctx.adm_date || "—"} | ${ctx.location_line || "—"} | ${fieldLabelOnly(ctx.field_label)}`;
+
 $("doctorId").textContent = ctx.doctor_id || "—";
 $("doctorName").textContent = ctx.doctor_name || "—";
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let mainRec = null;
-let recEnabled = false;
-let recRunning = false;
+let rec = null;
 let dictActive = false;
-let currentSection = "ANAMNESIS";
-const sections = { anamnesis:"", evolucion:"", epicrisis:"" };
-let lastFinalAt = 0;
-let lastResultAt = 0;
-let restartDelay = 200;
 let lastCmdAt = 0;
-let dictStartedAtLeastOnce = false;
+let pauseTimer = null;
+let currentSection = null;
+const buffers = { ANAMNESIS:"", EVOLUCION:"", EPICRISIS:"" };
 
 const WAKE = norm(ctx.wake_word);
 const STOP = norm(ctx.stop_word);
@@ -490,8 +513,7 @@ const ANA  = norm(ctx.ana_word);
 const EVO  = norm(ctx.evo_word);
 const EPI  = norm(ctx.epi_word);
 
-let gifOpen = false;
-let gifListening = false;
+const PAUSE_MS = 1100;
 
 function ensureSpeechSupport(){
   if(!SR){
@@ -501,26 +523,70 @@ function ensureSpeechSupport(){
   return true;
 }
 
-function startMainRec(reason=""){
-  if(!mainRec || !recEnabled || recRunning) return;
-  try{
-    mainRec.start();
-    recRunning = true;
-    if(dictStartedAtLeastOnce && reason) log(reason);
-  }catch(_e){}
+function appendSectionTitle(section){
+  $("txt").value += `\n\n=== ${section} ===\n`;
 }
 
-function queueRestart(reason=""){
-  if(!recEnabled) return;
-  const wait = restartDelay;
-  restartDelay = Math.min(2000, restartDelay + 200);
-  setTimeout(()=>startMainRec(reason), wait);
+function switchSection(section){
+  currentSection = section;
+  appendSectionTitle(section);
+  setStatus(`<span class="ok">sección ${section.toLowerCase()} activa</span>`, "chip-ok");
+  log(`Sección activa: ${section}.`);
 }
 
-function appendSectionDivider(title){
-  const txt = $("txt");
-  txt.value += `\n\n=== ${title} ===\n`;
+function addToCurrentSection(text){
+  const section = currentSection || "ANAMNESIS";
+  const prev = buffers[section] || "";
+  buffers[section] = (prev + (prev ? " " : "") + text).trim();
 }
+
+function schedulePauseEnter(){
+  if(!dictActive) return;
+  if(pauseTimer) clearTimeout(pauseTimer);
+  pauseTimer = setTimeout(()=>{
+    if(!dictActive) return;
+    const t = $("txt").value || "";
+    if(t && !t.endsWith("\n")) $("txt").value = t + "\n";
+  }, PAUSE_MS);
+}
+
+function maybeHandleCommand(textNorm){
+  const now = Date.now();
+  if(now - lastCmdAt < 650) return false;
+
+  if(!gifOpen && WAKE && textNorm.includes(WAKE)){ lastCmdAt = now; openGif(); return true; }
+  if(gifOpen && STOP && textNorm.includes(STOP)){ lastCmdAt = now; closeGif(); return true; }
+
+  if(!dictActive && INI && textNorm.includes(INI)){ lastCmdAt = now; startDictation(); return true; }
+  if(dictActive && FIN && textNorm.includes(FIN)){ lastCmdAt = now; stopDictation(); return true; }
+
+  if(ANA && textNorm.includes(ANA)){ lastCmdAt = now; switchSection("ANAMNESIS"); return true; }
+  if(EVO && textNorm.includes(EVO)){ lastCmdAt = now; switchSection("EVOLUCION"); return true; }
+  if(EPI && textNorm.includes(EPI)){ lastCmdAt = now; switchSection("EPICRISIS"); return true; }
+
+  if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; queueSubmit(); return true; }
+  if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearText(); return true; }
+
+  return false;
+}
+
+function initRecognition(){
+  if(!ensureSpeechSupport()) return null;
+
+  const r = new SR();
+  r.lang = "es-CO";
+  r.continuous = true;
+  r.interimResults = true;
+
+  r.onend = ()=>{
+    if(r.__enabledByGesture){
+      try{ r.start(); }catch(_e){}
+    }
+  };
+
+  r.onresult = (event)=>{
+    let finalChunk = "";
+    let interimChunk = "";
 
 function sectionKey(){
   if(currentSection === "EVOLUCION") return "evolucion";
@@ -528,38 +594,71 @@ function sectionKey(){
   return "anamnesis";
 }
 
-function switchSection(target){
-  currentSection = target;
-  appendSectionDivider(target);
-  setStatus(`<span class="ok">sección ${target.toLowerCase()} activa</span>`, "chip-ok");
-  log(`Sección activa: ${target}.`);
+    const finalText = finalChunk.trim();
+    const interimText = interimChunk.trim();
+    const probe = norm(finalText || interimText);
+
+    if(probe && maybeHandleCommand(probe)) return;
+
+    if(dictActive && finalText){
+      schedulePauseEnter();
+      const cleaned = NLP_ENABLED ? cleanTranscript(finalText) : finalText.trim();
+      if(!cleaned) return;
+      addToCurrentSection(cleaned);
+
+      const cur = $("txt").value || "";
+      const needSpace = cur && !cur.endsWith("\n") && !cur.endsWith(" ");
+      $("txt").value = cur + (needSpace ? " " : "") + cleaned;
+    }
+  };
 }
 
-function applyFinalChunk(rawText){
-  const cleaned = NLP_ENABLED ? cleanTranscript(rawText) : String(rawText || "").trim();
-  if(!cleaned) return;
-  const txt = $("txt");
-  const now = Date.now();
-  if(lastFinalAt && (now - lastFinalAt > 1200)) txt.value += "\n";
-  txt.value += cleaned + "\n";
-  lastFinalAt = now;
-
-  const key = sectionKey();
-  sections[key] = (sections[key] + (sections[key] ? "\n" : "") + cleaned).trim();
+function enableRecognitionByGesture(){
+  if(rec) return;
+  rec = initRecognition();
+  if(!rec) return;
+  rec.__enabledByGesture = true;
+  try{ rec.start(); }catch(_e){}
 }
 
-function clearAllText(){
+function canUseDictation(){
+  return !!voiceprint;
+}
+
+function startDictation(){
+  if(!canUseDictation()){
+    window.location.replace("/static/medvoice-setup.html");
+    return;
+  }
+  dictActive = true;
+  dictStartedAtLeastOnce = true;
+  $("btnToggle").textContent = "Terminar transcripción";
+  setStatus('<span class="ok">escuchando...</span>', "chip-ok");
+  enableRecognitionByGesture();
+  schedulePauseEnter();
+  log("Transcripción iniciada.");
+}
+
+function stopDictation(){
+  dictActive = false;
+  $("btnToggle").textContent = "Iniciar transcripción";
+  setStatus('<span class="ok">lista</span>', "chip-ok");
+  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer = null; }
+  log("Transcripción detenida.");
+}
+
+function clearText(){
   $("txt").value = "";
-  sections.anamnesis = "";
-  sections.evolucion = "";
-  sections.epicrisis = "";
-  currentSection = "ANAMNESIS";
+  buffers.ANAMNESIS = "";
+  buffers.EVOLUCION = "";
+  buffers.EPICRISIS = "";
+  currentSection = null;
   setStatus("listo.", "chip-warn");
   log("Texto y buffers limpiados.");
 }
 
 function buildPayload(){
-  const fullText = NLP_ENABLED ? cleanTranscript($("txt").value || "") : ($("txt").value || "").trim();
+  const fullTextRaw = $("txt").value || "";
   return {
     session_id: ctx.session_id,
     voiceprint_id: voiceprintId || (localStorage.getItem("medvoice.voiceprint_id") || ""),
@@ -575,80 +674,69 @@ function buildPayload(){
     },
     field_label: fieldLabelOnly(ctx.field_label),
     commands: {
-      wake_word: ctx.wake_word, stop_word: ctx.stop_word, ini_word: ctx.ini_word, fin_word: ctx.fin_word,
-      env_word: ctx.env_word, lim_word: ctx.lim_word, ana_word: ctx.ana_word, evo_word: ctx.evo_word, epi_word: ctx.epi_word
+      wake_word: ctx.wake_word,
+      stop_word: ctx.stop_word,
+      ini_word: ctx.ini_word,
+      fin_word: ctx.fin_word,
+      env_word: ctx.env_word,
+      lim_word: ctx.lim_word,
+      ana_word: ctx.ana_word,
+      evo_word: ctx.evo_word,
+      epi_word: ctx.epi_word
     },
     sections: {
-      anamnesis: NLP_ENABLED ? cleanTranscript(sections.anamnesis) : sections.anamnesis,
-      evolucion: NLP_ENABLED ? cleanTranscript(sections.evolucion) : sections.evolucion,
-      epicrisis: NLP_ENABLED ? cleanTranscript(sections.epicrisis) : sections.epicrisis
+      anamnesis: NLP_ENABLED ? cleanTranscript(buffers.ANAMNESIS) : buffers.ANAMNESIS.trim(),
+      evolucion: NLP_ENABLED ? cleanTranscript(buffers.EVOLUCION) : buffers.EVOLUCION.trim(),
+      epicrisis: NLP_ENABLED ? cleanTranscript(buffers.EPICRISIS) : buffers.EPICRISIS.trim()
     },
-    full_text: fullText,
+    full_text: NLP_ENABLED ? cleanTranscript(fullTextRaw) : fullTextRaw.trim(),
     created_at: new Date().toISOString()
   };
 }
 
 function queueSubmit(){
-  if(!voiceprint){
+  if(!canUseDictation()){
     window.location.replace("/static/medvoice-setup.html");
     return;
   }
-  const payload = buildPayload();
-  if(!payload.full_text){
+
+  const text = ($("txt").value || "").trim();
+  if(!text){
     setStatus('<span class="warn">no hay texto para enviar</span>', "chip-warn");
     return;
   }
+
+  const payload = buildPayload();
   localStorage.setItem("medvoice.pending_payload", JSON.stringify(payload));
   setStatus('<span class="ok">preparando envío...</span>', "chip-ok");
+  log("Payload preparado. Redirigiendo a envío SAP.");
   window.location.href = "/static/medvoice-submit.html";
 }
 
-function startDictation(){
-  dictActive = true;
-  dictStartedAtLeastOnce = true;
-  $("btnToggle").textContent = "Terminar transcripción";
-  setStatus('<span class="ok">escuchando...</span>', "chip-ok");
-  log("Transcripción iniciada.");
-}
+$("btnToggle").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  if(dictActive) stopDictation();
+  else startDictation();
+});
 
-function stopDictation(){
-  dictActive = false;
-  $("btnToggle").textContent = "Iniciar transcripción";
-  setStatus('<span class="ok">lista</span>', "chip-ok");
-  log("Transcripción detenida.");
-}
+$("btnSend").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  queueSubmit();
+});
 
-function commandMatch(textNorm){
-  const now = Date.now();
-  if(now - lastCmdAt < 500) return true;
+$("btnClear").addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  clearText();
+});
 
-  if(!gifOpen && WAKE && textNorm.includes(WAKE)){ lastCmdAt = now; openGif(); return true; }
-  if(gifOpen && STOP && textNorm.includes(STOP)){ lastCmdAt = now; closeGif(); return true; }
+const gifBtn   = $("mySissGifBtn");
+const overlay  = $("mySissOverlay");
+const modal    = $("mySissModal");
+const closeBtn = $("mySissClose");
+const micOrb   = $("mySissMic");
 
-  if(!dictActive && INI && textNorm.includes(INI)){ lastCmdAt = now; startDictation(); return true; }
-  if(dictActive && FIN && textNorm.includes(FIN)){ lastCmdAt = now; stopDictation(); return true; }
-
-  if(ANA && textNorm.includes(ANA)){ lastCmdAt = now; switchSection("ANAMNESIS"); return true; }
-  if(EVO && textNorm.includes(EVO)){ lastCmdAt = now; switchSection("EVOLUCION"); return true; }
-  if(EPI && textNorm.includes(EPI)){ lastCmdAt = now; switchSection("EPICRISIS"); return true; }
-
-  if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; queueSubmit(); return true; }
-  if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearAllText(); return true; }
-
-  return false;
-}
-
-function getAssistantReply(question){
-  const q = norm(question);
-  if(q.includes("epicrisis")) return "La última epicrisis registra evolución favorable, sin signos de alarma y plan de control ambulatorio.";
-  if(q.includes("signo vital") || q.includes("vital")) return "El último control reporta presión y frecuencia cardiaca en rango estable para la consulta.";
-  if(q.includes("procedimiento")) return "En la última atención se documentó un procedimiento menor sin complicaciones inmediatas.";
-  if(q.includes("alerg")) return "No se documentaron alergias nuevas en la revisión más reciente.";
-  if(q.includes("diagnost")) return "El diagnóstico principal se mantiene estable según la última nota clínica.";
-  if(q.includes("medic")) return "La medicación activa continúa sin cambios mayores y con buena tolerancia reportada.";
-  if(q.includes("examen")) return "Los exámenes recientes no muestran hallazgos críticos reportados en la última valoración.";
-  return "Con la información disponible, el paciente sigue en control clínico y sin alertas inmediatas registradas.";
-}
+let gifOpen = false;
+let gifListening = false;
 
 function speakES(text){
   try{
@@ -759,7 +847,11 @@ function closeGif(){
   gifListening = false;
 }
 
-gifBtn.addEventListener("click", ()=>{ enableByGesture(); openGif(); });
+gifBtn.addEventListener("click", ()=>{
+  enableRecognitionByGesture();
+  openGif();
+});
+
 closeBtn.addEventListener("click", closeGif);
 overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
 document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && gifOpen) closeGif(); });
@@ -773,25 +865,15 @@ micOrb.addEventListener("click", ()=>{
   }else modal.classList.remove("mysiss-listening");
 });
 
-$("btnToggle").addEventListener("click", ()=>{
-  enableByGesture();
-  if(dictActive) stopDictation(); else startDictation();
-});
-$("btnSend").addEventListener("click", ()=>{ enableByGesture(); queueSubmit(); });
-$("btnClear").addEventListener("click", ()=>{ enableByGesture(); clearAllText(); });
+document.addEventListener("click", function once(){
+  enableRecognitionByGesture();
+  document.removeEventListener("click", once);
+}, { once:true });
 
-document.addEventListener("click", function once(){ enableByGesture(); document.removeEventListener("click", once); }, {once:true});
-document.addEventListener("keydown", function onceKey(){ enableByGesture(); document.removeEventListener("keydown", onceKey); }, {once:true});
-
-setInterval(()=>{
-  if(!recEnabled) return;
-  if(!recRunning) startMainRec();
-  if(dictActive && lastResultAt && (Date.now() - lastResultAt > 15000)){
-    try{ mainRec.stop(); }catch(_e){}
-    queueRestart(dictStartedAtLeastOnce ? "Recuperando audio por inactividad..." : "");
-    lastResultAt = Date.now();
-  }
-}, 1200);
+document.addEventListener("keydown", function onceKey(){
+  enableRecognitionByGesture();
+  document.removeEventListener("keydown", onceKey);
+}, { once:true });
 
 (async function init(){
   if(!voiceprint) return;
