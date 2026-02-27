@@ -54,9 +54,9 @@
       display:flex;
       flex-direction:column;
       gap:6px;
-      align-items:center;
+      align-items:flex-end;
       justify-content:flex-start;
-      text-align:center;
+      text-align:right;
       min-width:0;
     }
     .patient-line{
@@ -264,8 +264,8 @@
 
       <!-- CENTRO: SOLO datos paciente (2 líneas) -->
       <div class="patient-center">
-        <div class="patient-line" id="hdrLine1">Paciente — | Doc. — | Paciente — | Episodio —</div>
-        <div class="patient-line" id="hdrLine2">Fecha admisión — | Ubicación — | ANAMNESIS</div>
+        <div class="patient-line" id="hdrLine1">Paciente — | Documento identidad —</div>
+        <div class="patient-line" id="hdrLine2">Paciente — | Episodio — | Fecha admisión — | — | ANAMNESIS</div>
       </div>
 
       <!-- DERECHA: vacío -->
@@ -327,9 +327,6 @@
 </div>
 
 <script>
-/* ============================================================================
-   Persistencia de params + ocultar querystring
-============================================================================ */
 (function persistParamsAndHide(){
   const u = new URL(window.location.href);
   const sp = u.searchParams;
@@ -591,12 +588,11 @@ function initRecognition(){
     let finalChunk = "";
     let interimChunk = "";
 
-    for(let i=event.resultIndex;i<event.results.length;i++){
-      const res = event.results[i];
-      const t = (res[0] && res[0].transcript) ? res[0].transcript : "";
-      if(res.isFinal) finalChunk += " " + t;
-      else interimChunk += " " + t;
-    }
+function sectionKey(){
+  if(currentSection === "EVOLUCION") return "evolucion";
+  if(currentSection === "EPICRISIS") return "epicrisis";
+  return "anamnesis";
+}
 
     const finalText = finalChunk.trim();
     const interimText = interimChunk.trim();
@@ -615,8 +611,6 @@ function initRecognition(){
       $("txt").value = cur + (needSpace ? " " : "") + cleaned;
     }
   };
-
-  return r;
 }
 
 function enableRecognitionByGesture(){
@@ -637,6 +631,7 @@ function startDictation(){
     return;
   }
   dictActive = true;
+  dictStartedAtLeastOnce = true;
   $("btnToggle").textContent = "Terminar transcripción";
   setStatus('<span class="ok">escuchando...</span>', "chip-ok");
   enableRecognitionByGesture();
@@ -748,11 +743,94 @@ function speakES(text){
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "es-CO";
-    u.rate = 1.0;
-    u.pitch = 1.0;
     window.speechSynthesis.speak(u);
   }catch(_e){}
 }
+
+function showAssistantBubble(text){
+  let bubble = document.getElementById("mySissBubble");
+  if(!bubble){
+    bubble = document.createElement("div");
+    bubble.id = "mySissBubble";
+    bubble.style.position = "absolute";
+    bubble.style.left = "16px";
+    bubble.style.right = "16px";
+    bubble.style.bottom = "12px";
+    bubble.style.background = "rgba(255,255,255,.12)";
+    bubble.style.border = "1px solid rgba(255,255,255,.2)";
+    bubble.style.borderRadius = "10px";
+    bubble.style.padding = "8px 10px";
+    bubble.style.color = "#fff";
+    bubble.style.fontSize = "12px";
+    $("mySissModal").appendChild(bubble);
+  }
+  bubble.textContent = text;
+}
+
+function initRecognition(){
+  if(!ensureSpeechSupport()) return;
+  mainRec = new SR();
+  mainRec.lang = "es-CO";
+  mainRec.continuous = true;
+  mainRec.interimResults = true;
+
+  mainRec.onstart = ()=>{ recRunning = true; restartDelay = 200; };
+
+  mainRec.onend = ()=>{
+    recRunning = false;
+    queueRestart("Recuperando escucha continua...");
+  };
+
+  mainRec.onerror = (event)=>{
+    recRunning = false;
+    const e = event.error || "";
+    if(e === "not-allowed" || e === "service-not-allowed"){
+      recEnabled = false;
+      setStatus('<span class="err">permiso de micrófono bloqueado</span>', "chip-err");
+      return;
+    }
+    queueRestart(dictStartedAtLeastOnce ? "Reintentando audio..." : "");
+  };
+
+  mainRec.onresult = (event)=>{
+    let finalChunk = "";
+    let interimChunk = "";
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const res = event.results[i];
+      const t = res[0] && res[0].transcript ? res[0].transcript : "";
+      if(res.isFinal) finalChunk += " " + t;
+      else interimChunk += " " + t;
+    }
+
+    const finalText = finalChunk.trim();
+    const probe = norm(finalText || interimChunk);
+    if(probe && commandMatch(probe)) return;
+
+    if(finalText){
+      lastResultAt = Date.now();
+      if(dictActive){
+        applyFinalChunk(finalText);
+      }else if(gifOpen){
+        const answer = getAssistantReply(finalText);
+        showAssistantBubble(answer);
+        speakES(answer);
+      }
+    }
+  };
+}
+
+function enableByGesture(){
+  if(recEnabled) return;
+  recEnabled = true;
+  if(!mainRec) initRecognition();
+  startMainRec();
+}
+
+const gifBtn = $("mySissGifBtn");
+const overlay = $("mySissOverlay");
+const modal = $("mySissModal");
+const closeBtn = $("mySissClose");
+const micOrb = $("mySissMic");
 
 function openGif(){
   gifOpen = true;
@@ -779,14 +857,12 @@ overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); })
 document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && gifOpen) closeGif(); });
 
 micOrb.addEventListener("click", ()=>{
-  enableRecognitionByGesture();
+  enableByGesture();
   gifListening = !gifListening;
   if(gifListening){
     modal.classList.add("mysiss-listening");
-    speakES("Listo. Hable ahora.");
-  }else{
-    modal.classList.remove("mysiss-listening");
-  }
+    speakES("Listo, lo escucho.");
+  }else modal.classList.remove("mysiss-listening");
 });
 
 document.addEventListener("click", function once(){
