@@ -132,12 +132,10 @@ def api_health():
 async def save_json(payload: dict = Body(...)):
     """
     Rutas destino:
-      A) C:\\Users\\ramiju\\Desktop\\MedVoice\\json_medvoice.json
       B) C:\\MedVoice\\json_medvoice.json
     Crea directorios si no existen. Backup siempre en data/.
     """
     targets = [
-        Path(r"C:\Users\ramiju\Desktop\MedVoice\json_medvoice.json"),
         Path(r"C:\MedVoice\json_medvoice.json"),
     ]
     json_str = json.dumps(payload, ensure_ascii=False, indent=2)

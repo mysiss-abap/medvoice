@@ -1,0 +1,14 @@
+{
+  "session_id": "sess_1772196266708",
+  "doctor_id": "0700000008",
+  "patnr": "1382",
+  "falnr": "3125",
+  "field_label": "ANAMNESIS",
+  "timestamp": "2026-02-27T20:41:11.285Z",
+  "full_text": "iniciar\niniciar\nHola\nDame la última consulta que tengo en año\nHola",
+  "sections": {
+    "anamnesis": "iniciar terminar iniciar iniciar Hola Dame la última consulta que tengo en año Hola",
+    "evolucion": "",
+    "epicrisis": ""
+  }
+}
