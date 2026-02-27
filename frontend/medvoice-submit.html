@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MedVoice | Submit</title>
+  <style>html,body{margin:0;height:100%;background:#fff;}</style>
+</head>
+<body>
+<script>
+(function(){
+  function readValue(key, fallback=""){
+    return (sessionStorage.getItem("medvoice." + key) || localStorage.getItem("medvoice." + key) || fallback || "").trim();
+  }
+
+  function closePage(){
+    try{ window.close(); }catch(_e){}
+    setTimeout(()=>{ window.location.href = "about:blank"; }, 80);
+  }
+
+  function fire(url){ window.location.href = url; }
+
+  async function saveJson(apiBase, payloadObj){
+    try{
+      await fetch(apiBase.replace(/\/$/, "") + "/api/medvoice/save-json", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payloadObj)
+      });
+    }catch(_e){}
+  }
+
+  const raw = (localStorage.getItem("medvoice.pending_payload") || "").trim();
+  if(!raw){ closePage(); return; }
+
+  let payloadObj;
+  try{ payloadObj = JSON.parse(raw); }catch(_e){
+    localStorage.removeItem("medvoice.pending_payload");
+    closePage();
+    return;
+  }
+
+  const sessionId = payloadObj.session_id || readValue("session_id", `sess_${Date.now()}`);
+  const jsonText = JSON.stringify(payloadObj);
+  const encoded = encodeURIComponent(jsonText);
+  const apiBase = readValue("api", window.location.origin) || window.location.origin;
+
+  saveJson(apiBase, payloadObj).finally(()=>{
+    try{
+      if(encoded.length > 1500){
+        const chunkSize = 1300;
+        const total = Math.ceil(encoded.length / chunkSize);
+        for(let i=0;i<total;i++){
+          const part = i + 1;
+          const chunk = encoded.slice(i*chunkSize, (i+1)*chunkSize);
+          fire("sapevent:MEDVOICE_SUBMIT_JSON_CHUNK?session_id=" + encodeURIComponent(sessionId) + "&part=" + part + "&total=" + total + "&payload=" + chunk);
+        }
+        fire("sapevent:MEDVOICE_SUBMIT_JSON_COMMIT?session_id=" + encodeURIComponent(sessionId));
+      }else{
+        fire("sapevent:MEDVOICE_SUBMIT_JSON?session_id=" + encodeURIComponent(sessionId) + "&payload=" + encoded);
+      }
+    }catch(_e){
+      const target = payloadObj.field_label || readValue("field_label", "ANAMNESIS");
+      const fullText = payloadObj.full_text || "";
+      fire("sapevent:MEDVOICE_SET_FIELD?target=" + encodeURIComponent(target) + "&text=" + encodeURIComponent(fullText));
+    }
+
+    localStorage.removeItem("medvoice.pending_payload");
+    setTimeout(closePage, 180);
+  });
+})();
+</script>
+</body>
+</html>

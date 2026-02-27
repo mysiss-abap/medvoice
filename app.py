@@ -173,6 +173,15 @@ def api_health():
     return {"ok": True, "service": "medvoice"}
 
 
+@app.post("/api/medvoice/save-json")
+async def save_medvoice_json(payload: dict = Body(...)):
+    target_dir = Path(r"C:\MedVoice")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_file = target_dir / "json_medvoice.json"
+    target_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"ok": True, "path": r"C:\MedVoice\json_medvoice.json"}
+
+
 # =========================
 # Voiceprint management
 # =========================

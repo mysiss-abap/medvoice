@@ -104,8 +104,7 @@
   <div class="card">
     <div class="meta">
       <div class="line">
-        <div><b>ID_Médico:</b> <span id="mDoctorId">—</span></div>
-        <div style="margin-top:4px;"><b>Médico:</b> <span id="mDoctorName">No informado</span></div>
+        <div><b>ID_Médico:</b> <span id="mDoctorId">—</span> &nbsp;&nbsp;&nbsp; <b>Médico:</b> <span id="mDoctorName">No informado</span></div>
       </div>
       <span class="pill">Preparación guiada</span>
     </div>
@@ -256,6 +255,7 @@ async function runAmbientAuto(){
 
       try{
         localStorage.setItem("medvoice.noise_rms", String(noiseRmsValue.toFixed(3)));
+        localStorage.setItem("medvoice.noise_calibrated", "1");
         localStorage.setItem("medvoice.has_noise_profile", "1");
         noiseStatus.textContent = "calibración lista y guardada.";
         noiseStatus.className = "ok";
@@ -320,6 +320,7 @@ btnVoiceAction.addEventListener("click", async ()=>{
       const b64 = await blobToBase64(blob);
       localStorage.setItem("medvoice.voiceprint_audio", b64);
       localStorage.setItem("medvoice.has_voiceprint", "1");
+      localStorage.setItem("medvoice.voiceprint_created_at", new Date().toISOString());
       voiceStatus.innerHTML = '<span class="ok">huella guardada. Continuando…</span>';
       log("Huella vocal guardada.");
       window.location.href = "/static/medvoice-transcribe.html";
