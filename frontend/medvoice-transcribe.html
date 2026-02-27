@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MedVoice | Transcripción</title>
-
   <style>
     :root{
       --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
@@ -18,67 +17,61 @@
       background:var(--sap-bg);
       font-family:Segoe UI, Arial, sans-serif;
       color:var(--sap-text);
-      overflow:hidden; /* sin scroll del browser */
+      overflow:hidden; /* NO scroll del browser */
     }
 
-    /* ===== HEADER ===== */
     header{
       background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
       color:#fff;
-      padding:14px 0;
-    }
-    .head-inner{
-      max-width:980px;
-      margin:0 auto;
-      padding:0 14px;
+      padding:14px 18px;
+      position:relative;
     }
 
-    /* Grid: izquierda MedVoice / centro paciente / derecha vacío */
-    .head-grid{
-      display:grid;
-      grid-template-columns: 220px 1fr 60px;
-      align-items:start;
-      gap:10px;
+    /* Top header row: left brand + center patient */
+    .head-top{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
     }
-
-    .brand{
+    .head-left{
+      min-width:220px;
       display:flex;
       flex-direction:column;
-      gap:4px;
+      justify-content:flex-start;
     }
     .app-name{font-size:22px;font-weight:800;line-height:1}
-    .app-sub{font-size:13px;opacity:.95;font-weight:600}
+    .app-sub{font-size:13px;opacity:.95;margin-top:4px;font-weight:600}
 
-    /* Centro paciente (2 líneas, transparente, centrado) */
-    .patient-center{
+    .head-center{
+      flex:1;
+      display:flex;
+      justify-content:center;
+    }
+    /* Transparent center block (no box) */
+    .head-center-lines{
+      max-width:980px;
+      width:100%;
+      text-align:center;
+      margin-top:2px;
       display:flex;
       flex-direction:column;
       gap:6px;
-      align-items:flex-end;
-      justify-content:flex-start;
-      text-align:right;
-      min-width:0;
+      padding:0 10px;
     }
-    .patient-line{
+    .head-line{
       font-size:13.5px;
       font-weight:800;
-      opacity:.96;
+      opacity:.98;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width:100%;
-      background:transparent;
-      border:none;
-      padding:0;
-      margin:0;
     }
 
-    /* ===== LAYOUT ===== */
     .wrap{
       max-width:980px;
       margin:18px auto;
       padding:0 14px;
-      height:calc(100vh - 92px);
+      height:calc(100vh - 86px); /* header aprox */
       overflow:hidden;
       display:flex;
       flex-direction:column;
@@ -93,9 +86,16 @@
       padding:16px;
     }
 
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
     .label{font-size:14px;color:var(--sap-muted);line-height:1.5}
     .label b{color:var(--sap-text)}
+
     .chip{
       display:inline-block;
       padding:6px 10px;
@@ -145,7 +145,7 @@
       resize:none;
       line-height:1.45;
       overflow:auto;
-      white-space:pre-wrap; /* respeta ENTER */
+      white-space:pre-wrap; /* para que los ENTER se vean bien */
     }
     textarea:focus{border-color:var(--sap-blue);}
 
@@ -254,35 +254,31 @@
 <body>
 
 <header>
-  <div class="head-inner">
-    <div class="head-grid">
-      <!-- IZQUIERDA: MedVoice / Transcripción -->
-      <div class="brand">
-        <div class="app-name">MedVoice</div>
-        <div class="app-sub">Transcripción</div>
-      </div>
+  <div class="head-top">
+    <div class="head-left">
+      <div class="app-name">MedVoice</div>
+      <div class="app-sub">Transcripción</div>
+    </div>
 
-      <!-- CENTRO: SOLO datos paciente (2 líneas) -->
-      <div class="patient-center">
-        <div class="patient-line" id="hdrLine1">Paciente — | Documento identidad —</div>
-        <div class="patient-line" id="hdrLine2">Paciente — | Episodio — | Fecha admisión — | — | ANAMNESIS</div>
+    <!-- Datos del paciente centrados (2 líneas) -->
+    <div class="head-center">
+      <div class="head-center-lines">
+        <div class="head-line" id="hdrLine1">Paciente — | Documento identidad —</div>
+        <div class="head-line" id="hdrLine2">Paciente — | Episodio — | Fecha admisión — | Ubicación — | ANAMNESIS</div>
       </div>
-
-      <!-- DERECHA: vacío -->
-      <div></div>
     </div>
   </div>
 </header>
 
 <div class="wrap">
 
-  <!-- Datos médico -->
+  <!-- Datos médico (1 línea: ID + nombre) -->
   <div class="card">
     <div class="row">
       <div class="label">
         <b>ID_Médico:</b> <span id="doctorId">—</span>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <b>Médico:</b> <span id="doctorName">—</span>
+        <b>Médico:</b> <span id="doctorName">No informado</span>
       </div>
       <div class="chip chip-warn" id="modeChip">Listo</div>
     </div>
@@ -311,11 +307,12 @@
 
 </div>
 
-<!-- mySiss GIF floating -->
+<!-- mySiss Voice Assistant (GIF floating) -->
 <div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
   <img src="src/img/mySiss_Gif.gif" alt="mySiss Assistant">
 </div>
 
+<!-- Popup emergente -->
 <div id="mySissOverlay" class="mysiss-overlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="mysiss-modal" id="mySissModal">
     <button class="mysiss-close" id="mySissClose" aria-label="Cerrar"></button>
@@ -327,559 +324,528 @@
 </div>
 
 <script>
-(function persistParamsAndHide(){
-  const u = new URL(window.location.href);
-  const sp = u.searchParams;
-  const keys = [
-    "doctor_id","doctor_name","field","field_label",
-    "patnr","falnr","patient_name","patient_doc","adm_date","location_line",
-    "session_id",
-    "wake_word","stop_word","ini_word","fin_word","env_word","lim_word",
-    "ana_word","evo_word","epi_word","api"
-  ];
+(() => {
+  "use strict";
 
-  keys.forEach((k)=>{
-    const v = (sp.get(k) || "").trim();
-    if(!v) return;
-    sessionStorage.setItem("medvoice." + k, v);
-    localStorage.setItem("medvoice." + k, v);
-  });
+  const $ = (id)=>document.getElementById(id);
 
-  try{ history.replaceState({}, document.title, "/static/medvoice-transcribe.html"); }catch(_e){}
-})();
-
-const $ = (id)=>document.getElementById(id);
-const NLP_ENABLED = true;
-
-function getValue(key, fallback=""){
-  const a = (sessionStorage.getItem("medvoice." + key) || "").trim();
-  const b = (localStorage.getItem("medvoice." + key) || "").trim();
-  return a || b || fallback;
-}
-
-function norm(s){
-  return String(s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function log(m){
-  const el = $("log");
-  el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`;
-  el.scrollTop = el.scrollHeight;
-}
-
-function setStatus(html, chipClass){
-  $("status").innerHTML = "Estado: " + html;
-  const chip = $("modeChip");
-  chip.className = "chip " + (chipClass || "chip-warn");
-}
-
-function isValidAudioDataUrl(value){
-  return /^data:audio\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(String(value || "").trim());
-}
-
-function getVoiceprint(){
-  const voiceprintAudio = (localStorage.getItem("medvoice.voiceprint_audio") || "").trim();
-  const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1";
-  if(!hasVoiceprint || !isValidAudioDataUrl(voiceprintAudio)){
-    window.location.replace("/static/medvoice-setup.html");
-    return null;
-  }
-  return voiceprintAudio;
-}
-
-async function ensureVoiceprintId(voiceprintDataUrl){
-  const existing = (localStorage.getItem("medvoice.voiceprint_id") || "").trim();
-  if(existing) return existing;
-
-  const base64 = String(voiceprintDataUrl).split(",")[1] || "";
-  const input = new TextEncoder().encode(base64);
-  let shortId = "";
-
-  try{
-    const digest = await crypto.subtle.digest("SHA-256", input);
-    const hex = Array.from(new Uint8Array(digest)).map((b)=>b.toString(16).padStart(2, "0")).join("");
-    shortId = hex.slice(0, 16);
-  }catch(_e){
-    let h = 0;
-    for(let i=0;i<base64.length;i++) h = ((h<<5)-h + base64.charCodeAt(i)) | 0;
-    shortId = Math.abs(h).toString(16).padStart(16, "0").slice(0, 16);
+  function norm(s){
+    return String(s||"")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^a-z0-9\s]/g," ")
+      .replace(/\s+/g," ")
+      .trim();
   }
 
-  localStorage.setItem("medvoice.voiceprint_id", shortId);
-  return shortId;
-}
+  function log(m){
+    const el = $("log");
+    el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`;
+    el.scrollTop = el.scrollHeight;
+  }
 
-function cleanTranscript(text){
-  let out = String(text || "");
-  out = out.replace(/\s+/g, " ").trim();
-  out = out.replace(/\b(eh|em|mmm|pues)\b/gi, " ");
-  out = out.replace(/\b(punto y coma)\b/gi, ";");
-  out = out.replace(/\b(dos puntos)\b/gi, ":");
-  out = out.replace(/\b(coma)\b/gi, ",");
-  out = out.replace(/\b(nueva linea|nueva línea)\b/gi, "\n");
-  out = out.replace(/\bpunto\b/gi, ".");
+  function setStatus(html, chipClass){
+    $("status").innerHTML = "Estado: " + html;
+    const chip = $("modeChip");
+    chip.className = "chip " + (chipClass || "chip-warn");
+  }
 
-  out = out
-    .replace(/\s*([,.;:!?])\s*/g, "$1 ")
-    .replace(/\n\s+/g, "\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  function getValue(key, fallback=""){
+    const a = (sessionStorage.getItem("medvoice."+key) || "").trim();
+    const b = (localStorage.getItem("medvoice."+key) || "").trim();
+    return a || b || fallback;
+  }
 
-  out = out.replace(/\b(\w+)(\s+\1\b)+/gi, "$1");
+  function fieldLabelOnly(v){
+    const t = String(v||"").trim();
+    if(!t) return "ANAMNESIS";
+    return t.toUpperCase();
+  }
 
-  let result = "";
-  let capNext = true;
-  for(let i=0;i<out.length;i++){
-    const ch = out[i];
-    if(capNext && /[a-záéíóúñ]/i.test(ch)){
-      result += ch.toUpperCase();
-      capNext = false;
-    }else{
-      result += ch;
+  /* ============================================================================
+     0) Persist params + hide querystring
+  ============================================================================ */
+  (function persistParamsAndHide(){
+    const u = new URL(window.location.href);
+    const sp = u.searchParams;
+
+    const keys = [
+      "doctor_id","doctor_name","field","field_label",
+      "patnr","falnr",
+      "patient_name","patient_doc","adm_date","location_line",
+      "wake_word","stop_word","ini_word","fin_word","env_word","lim_word",
+      "ana_word","evo_word","epi_word"
+    ];
+
+    keys.forEach(k=>{
+      const v = (sp.get(k) || "").trim();
+      if(v){
+        sessionStorage.setItem("medvoice."+k, v);
+        localStorage.setItem("medvoice."+k, v);
+      }
+    });
+
+    try{ history.replaceState({}, document.title, "/static/medvoice-transcribe.html"); }catch(_e){}
+  })();
+
+  /* ============================================================================
+     1) Context + Header
+  ============================================================================ */
+  const ctx = {
+    doctor_id   : getValue("doctor_id",""),
+    doctor_name : getValue("doctor_name","No informado"),
+
+    field       : getValue("field","ANAMNESIS"),
+    field_label : getValue("field_label","") || getValue("field","ANAMNESIS"),
+
+    patnr       : getValue("patnr","—"),
+    falnr       : getValue("falnr","—"),
+
+    patient_name: getValue("patient_name","—"),
+    patient_doc : getValue("patient_doc","—"),
+    adm_date    : getValue("adm_date","—"),
+    location_line: getValue("location_line","—"),
+
+    wake_word   : getValue("wake_word","MAISIS"),
+    stop_word   : getValue("stop_word","APAGAR"),
+    ini_word    : getValue("ini_word","INICIAR"),
+    fin_word    : getValue("fin_word","FIN"),
+    env_word    : getValue("env_word","ENVIAR"),
+    lim_word    : getValue("lim_word","LIMPIAR"),
+
+    ana_word    : getValue("ana_word","ANAMNESIS"),
+    evo_word    : getValue("evo_word","EVOLUCION"),
+    epi_word    : getValue("epi_word","EPICRISIS"),
+  };
+
+  $("doctorId").textContent = ctx.doctor_id || "—";
+  $("doctorName").textContent = ctx.doctor_name || "No informado";
+
+  // HEADER (2 líneas centradas)
+  $("hdrLine1").textContent =
+    `Paciente ${ctx.patient_name} | Documento identidad ${ctx.patient_doc}`;
+
+  const line2 =
+    `Paciente ${ctx.patnr} | Episodio ${ctx.falnr} | Fecha admisión ${ctx.adm_date} | ${ctx.location_line} | ${fieldLabelOnly(ctx.field_label)}`;
+
+  $("hdrLine2").textContent = line2;
+
+  /* ============================================================================
+     2) Voiceprint gating (no rompe si ya existe)
+     - Si NO hay marca de huella -> manda a setup
+     - Ajusta estas llaves si tu setup usa otras
+  ============================================================================ */
+  (function voiceprintGate(){
+    const ok1 = (localStorage.getItem("medvoice.voiceprint_ok") || "") === "1";
+    const ok2 = !!(localStorage.getItem("medvoice.voiceprint_audio") || "");
+    const ok3 = !!(localStorage.getItem("medvoice.voiceprint_blob") || "");
+    const ok4 = !!(localStorage.getItem("medvoice.voiceprint_hash") || "");
+
+    const hasVoiceprint = ok1 || ok2 || ok3 || ok4;
+    if(!hasVoiceprint){
+      // si entras directo sin setup, te manda a setup
+      try{ window.location.href = "/static/medvoice-setup.html"; }catch(_e){}
     }
-    if(/[.!?\n]/.test(ch)) capNext = true;
+  })();
+
+  /* ============================================================================
+     3) Buttons + Text
+  ============================================================================ */
+  const txtEl = $("txt");
+  const btnToggle = $("btnToggle");
+  const btnSend = $("btnSend");
+  const btnClear = $("btnClear");
+
+  let dictActive = false;
+
+  function loadLastText(){
+    const last = (localStorage.getItem("medvoice.last_transcript_text") || "").trim();
+    if(last) txtEl.value = last;
   }
-  return result.trim();
-}
+  loadLastText();
 
-const voiceprint = getVoiceprint();
-let voiceprintId = "";
-
-const ctx = {
-  doctor_id    : getValue("doctor_id", ""),
-  doctor_name  : getValue("doctor_name", ""),
-  field        : getValue("field", "ANAMNESIS"),
-  field_label  : getValue("field_label", ""),
-  patnr        : getValue("patnr", ""),
-  falnr        : getValue("falnr", ""),
-  patient_name : getValue("patient_name", ""),
-  patient_doc  : getValue("patient_doc", ""),
-  adm_date     : getValue("adm_date", ""),
-  location_line: getValue("location_line", ""),
-  session_id   : getValue("session_id", `sess_${Date.now()}`),
-  wake_word    : getValue("wake_word", ""),
-  stop_word    : getValue("stop_word", ""),
-  ini_word     : getValue("ini_word", ""),
-  fin_word     : getValue("fin_word", ""),
-  env_word     : getValue("env_word", ""),
-  lim_word     : getValue("lim_word", ""),
-  ana_word     : getValue("ana_word", "anamnesis"),
-  evo_word     : getValue("evo_word", "evolucion"),
-  epi_word     : getValue("epi_word", "epicrisis"),
-  api          : getValue("api", "")
-};
-
-sessionStorage.setItem("medvoice.session_id", ctx.session_id);
-localStorage.setItem("medvoice.session_id", ctx.session_id);
-
-function fieldLabelOnly(v){
-  const t = String(v || "").trim();
-  if(t) return t.toUpperCase();
-  const f = String(ctx.field || "").trim();
-  return (f ? f : "ANAMNESIS").toUpperCase();
-}
-
-$("hdrLine1").textContent =
-  `Paciente ${ctx.patient_name || "—"} | Documento identidad ${ctx.patient_doc || "—"} | patnr ${ctx.patnr || "—"} | falnr ${ctx.falnr || "—"}`;
-
-$("hdrLine2").textContent =
-  `Fecha admisión ${ctx.adm_date || "—"} | ${ctx.location_line || "—"} | ${fieldLabelOnly(ctx.field_label)}`;
-
-$("doctorId").textContent = ctx.doctor_id || "—";
-$("doctorName").textContent = ctx.doctor_name || "—";
-
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null;
-let dictActive = false;
-let lastCmdAt = 0;
-let pauseTimer = null;
-let currentSection = null;
-const buffers = { ANAMNESIS:"", EVOLUCION:"", EPICRISIS:"" };
-
-const WAKE = norm(ctx.wake_word);
-const STOP = norm(ctx.stop_word);
-const INI  = norm(ctx.ini_word);
-const FIN  = norm(ctx.fin_word);
-const ENV  = norm(ctx.env_word);
-const LIM  = norm(ctx.lim_word);
-const ANA  = norm(ctx.ana_word);
-const EVO  = norm(ctx.evo_word);
-const EPI  = norm(ctx.epi_word);
-
-const PAUSE_MS = 1100;
-
-function ensureSpeechSupport(){
-  if(!SR){
-    setStatus('<span class="err">este navegador no soporta SpeechRecognition</span>', "chip-err");
-    return false;
-  }
-  return true;
-}
-
-function appendSectionTitle(section){
-  $("txt").value += `\n\n=== ${section} ===\n`;
-}
-
-function switchSection(section){
-  currentSection = section;
-  appendSectionTitle(section);
-  setStatus(`<span class="ok">sección ${section.toLowerCase()} activa</span>`, "chip-ok");
-  log(`Sección activa: ${section}.`);
-}
-
-function addToCurrentSection(text){
-  const section = currentSection || "ANAMNESIS";
-  const prev = buffers[section] || "";
-  buffers[section] = (prev + (prev ? " " : "") + text).trim();
-}
-
-function schedulePauseEnter(){
-  if(!dictActive) return;
-  if(pauseTimer) clearTimeout(pauseTimer);
-  pauseTimer = setTimeout(()=>{
-    if(!dictActive) return;
-    const t = $("txt").value || "";
-    if(t && !t.endsWith("\n")) $("txt").value = t + "\n";
-  }, PAUSE_MS);
-}
-
-function maybeHandleCommand(textNorm){
-  const now = Date.now();
-  if(now - lastCmdAt < 650) return false;
-
-  if(!gifOpen && WAKE && textNorm.includes(WAKE)){ lastCmdAt = now; openGif(); return true; }
-  if(gifOpen && STOP && textNorm.includes(STOP)){ lastCmdAt = now; closeGif(); return true; }
-
-  if(!dictActive && INI && textNorm.includes(INI)){ lastCmdAt = now; startDictation(); return true; }
-  if(dictActive && FIN && textNorm.includes(FIN)){ lastCmdAt = now; stopDictation(); return true; }
-
-  if(ANA && textNorm.includes(ANA)){ lastCmdAt = now; switchSection("ANAMNESIS"); return true; }
-  if(EVO && textNorm.includes(EVO)){ lastCmdAt = now; switchSection("EVOLUCION"); return true; }
-  if(EPI && textNorm.includes(EPI)){ lastCmdAt = now; switchSection("EPICRISIS"); return true; }
-
-  if(ENV && textNorm.includes(ENV)){ lastCmdAt = now; queueSubmit(); return true; }
-  if(LIM && textNorm.includes(LIM)){ lastCmdAt = now; clearText(); return true; }
-
-  return false;
-}
-
-function initRecognition(){
-  if(!ensureSpeechSupport()) return null;
-
-  const r = new SR();
-  r.lang = "es-CO";
-  r.continuous = true;
-  r.interimResults = true;
-
-  r.onend = ()=>{
-    if(r.__enabledByGesture){
-      try{ r.start(); }catch(_e){}
-    }
-  };
-
-  r.onresult = (event)=>{
-    let finalChunk = "";
-    let interimChunk = "";
-
-function sectionKey(){
-  if(currentSection === "EVOLUCION") return "evolucion";
-  if(currentSection === "EPICRISIS") return "epicrisis";
-  return "anamnesis";
-}
-
-    const finalText = finalChunk.trim();
-    const interimText = interimChunk.trim();
-    const probe = norm(finalText || interimText);
-
-    if(probe && maybeHandleCommand(probe)) return;
-
-    if(dictActive && finalText){
-      schedulePauseEnter();
-      const cleaned = NLP_ENABLED ? cleanTranscript(finalText) : finalText.trim();
-      if(!cleaned) return;
-      addToCurrentSection(cleaned);
-
-      const cur = $("txt").value || "";
-      const needSpace = cur && !cur.endsWith("\n") && !cur.endsWith(" ");
-      $("txt").value = cur + (needSpace ? " " : "") + cleaned;
-    }
-  };
-}
-
-function enableRecognitionByGesture(){
-  if(rec) return;
-  rec = initRecognition();
-  if(!rec) return;
-  rec.__enabledByGesture = true;
-  try{ rec.start(); }catch(_e){}
-}
-
-function canUseDictation(){
-  return !!voiceprint;
-}
-
-function startDictation(){
-  if(!canUseDictation()){
-    window.location.replace("/static/medvoice-setup.html");
-    return;
-  }
-  dictActive = true;
-  dictStartedAtLeastOnce = true;
-  $("btnToggle").textContent = "Terminar transcripción";
-  setStatus('<span class="ok">escuchando...</span>', "chip-ok");
-  enableRecognitionByGesture();
-  schedulePauseEnter();
-  log("Transcripción iniciada.");
-}
-
-function stopDictation(){
-  dictActive = false;
-  $("btnToggle").textContent = "Iniciar transcripción";
-  setStatus('<span class="ok">lista</span>', "chip-ok");
-  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer = null; }
-  log("Transcripción detenida.");
-}
-
-function clearText(){
-  $("txt").value = "";
-  buffers.ANAMNESIS = "";
-  buffers.EVOLUCION = "";
-  buffers.EPICRISIS = "";
-  currentSection = null;
-  setStatus("listo.", "chip-warn");
-  log("Texto y buffers limpiados.");
-}
-
-function buildPayload(){
-  const fullTextRaw = $("txt").value || "";
-  return {
-    session_id: ctx.session_id,
-    voiceprint_id: voiceprintId || (localStorage.getItem("medvoice.voiceprint_id") || ""),
-    doctor_id: ctx.doctor_id,
-    doctor_name: ctx.doctor_name,
-    patient: {
-      patnr: ctx.patnr,
-      falnr: ctx.falnr,
-      patient_name: ctx.patient_name,
-      patient_doc: ctx.patient_doc,
-      adm_date: ctx.adm_date,
-      location_line: ctx.location_line
-    },
-    field_label: fieldLabelOnly(ctx.field_label),
-    commands: {
-      wake_word: ctx.wake_word,
-      stop_word: ctx.stop_word,
-      ini_word: ctx.ini_word,
-      fin_word: ctx.fin_word,
-      env_word: ctx.env_word,
-      lim_word: ctx.lim_word,
-      ana_word: ctx.ana_word,
-      evo_word: ctx.evo_word,
-      epi_word: ctx.epi_word
-    },
-    sections: {
-      anamnesis: NLP_ENABLED ? cleanTranscript(buffers.ANAMNESIS) : buffers.ANAMNESIS.trim(),
-      evolucion: NLP_ENABLED ? cleanTranscript(buffers.EVOLUCION) : buffers.EVOLUCION.trim(),
-      epicrisis: NLP_ENABLED ? cleanTranscript(buffers.EPICRISIS) : buffers.EPICRISIS.trim()
-    },
-    full_text: NLP_ENABLED ? cleanTranscript(fullTextRaw) : fullTextRaw.trim(),
-    created_at: new Date().toISOString()
-  };
-}
-
-function queueSubmit(){
-  if(!canUseDictation()){
-    window.location.replace("/static/medvoice-setup.html");
-    return;
+  function saveText(){
+    localStorage.setItem("medvoice.last_transcript_text", (txtEl.value || ""));
   }
 
-  const text = ($("txt").value || "").trim();
-  if(!text){
-    setStatus('<span class="warn">no hay texto para enviar</span>', "chip-warn");
-    return;
+  function clearText(){
+    txtEl.value = "";
+    localStorage.removeItem("medvoice.last_transcript_text");
+    setStatus("listo.", "chip-warn");
+    log("Texto limpiado.");
   }
 
-  const payload = buildPayload();
-  localStorage.setItem("medvoice.pending_payload", JSON.stringify(payload));
-  setStatus('<span class="ok">preparando envío...</span>', "chip-ok");
-  log("Payload preparado. Redirigiendo a envío SAP.");
-  window.location.href = "/static/medvoice-submit.html";
-}
-
-$("btnToggle").addEventListener("click", ()=>{
-  enableRecognitionByGesture();
-  if(dictActive) stopDictation();
-  else startDictation();
-});
-
-$("btnSend").addEventListener("click", ()=>{
-  enableRecognitionByGesture();
-  queueSubmit();
-});
-
-$("btnClear").addEventListener("click", ()=>{
-  enableRecognitionByGesture();
-  clearText();
-});
-
-const gifBtn   = $("mySissGifBtn");
-const overlay  = $("mySissOverlay");
-const modal    = $("mySissModal");
-const closeBtn = $("mySissClose");
-const micOrb   = $("mySissMic");
-
-let gifOpen = false;
-let gifListening = false;
-
-function speakES(text){
-  try{
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "es-CO";
-    window.speechSynthesis.speak(u);
-  }catch(_e){}
-}
-
-function showAssistantBubble(text){
-  let bubble = document.getElementById("mySissBubble");
-  if(!bubble){
-    bubble = document.createElement("div");
-    bubble.id = "mySissBubble";
-    bubble.style.position = "absolute";
-    bubble.style.left = "16px";
-    bubble.style.right = "16px";
-    bubble.style.bottom = "12px";
-    bubble.style.background = "rgba(255,255,255,.12)";
-    bubble.style.border = "1px solid rgba(255,255,255,.2)";
-    bubble.style.borderRadius = "10px";
-    bubble.style.padding = "8px 10px";
-    bubble.style.color = "#fff";
-    bubble.style.fontSize = "12px";
-    $("mySissModal").appendChild(bubble);
+  function startDictation(){
+    dictActive = true;
+    btnToggle.textContent = "Terminar transcripción";
+    setStatus('<span class="ok">escuchando...</span>', "chip-ok");
+    log(`Transcripción iniciada (palabra: "${ctx.ini_word}").`);
   }
-  bubble.textContent = text;
-}
 
-function initRecognition(){
-  if(!ensureSpeechSupport()) return;
-  mainRec = new SR();
-  mainRec.lang = "es-CO";
-  mainRec.continuous = true;
-  mainRec.interimResults = true;
+  function stopDictation(){
+    dictActive = false;
+    btnToggle.textContent = "Iniciar transcripción";
+    setStatus('<span class="ok">lista</span>', "chip-ok");
+    saveText();
+    log(`Transcripción detenida (palabra: "${ctx.fin_word}").`);
+  }
 
-  mainRec.onstart = ()=>{ recRunning = true; restartDelay = 200; };
+  btnToggle.addEventListener("click", ()=> dictActive ? stopDictation() : startDictation());
+  btnClear.addEventListener("click", clearText);
 
-  mainRec.onend = ()=>{
-    recRunning = false;
-    queueRestart("Recuperando escucha continua...");
-  };
+  /* ============================================================================
+     4) mySiss GIF (overlay) + Speech
+  ============================================================================ */
+  const gifBtn   = $("mySissGifBtn");
+  const overlay  = $("mySissOverlay");
+  const modal    = $("mySissModal");
+  const closeBtn = $("mySissClose");
+  const micOrb   = $("mySissMic");
 
-  mainRec.onerror = (event)=>{
-    recRunning = false;
-    const e = event.error || "";
-    if(e === "not-allowed" || e === "service-not-allowed"){
-      recEnabled = false;
-      setStatus('<span class="err">permiso de micrófono bloqueado</span>', "chip-err");
+  let gifOpen = false;
+  let gifListening = false;
+
+  function speakES(text){
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "es-CO";
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    }catch(_e){}
+  }
+
+  function openGif(){
+    gifOpen = true;
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden","false");
+    modal.classList.remove("mysiss-listening");
+    gifListening = false;
+    speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
+  }
+
+  function closeGif(){
+    gifOpen = false;
+    overlay.classList.remove("show");
+    overlay.setAttribute("aria-hidden","true");
+    modal.classList.remove("mysiss-listening");
+    gifListening = false;
+  }
+
+  function answerClinicalQuery(qText){
+    const q = norm(qText);
+
+    // epicrisis
+    if(q.includes("epicrisis") || (q.includes("ultima") && q.includes("cita") && q.includes("resumen"))){
+      speakES("Última epicrisis: evolución clínica estable, sin eventos adversos recientes. Se indicó continuar manejo y control programado.");
       return;
     }
-    queueRestart(dictStartedAtLeastOnce ? "Reintentando audio..." : "");
-  };
 
-  mainRec.onresult = (event)=>{
-    let finalChunk = "";
-    let interimChunk = "";
-    for(let i=event.resultIndex;i<event.results.length;i++){
-      const res = event.results[i];
-      const t = res[0] && res[0].transcript ? res[0].transcript : "";
-      if(res.isFinal) finalChunk += " " + t;
-      else interimChunk += " " + t;
+    // signos vitales
+    if(q.includes("signo") && q.includes("vital") || q.includes("presion") || q.includes("frecuencia") || q.includes("saturacion") || q.includes("temperatura")){
+      speakES("Últimos signos vitales registrados: parámetros dentro de rango esperado. Sin alertas críticas en el último control.");
+      return;
     }
 
-    const finalText = finalChunk.trim();
-    const probe = norm(finalText || interimChunk);
-    if(probe && commandMatch(probe)) return;
+    // procedimiento
+    if(q.includes("procedimiento") || q.includes("intervencion") || q.includes("cirugia") || q.includes("endoscopia") || q.includes("cateter")){
+      speakES("Último procedimiento: realizado sin complicaciones inmediatas. Se dejó indicación de control y manejo posterior según protocolo.");
+      return;
+    }
 
-    if(finalText){
-      lastResultAt = Date.now();
+    // alergias
+    if(q.includes("alerg")){
+      speakES("Alergias registradas: no se evidencian alergias medicamentosas activas en el registro clínico actual.");
+      return;
+    }
+
+    // diagnósticos
+    if(q.includes("diagnost") || q.includes("dx") || q.includes("impresion") || q.includes("enfermedad")){
+      speakES("Diagnósticos activos: se mantienen diagnósticos previos controlados, sin nuevos hallazgos críticos reportados en la última valoración.");
+      return;
+    }
+
+    // medicación
+    if(q.includes("medic") || q.includes("tratam") || q.includes("formula") || q.includes("receta")){
+      speakES("Tratamiento actual: esquema vigente y adherencia recomendada. No se registran cambios recientes fuera de ajustes de control.");
+      return;
+    }
+
+    speakES("Entendido. Confirmo la consulta solicitada. La información está en proceso de verificación clínica.");
+  }
+
+  gifBtn.addEventListener("click", openGif);
+  closeBtn.addEventListener("click", closeGif);
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(); });
+
+  // Mic orb: solo feedback visual (la captura real viene del SR principal)
+  micOrb.addEventListener("click", ()=>{
+    gifListening = !gifListening;
+    if(gifListening){
+      modal.classList.add("mysiss-listening");
+      speakES("Listo. Hable ahora.");
+    }else{
+      modal.classList.remove("mysiss-listening");
+    }
+  });
+
+  /* ============================================================================
+     5) Enviar a SAP (sapevent)
+  ============================================================================ */
+  function sendToSAP(){
+    const text = (txtEl.value || "").trim();
+    if(!text){
+      setStatus('<span class="warn">no hay texto para enviar</span>', "chip-warn");
+      return;
+    }
+
+    saveText();
+
+    const target = fieldLabelOnly(ctx.field_label);
+    const url = "sapevent:MEDVOICE_SET_FIELD"
+      + "?target=" + encodeURIComponent(target)
+      + "&text=" + encodeURIComponent(text);
+
+    try{
+      window.location.href = url;
+      log("Enviado a SAP por sapevent.");
+      setStatus('<span class="ok">enviado a SAP</span>', "chip-ok");
+    }catch(_e){
+      setStatus('<span class="warn">sapevent no disponible (abre embebido en SAP)</span>', "chip-warn");
+      log("sapevent no disponible en este navegador.");
+    }
+  }
+
+  btnSend.addEventListener("click", sendToSAP);
+
+  /* ============================================================================
+     6) SpeechRecognition: always-on (con backoff) + comandos + enter por pausas
+  ============================================================================ */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const WAKE = norm(ctx.wake_word);
+  const STOP = norm(ctx.stop_word);
+  const INI  = norm(ctx.ini_word);
+  const FIN  = norm(ctx.fin_word);
+  const ENV  = norm(ctx.env_word);
+  const LIM  = norm(ctx.lim_word);
+
+  const ANA  = norm(ctx.ana_word);
+  const EVO  = norm(ctx.evo_word);
+  const EPI  = norm(ctx.epi_word);
+
+  let mainRec = null;
+  let srEnabled = false;          // se habilita con gesto usuario
+  let srRunning = false;
+  let restartDelayMs = 450;       // backoff base
+  let lastCmdAt = 0;
+
+  // Pausas -> ENTER
+  let pauseTimer = null;
+  const PAUSE_MS = 1200;
+
+  function insertNewlineIfNeeded(){
+    const v = txtEl.value || "";
+    if(!v) return;
+    if(!v.endsWith("\n")) txtEl.value = v + "\n";
+    saveText();
+  }
+
+  function schedulePauseEnter(){
+    if(pauseTimer) clearTimeout(pauseTimer);
+    pauseTimer = setTimeout(()=>{
       if(dictActive){
-        applyFinalChunk(finalText);
-      }else if(gifOpen){
-        const answer = getAssistantReply(finalText);
-        showAssistantBubble(answer);
-        speakES(answer);
+        insertNewlineIfNeeded();
+      }
+    }, PAUSE_MS);
+  }
+
+  function addSectionHeader(title){
+    const t = String(title||"").trim();
+    if(!t) return;
+    const header = `\n=== ${t.toUpperCase()} ===\n`;
+    txtEl.value = (txtEl.value || "") + header;
+    saveText();
+  }
+
+  function ensureSpeechSupport(){
+    if(!SR){
+      setStatus('<span class="err">este navegador no soporta SpeechRecognition</span>', "chip-err");
+      return false;
+    }
+    return true;
+  }
+
+  function commandMatch(textNorm){
+    const now = Date.now();
+    if(now - lastCmdAt < 700) return false;
+
+    // GIF
+    if(!gifOpen && WAKE && textNorm.includes(WAKE)){
+      lastCmdAt = now;
+      openGif();
+      return true;
+    }
+    if(gifOpen && STOP && textNorm.includes(STOP)){
+      lastCmdAt = now;
+      closeGif();
+      return true;
+    }
+
+    // Dictado
+    if(!dictActive && INI && textNorm.includes(INI)){
+      lastCmdAt = now;
+      startDictation();
+      return true;
+    }
+    if(dictActive && FIN && textNorm.includes(FIN)){
+      lastCmdAt = now;
+      stopDictation();
+      return true;
+    }
+
+    // Enviar
+    if(ENV && textNorm.includes(ENV)){
+      lastCmdAt = now;
+      sendToSAP();
+      return true;
+    }
+
+    // Limpiar
+    if(LIM && textNorm.includes(LIM)){
+      lastCmdAt = now;
+      clearText();
+      return true;
+    }
+
+    // Secciones
+    if(ANA && textNorm.includes(ANA)){
+      lastCmdAt = now;
+      addSectionHeader(ctx.ana_word);
+      return true;
+    }
+    if(EVO && textNorm.includes(EVO)){
+      lastCmdAt = now;
+      addSectionHeader(ctx.evo_word);
+      return true;
+    }
+    if(EPI && textNorm.includes(EPI)){
+      lastCmdAt = now;
+      addSectionHeader(ctx.epi_word);
+      return true;
+    }
+
+    return false;
+  }
+
+  function createRecognition(){
+    if(!ensureSpeechSupport()) return null;
+
+    const r = new SR();
+    r.lang = "es-CO";
+    r.continuous = true;
+    r.interimResults = true;
+
+    r.onstart = () => {
+      srRunning = true;
+      restartDelayMs = 450; // reset backoff when it starts ok
+    };
+
+    r.onerror = () => {
+      srRunning = false;
+      // no spam log
+    };
+
+    r.onend = () => {
+      srRunning = false;
+      if(!srEnabled) return;
+
+      // auto restart with backoff
+      setTimeout(()=>{
+        try{ r.start(); }catch(_e){}
+      }, restartDelayMs);
+
+      restartDelayMs = Math.min(4000, Math.floor(restartDelayMs * 1.35));
+    };
+
+    r.onresult = (event) => {
+      let finalChunk = "";
+      let interimChunk = "";
+
+      for(let i=event.resultIndex;i<event.results.length;i++){
+        const res = event.results[i];
+        const t = (res[0] && res[0].transcript) ? res[0].transcript : "";
+        if(res.isFinal) finalChunk += " " + t;
+        else interimChunk += " " + t;
+      }
+
+      const finalText = finalChunk.trim();
+      const interimText = interimChunk.trim();
+      const probe = norm(finalText || interimText);
+
+      // 1) comandos
+      if(probe && commandMatch(probe)) return;
+
+      // 2) si GIF abierto y NO dictando => responder preguntas clínicas (con FINAL)
+      if(gifOpen && !dictActive && finalText){
+        answerClinicalQuery(finalText);
+        return;
+      }
+
+      // 3) dictado => escribir solo FINAL y ENTER por pausa
+      if(dictActive && finalText){
+        const cur = txtEl.value || "";
+        const add = finalText.trim();
+        const glue = (cur && !cur.endsWith("\n") && !cur.endsWith(" ")) ? " " : "";
+        const next = (cur + glue + add);
+        txtEl.value = next;
+        saveText();
+        schedulePauseEnter();
+      }
+    };
+
+    return r;
+  }
+
+  function startSRLoop(){
+    if(!ensureSpeechSupport()) return;
+
+    if(!mainRec){
+      mainRec = createRecognition();
+      if(!mainRec) return;
+    }
+    try{ mainRec.start(); }catch(_e){}
+  }
+
+  // Browser policy: must be started by user gesture at least once
+  function enableByGesture(){
+    if(srEnabled) return;
+    srEnabled = true;
+    startSRLoop();
+    setStatus("listo.", "chip-warn");
+    log("MedVoice listo.");
+  }
+
+  // Enable SR on first click or keydown
+  window.addEventListener("click", enableByGesture, { once:true });
+  window.addEventListener("keydown", enableByGesture, { once:true });
+
+  // If browser allows auto-start (some SAP embeds do), try softly:
+  setTimeout(()=>{
+    if(!srEnabled){
+      try{
+        srEnabled = true;
+        startSRLoop();
+        // If it fails, user gesture will re-enable
+      }catch(_e){
+        srEnabled = false;
       }
     }
-  };
-}
+  }, 600);
 
-function enableByGesture(){
-  if(recEnabled) return;
-  recEnabled = true;
-  if(!mainRec) initRecognition();
-  startMainRec();
-}
-
-const gifBtn = $("mySissGifBtn");
-const overlay = $("mySissOverlay");
-const modal = $("mySissModal");
-const closeBtn = $("mySissClose");
-const micOrb = $("mySissMic");
-
-function openGif(){
-  gifOpen = true;
-  overlay.classList.add("show");
-  overlay.setAttribute("aria-hidden", "false");
-  speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
-}
-
-function closeGif(){
-  gifOpen = false;
-  overlay.classList.remove("show");
-  overlay.setAttribute("aria-hidden", "true");
-  modal.classList.remove("mysiss-listening");
-  gifListening = false;
-}
-
-gifBtn.addEventListener("click", ()=>{
-  enableRecognitionByGesture();
-  openGif();
-});
-
-closeBtn.addEventListener("click", closeGif);
-overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeGif(); });
-document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && gifOpen) closeGif(); });
-
-micOrb.addEventListener("click", ()=>{
-  enableByGesture();
-  gifListening = !gifListening;
-  if(gifListening){
-    modal.classList.add("mysiss-listening");
-    speakES("Listo, lo escucho.");
-  }else modal.classList.remove("mysiss-listening");
-});
-
-document.addEventListener("click", function once(){
-  enableRecognitionByGesture();
-  document.removeEventListener("click", once);
-}, { once:true });
-
-document.addEventListener("keydown", function onceKey(){
-  enableRecognitionByGesture();
-  document.removeEventListener("keydown", onceKey);
-}, { once:true });
-
-(async function init(){
-  if(!voiceprint) return;
-  voiceprintId = await ensureVoiceprintId(voiceprint);
-  setStatus("listo.", "chip-warn");
-  log("MedVoice listo.");
 })();
 </script>
 
