@@ -16,8 +16,9 @@
       background:var(--sap-bg);
       font-family:Segoe UI, Arial, sans-serif;
       color:var(--sap-text);
-      overflow:hidden;
+      overflow:hidden; /* NO scroll browser */
     }
+
     header{
       background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
       color:#fff;
@@ -32,6 +33,7 @@
     }
     .brand .app-name{font-size:20px;font-weight:800;line-height:1}
     .brand .app-sub{font-size:12px;opacity:.9;margin-top:3px;font-weight:600}
+
     .patient-center{
       display:flex;flex-direction:column;gap:4px;
       align-items:center;text-align:center;min-width:0;
@@ -40,6 +42,7 @@
       font-size:12.5px;font-weight:800;opacity:.97;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
     }
+
     .wrap{
       max-width:980px;
       margin:14px auto;
@@ -50,6 +53,7 @@
       flex-direction:column;
       gap:12px;
     }
+
     .card{
       background:var(--sap-card);
       border:1px solid var(--sap-border);
@@ -57,9 +61,11 @@
       box-shadow:0 1px 3px rgba(0,0,0,.05);
       padding:14px 16px;
     }
+
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
     .label{font-size:13px;color:var(--sap-muted)}
     .label b{color:var(--sap-text)}
+
     .chip{
       display:inline-block;padding:5px 10px;border-radius:999px;
       font-size:11px;font-weight:900;border:1px solid var(--sap-border);
@@ -68,6 +74,7 @@
     .chip-ok{background:#e7f4ec;color:var(--ok)}
     .chip-warn{background:#fff3e0;color:var(--warn)}
     .chip-err{background:#fde8ea;color:var(--err)}
+
     .btns{display:flex;gap:8px;flex-wrap:wrap;}
     .btn{
       border:1px solid var(--sap-blue);background:var(--sap-blue);color:#fff;
@@ -78,19 +85,24 @@
     .btn:disabled{opacity:.55;cursor:not-allowed;}
     .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue);}
     .btn-warn{background:var(--warn);border-color:var(--warn);}
+
     .status{margin-top:8px;font-size:12px;color:var(--sap-muted);}
     .ok{color:var(--ok);font-weight:900}
     .warn{color:var(--warn);font-weight:900}
     .err{color:var(--err);font-weight:900}
+
+    /* Dictation textarea: compact, internal scroll */
     textarea{
       border:1px solid var(--sap-border);border-radius:9px;
       padding:10px;font-size:13.5px;outline:none;background:#fff;
-      width:100%;height:200px;
+      width:100%;height:200px;      /* compact */
       resize:none;line-height:1.5;
       overflow:auto;white-space:pre-wrap;
       margin-top:10px;
     }
     textarea:focus{border-color:var(--sap-blue);}
+
+    /* Log: compact with internal scroll */
     .logcard{flex:1;min-height:0;display:flex;flex-direction:column;}
     #logEl{
       flex:1;min-height:0;
@@ -99,7 +111,8 @@
       font-family:Consolas,ui-monospace,Menlo,monospace;
       font-size:11.5px;white-space:pre-wrap;line-height:1.4;
     }
-    /* mySiss */
+
+    /* mySiss floating GIF */
     .mysiss-gif-btn{
       position:fixed;right:18px;bottom:18px;
       width:82px;height:82px;border-radius:24px;
@@ -112,6 +125,7 @@
     }
     .mysiss-gif-btn:active{transform:scale(.97);}
     .mysiss-gif-btn img{width:68px;height:68px;object-fit:contain;border-radius:18px;display:block;}
+
     .mysiss-overlay{
       position:fixed;inset:0;
       background:rgba(0,0,0,.55);
@@ -119,6 +133,7 @@
       padding:18px;z-index:9998;
     }
     .mysiss-overlay.show{display:flex;}
+
     .mysiss-modal{
       width:min(420px,100%);height:min(240px,60vh);
       border-radius:22px;
@@ -141,6 +156,7 @@
     }
     .mysiss-close::before{transform:translate(-50%,-50%) rotate(45deg);}
     .mysiss-close::after{transform:translate(-50%,-50%) rotate(-45deg);}
+
     .mysiss-mic-orb{
       width:110px;height:110px;border-radius:999px;
       border:1px solid rgba(255,255,255,.18);
@@ -188,6 +204,7 @@
 </header>
 
 <div class="wrap">
+
   <div class="card">
     <div class="row">
       <div class="label">
@@ -213,6 +230,7 @@
     <div style="font-size:12px;font-weight:900;color:var(--sap-muted);margin-bottom:6px;">Log</div>
     <div id="logEl"></div>
   </div>
+
 </div>
 
 <!-- mySiss GIF -->
@@ -232,15 +250,25 @@
 
 <script>
 /* ============================================================
-  MedVoice Transcribe — versión con:
-  - "hola" / "chao" como keywords hardcoded (abrir/cerrar GIF)
-  - intent matcher clínico mejorado
-  - guardado JSON en 2 rutas Windows via POST /api/save-json
-  - cierre post-envío: limpiar + window.close() o redirect
+  LOCALSTORAGE KEYS (read from setup):
+  - medvoice.has_voiceprint      → "1"  (primary gate)
+  - medvoice.voiceprint_audio    → base64 blob (existence check)
+  - medvoice.noise_rms           → float string
+  - medvoice.has_noise_profile   → "1"
+  - medvoice.last_transcript_text → persisted dictation
+  - medvoice.json.last           → last SAP JSON payload
+
+  ALWAYS-ON SR:
+  - Single SpeechRecognition instance (mainRec).
+  - On every .onend, scheduleRestart() is called with exp backoff.
+  - backoff resets to 400ms on successful .onstart.
+  - srEnabled flag prevents restart before user gesture.
+  - Second gesture attempt (setTimeout 700ms) for SAP embeds.
 ============================================================ */
 (()=>{
 "use strict";
 
+/* ---- helpers ---- */
 const $  = (id) => document.getElementById(id);
 const gv = (key, fb="") => {
   const a = (sessionStorage.getItem("medvoice."+key)||"").trim();
@@ -261,6 +289,9 @@ function norm(s){
     .trim();
 }
 
+/* ---- log (no restart spam) ---- */
+let _logBatch = "";
+let _logTimer = null;
 function log(m){
   const el = $("logEl");
   el.textContent += `[${new Date().toLocaleTimeString()}] ${m}\n`;
@@ -273,7 +304,7 @@ function setStatus(html, chipCls){
 }
 
 /* ============================================================
-   0) Persist QS params
+   0) Persist QS params + hide querystring
 ============================================================ */
 (()=>{
   const sp = new URL(window.location.href).searchParams;
@@ -305,6 +336,7 @@ const ctx = {
   location_line: gv("location_line","—"),
   session_id   : gv("session_id") || ("sess_"+Date.now()),
 
+  /* keywords — SAP sends these; fallback defaults allow standalone testing */
   wake_word : gv("wake_word","maisis"),
   stop_word : gv("stop_word","apagar"),
   ini_word  : gv("ini_word","iniciar"),
@@ -323,24 +355,25 @@ $("doctorName").textContent = ctx.doctor_name;
 $("hdrLine1").textContent   = `Paciente ${ctx.patient_name} | Documento ${ctx.patient_doc}`;
 $("hdrLine2").textContent   = `${ctx.patnr} | Ep. ${ctx.falnr} | ${ctx.adm_date} | ${ctx.location_line} | ${FL(ctx.field_label)}`;
 
-/* Pre-normalize keywords */
+/* pre-normalize keywords once */
 const KW = {
-  WAKE  : norm(ctx.wake_word),
-  STOP  : norm(ctx.stop_word),
-  INI   : norm(ctx.ini_word),
-  FIN   : norm(ctx.fin_word),
-  ENV   : norm(ctx.env_word),
-  LIM   : norm(ctx.lim_word),
-  ANA   : norm(ctx.ana_word),
-  EVO   : norm(ctx.evo_word),
-  EPI   : norm(ctx.epi_word),
-  /* --- Saludo/despedida hardcoded (no vienen de SAP) --- */
-  HOLA  : "hola",
-  CHAO  : "chao",
+  WAKE : norm(ctx.wake_word),
+  STOP : norm(ctx.stop_word),
+  INI  : norm(ctx.ini_word),
+  FIN  : norm(ctx.fin_word),
+  ENV  : norm(ctx.env_word),
+  LIM  : norm(ctx.lim_word),
+  ANA  : norm(ctx.ana_word),
+  EVO  : norm(ctx.evo_word),
+  EPI  : norm(ctx.epi_word),
+  /* saludo/despedida — hardcoded, siempre activos */
+  HOLA : "hola",
+  CHAO : "chao",
 };
 
 /* ============================================================
    2) Voiceprint gate
+   Checks all keys that setup might have written.
 ============================================================ */
 (()=>{
   const ok =
@@ -348,6 +381,7 @@ const KW = {
     !!(localStorage.getItem("medvoice.voiceprint_audio")) ||
     !!(localStorage.getItem("medvoice.voiceprint_blob")) ||
     !!(localStorage.getItem("medvoice.voiceprint_hash"));
+
   if(!ok){
     log("Sin huella de voz. Redirigiendo a configuración…");
     try{ window.location.href = "/static/medvoice-setup.html"; }catch(_e){}
@@ -355,10 +389,12 @@ const KW = {
 })();
 
 /* ============================================================
-   3) NLP cleanup
+   3) NLP cleanup (conservative, no external deps)
 ============================================================ */
 function nlpClean(text){
   let t = text.trim();
+
+  // Spoken punctuation
   t = t.replace(/\bpunto y coma\b/gi, ";");
   t = t.replace(/\bdos puntos\b/gi, ":");
   t = t.replace(/\bpunto aparte\b/gi, ".\n");
@@ -367,16 +403,25 @@ function nlpClean(text){
   t = t.replace(/\bcoma\b/gi, ",");
   t = t.replace(/\bsigno de interrogaci[oó]n\b/gi, "?");
   t = t.replace(/\bsigno de exclamaci[oó]n\b/gi, "!");
+
+  // Remove filler tokens
   t = t.replace(/\b(este|eh|am|mm|hmm|uh)\b/gi, "");
+
+  // Collapse repeated words: "el el" → "el"
   t = t.replace(/\b(\w+)\s+\1\b/gi, "$1");
+
+  // Fix spacing around punctuation
   t = t.replace(/\s+([.,;:?!])/g, "$1");
   t = t.replace(/([.,;:?!])(?=[^\s])/g, "$1 ");
+
+  // Collapse extra spaces
   t = t.replace(/[ \t]{2,}/g, " ").trim();
+
   return t;
 }
 
 /* ============================================================
-   4) Dictation state
+   4) Dictation state + textarea
 ============================================================ */
 const txtEl     = $("txt");
 const btnToggle = $("btnToggle");
@@ -387,8 +432,10 @@ let dictActive = false;
 let pauseTimer = null;
 const PAUSE_MS = 1200;
 
+// Section memory for JSON payload
 const sections = { anamnesis:"", evolucion:"", epicrisis:"", _current:"" };
 
+// Load last session text
 const _lastTxt = (localStorage.getItem("medvoice.last_transcript_text")||"").trim();
 if(_lastTxt) txtEl.value = _lastTxt;
 
@@ -444,13 +491,16 @@ function appendDictation(raw){
   const glue = (cur && !cur.endsWith("\n") && !cur.endsWith(" ")) ? " " : "";
   txtEl.value = cur+glue+clean;
   saveText();
+
+  // accumulate into current section
   const sec = sections._current || "anamnesis";
   if(sections[sec] !== undefined) sections[sec] += " "+clean;
+
   schedulePauseEnter();
 }
 
 /* ============================================================
-   5) SAP submit — guarda JSON en disco primero
+   5) SAP submit
 ============================================================ */
 function buildPayload(){
   const text = (txtEl.value||"").trim();
@@ -470,7 +520,7 @@ function buildPayload(){
   };
 }
 
-async function sendToSAP(){
+function sendToSAP(){
   const text = (txtEl.value||"").trim();
   if(!text){
     setStatus('<span class="warn">sin texto para enviar</span>',"chip-warn");
@@ -480,35 +530,33 @@ async function sendToSAP(){
   const payload = buildPayload();
   sv("json.last", JSON.stringify(payload));
 
-  /* --- 1) Guardar JSON en disco via backend --- */
-  setStatus('<span class="warn">guardando JSON…</span>',"chip-warn");
-  let savedOk = false;
-  try{
-    const apiBase = window.location.origin; // http://127.0.0.1:8000
-    const resp = await fetch(apiBase+"/api/save-json", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(payload)
-    });
-    const data = await resp.json();
-    savedOk = data.ok === true;
-    if(savedOk){
-      log("JSON guardado en disco: "+JSON.stringify(data.saved));
-    } else {
-      log("AVISO guardado JSON: "+JSON.stringify(data.errors));
+  /* 1) Guardar JSON en disco — silencioso, sin UI extra */
+  (async()=>{
+    try{
+      const apiBase = (window.location.origin && window.location.origin !== "null")
+        ? window.location.origin
+        : "http://127.0.0.1:8000";
+      const resp = await fetch(apiBase+"/api/save-json",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if(data.ok) log("JSON guardado: "+data.saved.join(" | "));
+      else        log("AVISO JSON: "+JSON.stringify(data.errors));
+    }catch(err){
+      log("Backend no disponible para guardar JSON: "+err.message);
     }
-  }catch(err){
-    log("No se pudo guardar JSON en disco (backend no disponible): "+err.message);
-  }
+  })();
 
-  /* --- 2) sapevent --- */
+  /* 2) sapevent — sin cambio de flujo visual */
   const target = FL(ctx.field_label);
-  const sapUrl = "sapevent:MEDVOICE_SET_FIELD"
+  const url = "sapevent:MEDVOICE_SET_FIELD"
     + "?target="+encodeURIComponent(target)
     + "&text="+encodeURIComponent(text);
 
   try{
-    window.location.href = sapUrl;
+    window.location.href = url;
     log("Enviado a SAP (sapevent).");
     setStatus('<span class="ok">enviado a SAP ✓</span>',"chip-ok");
   }catch(_e){
@@ -516,31 +564,16 @@ async function sendToSAP(){
     log("sapevent no disponible en este entorno.");
   }
 
-  /* --- 3) Limpiar y cerrar --- */
-  setTimeout(()=>{ afterSend(); }, 800);
-}
-
-function afterSend(){
-  /* Limpiar estado */
-  txtEl.value = "";
-  sections.anamnesis = "";
-  sections.evolucion = "";
-  sections.epicrisis = "";
-  sections._current  = "";
-  localStorage.removeItem("medvoice.last_transcript_text");
-  dictActive = false;
-  btnToggle.textContent = "Iniciar transcripción";
-
-  /* Intentar cerrar ventana (funciona si fue abierta con window.open) */
-  try{
-    window.close();
-  }catch(_e){}
-
-  /* Si window.close no funcionó, redirigir a página de cierre */
+  /* 3) Limpiar estado en memoria — sin redirección ni pantalla extra */
   setTimeout(()=>{
-    /* Si llegamos aquí, close() no cerró la ventana */
-    /*try{ window.location.replace("/static/medvoice-done.html"); }catch(_e){}*/
-  }, 500);
+    txtEl.value = "";
+    sections.anamnesis = ""; sections.evolucion = ""; sections.epicrisis = ""; sections._current = "";
+    localStorage.removeItem("medvoice.last_transcript_text");
+    dictActive = false;
+    btnToggle.textContent = "Iniciar transcripción";
+    setStatus("listo.","chip-warn");
+    log("Estado limpiado post-envío.");
+  }, 600);
 }
 
 btnToggle.addEventListener("click",()=>{ enableSR(); dictActive ? stopDictation() : startDictation(); });
@@ -556,8 +589,8 @@ const modal    = $("mySissModal");
 const closeBtn = $("mySissClose");
 const micOrb   = $("mySissMic");
 
-let gifOpen      = false;
-let gifListening = false;
+let gifOpen     = false;
+let gifListening= false;
 
 function speakES(text){
   try{
@@ -587,124 +620,39 @@ function closeGif(){
   log("Asistente cerrado.");
 }
 
-/* ============================================================
-   INTENT MATCHER CLÍNICO — mejorado, sin palabras prohibidas
-============================================================ */
 function answerClinical(qText){
   const q = norm(qText);
-
-  /* Epicrisis / última cita */
-  if(q.includes("epicrisis") || (q.includes("ultima")&&q.includes("cita"))){
-    speakES(
-      "Última epicrisis registrada: paciente con evolución favorable, "+
-      "sin complicaciones agudas. Plan: control ambulatorio en 30 días y "+
-      "ajuste de medicación según respuesta clínica. "+
-      "¿Desea ampliar algún punto de la epicrisis?"
-    );
-    return;
+  if(q.includes("epicrisis")||(q.includes("ultima")&&q.includes("cita"))){
+    speakES("Última epicrisis: paciente con evolución favorable, sin complicaciones agudas. Plan de control ambulatorio en 30 días con ajuste de medicación según respuesta. ¿Desea ampliar algún punto?"); return;
   }
-
-  /* Signos vitales */
-  if(q.includes("signo")&&q.includes("vital") || q.includes("presion") ||
-     q.includes("saturacion") || q.includes("temperatura") || q.includes("frecuencia")){
-    speakES(
-      "Último registro de signos vitales: presión arterial 118 sobre 76, "+
-      "frecuencia cardíaca 72 latidos por minuto, saturación 97%, "+
-      "temperatura 36.5 grados. Todos los parámetros dentro de rango normal. "+
-      "¿Desea ver el histórico de signos vitales?"
-    );
-    return;
+  if((q.includes("signo")&&q.includes("vital"))||q.includes("presion")||q.includes("saturacion")||q.includes("temperatura")||q.includes("frecuencia")){
+    speakES("Último registro: presión arterial 118 sobre 76, frecuencia cardíaca 72 por minuto, saturación 97%, temperatura 36.5. Todos los parámetros en rango normal. ¿Desea el histórico?"); return;
   }
-
-  /* Procedimientos / cirugías */
-  if(q.includes("procedimiento") || q.includes("intervencion") || q.includes("cirugia") || q.includes("quirurgico")){
-    speakES(
-      "Último procedimiento: intervención menor bajo anestesia local, "+
-      "sin incidencias intraoperatorias ni complicaciones en el postoperatorio inmediato. "+
-      "Alta al mismo día con indicaciones de control. "+
-      "¿Desea ampliar los detalles del procedimiento?"
-    );
-    return;
+  if(q.includes("procedimiento")||q.includes("intervencion")||q.includes("cirugia")||q.includes("quirurgico")){
+    speakES("Último procedimiento: intervención menor sin incidencias intraoperatorias ni complicaciones postoperatorias. Alta el mismo día con indicaciones de control. ¿Desea ampliar detalles?"); return;
   }
-
-  /* Alergias */
   if(q.includes("alerg")){
-    speakES(
-      "El paciente no registra alergias medicamentosas conocidas en la historia clínica activa. "+
-      "Tampoco se documentan reacciones adversas previas relevantes. "+
-      "¿Desea actualizar esta información?"
-    );
-    return;
+    speakES("Sin alergias medicamentosas conocidas registradas. Tampoco se documentan reacciones adversas previas relevantes. ¿Desea actualizar esta información?"); return;
   }
-
-  /* Diagnósticos */
-  if(q.includes("diagnost") || q.includes(" dx ") || q.includes("impresion") || q.includes("morbilidad")){
-    speakES(
-      "Diagnósticos activos: hipertensión arterial controlada, dislipidemia en manejo. "+
-      "Sin nuevos diagnósticos incorporados en la última valoración. "+
-      "¿Desea revisar el listado completo de diagnósticos?"
-    );
-    return;
+  if(q.includes("diagnost")||q.includes(" dx ")||q.includes("impresion")||q.includes("morbilidad")){
+    speakES("Diagnósticos activos: hipertensión arterial controlada y dislipidemia en manejo. Sin nuevos diagnósticos en la última valoración. ¿Desea el listado completo?"); return;
   }
-
-  /* Medicación / tratamiento */
-  if(q.includes("medic") || q.includes("tratam") || q.includes("formula") || q.includes("farmaco")){
-    speakES(
-      "Medicación activa: losartán 50 mg cada 24 horas, atorvastatina 20 mg en la noche. "+
-      "Sin cambios en la última consulta. Adherencia referida como buena por el paciente. "+
-      "¿Desea revisar o modificar el esquema farmacológico?"
-    );
-    return;
+  if(q.includes("medic")||q.includes("tratam")||q.includes("formula")||q.includes("farmaco")){
+    speakES("Medicación activa: losartán 50 miligramos cada 24 horas, atorvastatina 20 miligramos en la noche. Sin cambios recientes. Adherencia referida como buena. ¿Desea revisar o modificar el esquema?"); return;
   }
-
-  /* Laboratorio */
-  if(q.includes("laboratorio") || q.includes("lab ") || q.includes("hemograma") ||
-     q.includes("glucosa") || q.includes("colesterol") || q.includes("resultado")){
-    speakES(
-      "Últimos resultados de laboratorio: hemograma con valores normales, "+
-      "glucemia en ayunas 94 mg/dL, colesterol LDL 98 mg/dL. "+
-      "Perfil renal sin alteraciones. "+
-      "¿Desea detalles de algún examen en particular?"
-    );
-    return;
+  if(q.includes("laboratorio")||q.includes("hemograma")||q.includes("glucosa")||q.includes("colesterol")||q.includes("resultado")){
+    speakES("Últimos laboratorios: hemograma normal, glucemia en ayunas 94, colesterol LDL 98, perfil renal sin alteraciones. ¿Desea detalles de algún examen?"); return;
   }
-
-  /* Imágenes / radiología */
-  if(q.includes("imagen") || q.includes("radiolog") || q.includes("ecografia") ||
-     q.includes("tomografia") || q.includes("resonancia") || q.includes("rx ")){
-    speakES(
-      "Última imagen disponible: radiografía de tórax sin consolidaciones ni derrames. "+
-      "Silueta cardíaca dentro de límites normales. "+
-      "¿Desea consultar otros estudios de imagen?"
-    );
-    return;
+  if(q.includes("imagen")||q.includes("radiolog")||q.includes("ecografia")||q.includes("tomografia")||q.includes("resonancia")){
+    speakES("Última imagen: radiografía de tórax sin consolidaciones ni derrame. Silueta cardíaca dentro de límites normales. ¿Desea consultar otros estudios?"); return;
   }
-
-  /* Evolución / notas de progreso */
-  if(q.includes("evolucion") || q.includes("nota") || q.includes("progreso")){
-    speakES(
-      "Nota de evolución reciente: paciente refiere mejoría del cuadro. "+
-      "Examen físico sin hallazgos de alarma. Se mantiene el plan de manejo actual. "+
-      "¿Desea agregar observaciones adicionales?"
-    );
-    return;
+  if(q.includes("evolucion")||q.includes("nota")||q.includes("progreso")){
+    speakES("Nota de evolución reciente: paciente refiere mejoría del cuadro. Examen físico sin hallazgos de alarma. Se mantiene el plan de manejo actual. ¿Desea agregar observaciones?"); return;
   }
-
-  /* Anamnesis */
-  if(q.includes("anamnesis") || q.includes("historia") || q.includes("antecedente")){
-    speakES(
-      "Anamnesis: paciente con antecedentes de hipertensión de 8 años de evolución y "+
-      "dislipidemia diagnosticada hace 3 años. Sin hospitalizaciones previas relevantes. "+
-      "¿Desea revisar la historia clínica completa?"
-    );
-    return;
+  if(q.includes("anamnesis")||q.includes("antecedente")){
+    speakES("Antecedentes: hipertensión de 8 años de evolución y dislipidemia diagnosticada hace 3 años. Sin hospitalizaciones previas relevantes. ¿Desea revisar la historia completa?"); return;
   }
-
-  /* Respuesta genérica — sin palabras prohibidas */
-  speakES(
-    "Consulta recibida. La información solicitada corresponde al registro clínico activo del paciente. "+
-    "¿Desea ampliar la consulta o necesita un dato específico?"
-  );
+  speakES("Consulta recibida. La información corresponde al registro activo del paciente. ¿Desea ampliar o especificar algún dato?");
 }
 
 gifBtn.addEventListener("click", ()=>{ enableSR(); openGif(); });
@@ -719,12 +667,15 @@ micOrb.addEventListener("click",()=>{
 });
 
 /* ============================================================
-   7) SpeechRecognition — always-on, single instance
+   7) SpeechRecognition — always-on, single instance, factory restart
    
-   "hola" → openGif (hardcoded, además del wake_word de SAP)
-   "chao" → speakES + closeGif
-   Si overlay abierto: texto va a answerClinical
-   Si overlay cerrado: solo keywords
+   DESIGN:
+   - srEnabled: true after first user gesture.
+   - mainRec: always the CURRENT live SR instance.
+   - On .onend: scheduleRestart() creates a FRESH instance (avoids
+     "already started" / InvalidStateError from reusing closed SR).
+   - Exponential backoff 400ms → max 5000ms, resets on .onstart.
+   - No duplicate declarations (all vars declared once here).
 ============================================================ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -739,22 +690,18 @@ function commandMatch(probe){
   const now = Date.now();
   if(now - lastCmdAt < 700) return false;
 
-  /* --- Saludo: "hola" → abrir GIF --- */
+  /* "hola" → abrir GIF */
   if(!gifOpen && probe.includes(KW.HOLA)){
-    lastCmdAt = now;
-    openGif();
-    return true;
+    lastCmdAt=now; openGif(); return true;
   }
-
-  /* --- Despedida: "chao" → cerrar GIF --- */
+  /* "chao" → responder y cerrar GIF */
   if(gifOpen && probe.includes(KW.CHAO)){
-    lastCmdAt = now;
+    lastCmdAt=now;
     speakES("Hasta luego, doctor. Estoy disponible cuando me necesite.");
     setTimeout(closeGif, 1800);
     return true;
   }
 
-  /* --- Resto de keywords desde SAP --- */
   if(!gifOpen && KW.WAKE && probe.includes(KW.WAKE)){
     lastCmdAt=now; openGif(); return true;
   }
@@ -793,12 +740,13 @@ function createSR(){
   r.interimResults = true;
 
   r.onstart = ()=>{
-    srRunning = true;
-    backoffMs = 400;
+    srRunning  = true;
+    backoffMs  = 400; // reset on success
   };
 
   r.onerror = (e)=>{
     srRunning = false;
+    // not-allowed = no permission; don't loop
     if(e.error === "not-allowed" || e.error === "service-not-allowed"){
       srEnabled = false;
       setStatus('<span class="err">permiso de micrófono denegado</span>',"chip-err");
@@ -819,27 +767,24 @@ function createSR(){
       else            interimChunk += " "+t;
     }
 
-    const finalText   = finalChunk.trim();
-    const interimText = interimChunk.trim();
+    const finalText  = finalChunk.trim();
+    const interimText= interimChunk.trim();
 
-    /*
-      Para "hola"/"chao" y keywords: revisar TANTO interim como final
-      para máxima reactividad. norm() normaliza acentos y mayúsculas.
-    */
+    // probe unificado para keywords — se revisa interim Y final para máxima reactividad
     const probeFinal   = norm(finalText);
     const probeInterim = norm(interimText);
 
-    /* 1) Keywords — chequear interim primero (más rápido) */
+    // 1) keywords: interim primero (más rápido para "hola"/"chao")
     if(probeInterim && commandMatch(probeInterim)) return;
     if(probeFinal   && commandMatch(probeFinal))   return;
 
-    /* 2) GIF abierto → intent clínico (solo final para no repetir) */
+    // 2) GIF open, not dictating → answer clinical questions from FINAL only
     if(gifOpen && !dictActive && finalText){
       answerClinical(finalText);
       return;
     }
 
-    /* 3) Dictado → solo final */
+    // 3) dictation → append FINAL only (no interim duplication)
     if(dictActive && finalText){
       appendDictation(finalText);
     }
@@ -852,6 +797,7 @@ function scheduleRestart(){
   if(!srEnabled) return;
   if(restartTimer) clearTimeout(restartTimer);
   restartTimer = setTimeout(()=>{
+    // always create fresh instance to avoid InvalidStateError
     mainRec = createSR();
     if(!mainRec) return;
     try{ mainRec.start(); }catch(_e){}
@@ -871,9 +817,11 @@ function enableSR(){
   try{ mainRec.start(); }catch(_e){ scheduleRestart(); }
 }
 
-document.addEventListener("click",   enableSR, { once:true });
-document.addEventListener("keydown",  enableSR, { once:true });
+/* Enable on first user gesture */
+document.addEventListener("click",  enableSR, { once:true });
+document.addEventListener("keydown", enableSR, { once:true });
 
+/* Try auto-start for SAP embeds that allow it */
 setTimeout(()=>{
   if(!srEnabled){
     srEnabled = true;
@@ -882,8 +830,9 @@ setTimeout(()=>{
   }
 }, 700);
 
+/* ---- init ---- */
 setStatus("listo.","chip-warn");
-log("MedVoice listo. Palabras de activación: 'hola' (abrir asistente), 'chao' (cerrar).");
+log("MedVoice listo. Keywords activas: 'hola' (abrir asistente) · 'chao' (cerrar) · '"+ctx.wake_word+"' (wake) · '"+ctx.env_word+"' (enviar).");
 
 })();
 </script>

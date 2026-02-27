@@ -30,29 +30,7 @@
     ? "/static/medvoice-transcribe.html"
     : "/static/medvoice-setup.html";
 
-  /*
-    Abrir con window.open para que window.close() funcione en el destino.
-    Si ya es una ventana popup (opener existe), navegar directo.
-    Si opener no existe, intentar abrir nueva ventana y cerrar esta.
-  */
-  if(window.opener){
-    // Ya somos una ventana secundaria — navegar directo
-    window.location.replace(destination);
-  } else {
-    // Primera apertura: abrir como popup y cerrar este tab
-    var win = window.open(destination, "_blank",
-      "width=1024,height=768,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes"
-    );
-    if(win){
-      // Popup abierto — cerrar esta ventana/pestaña origen
-      try{ window.close(); }catch(_e){}
-      // Si window.close() no funcionó (SAP embed), redirigir de todas formas
-      setTimeout(function(){ window.location.replace(destination); }, 300);
-    } else {
-      // Popup bloqueado — navegar directo
-      window.location.replace(destination);
-    }
-  }
+  window.location.replace(destination);
 })();
 </script>
 </body>

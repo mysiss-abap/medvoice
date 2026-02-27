@@ -16,14 +16,14 @@ from fastapi.staticfiles import StaticFiles
 # from resemblyzer import VoiceEncoder, preprocess_wav
 from faster_whisper import WhisperModel
 
-APP_TITLE = "MedVoice Backend"
+APP_TITLE  = "MedVoice Backend"
 DEFAULT_MODEL = "small"
-DEVICE = "cpu"
+DEVICE     = "cpu"
 COMPUTE_TYPE = "int8"
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR     = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR / "frontend"
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR     = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
 GHP_ORIGIN = "https://mysiss-abap.github.io"
@@ -117,6 +117,7 @@ def cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b))
 
 
+# ── Health ────────────────────────────────────────────────
 @app.get("/health")
 def health():
     return {"ok": True, "service": "medvoice"}
@@ -126,18 +127,16 @@ def api_health():
     return {"ok": True, "service": "medvoice"}
 
 
-# =============================================
-# Guardar JSON en disco — 2 rutas Windows + backup servidor
-# =============================================
+# ── Guardar JSON en 2 rutas Windows + backup ──────────────
 @app.post("/api/save-json")
 async def save_json(payload: dict = Body(...)):
     """
-    Guarda json_medvoice.json en:
+    Rutas destino:
       A) C:\\Users\\ramiju\\Desktop\\MedVoice\\json_medvoice.json
       B) C:\\MedVoice\\json_medvoice.json
-    Crea el directorio si no existe.
+    Crea directorios si no existen. Backup siempre en data/.
     """
-    target_paths = [
+    targets = [
         Path(r"C:\Users\ramiju\Desktop\MedVoice\json_medvoice.json"),
         Path(r"C:\MedVoice\json_medvoice.json"),
     ]
@@ -145,7 +144,7 @@ async def save_json(payload: dict = Body(...)):
     saved: list[str] = []
     errors: list[dict] = []
 
-    for tp in target_paths:
+    for tp in targets:
         try:
             tp.parent.mkdir(parents=True, exist_ok=True)
             tp.write_text(json_str, encoding="utf-8")
@@ -153,11 +152,10 @@ async def save_json(payload: dict = Body(...)):
         except Exception as exc:
             errors.append({"path": str(tp), "error": str(exc)})
 
-    # Backup en servidor (siempre)
+    # Backup en servidor siempre
     try:
-        backup = DATA_DIR / "json_medvoice.json"
-        backup.write_text(json_str, encoding="utf-8")
-        saved.append(str(backup))
+        (DATA_DIR / "json_medvoice.json").write_text(json_str, encoding="utf-8")
+        saved.append(str(DATA_DIR / "json_medvoice.json"))
     except Exception:
         pass
 
@@ -165,16 +163,13 @@ async def save_json(payload: dict = Body(...)):
         return {"ok": True, "saved": saved, "errors": errors}
     return JSONResponse({"ok": False, "saved": [], "errors": errors}, status_code=500)
 
-
-# Alias de compatibilidad
+# Alias legacy
 @app.post("/api/medvoice/save-json")
-async def save_medvoice_json_legacy(payload: dict = Body(...)):
+async def save_json_legacy(payload: dict = Body(...)):
     return await save_json(payload)
 
 
-# =============================================
-# Voiceprint
-# =============================================
+# ── Voiceprint ────────────────────────────────────────────
 @app.get("/api/voiceprint/exists")
 def voiceprint_exists(doctor_id: str = Query(..., min_length=1)):
     return {"ok": True, "exists": bool(_exists_emb(doctor_id))}
