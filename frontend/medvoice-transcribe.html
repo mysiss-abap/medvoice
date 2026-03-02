@@ -274,6 +274,12 @@ function norm(s){
     .replace(/\s+/g," ")
     .trim();
 }
+function tokenHas(probeNorm, kwNorm){
+  if(!kwNorm) return false;
+  const p=" "+probeNorm+" ";
+  const k=" "+kwNorm+" ";
+  return p.includes(k);
+}
 function setStatus(html, chipCls){
   $("statusEl").innerHTML="Estado: "+html;
   $("modeChip").className="chip "+(chipCls||"chip-warn");
@@ -316,23 +322,23 @@ const ctx = {
   env_word  : gvAny(["IV_ENV","env_word"], "ENVIAR"),
   lim_word  : gvAny(["IV_LIM","lim_word"], "LIMPIAR"),
 
-  // sections titles from SAP
   ana_word  : gvAny(["IV_ANA","ana_word"], "Enfermedad actual"),
   evo_word  : gvAny(["IV_EVO","evo_word"], "Examen fisico"),
   epi_word  : gvAny(["IV_EPI","epi_word"], "EPICRISIS"),
 
-  // pause keyword
   pau_word  : gvAny(["IV_PAU","pau_word"], "PAUSAR"),
 };
 
 const FL = (v)=>(String(v||"").trim()||"ANAMNESIS").toUpperCase();
 $("doctorId").textContent   = ctx.doctor_id || "—";
 $("doctorName").textContent = ctx.doctor_name;
-$("hdrLine1").textContent   = `${ctx.patient_name} | Documento ${ctx.patient_doc}`;
-$("hdrLine2").textContent   = `Paciente ${ctx.patnr} | Ep. ${ctx.falnr} | ${ctx.adm_date} | ${ctx.location_line}`;
+$("hdrLine1").textContent   = `Paciente ${ctx.patient_name} | Documento ${ctx.patient_doc}`;
+$("hdrLine2").textContent   = `${ctx.patnr} | Ep. ${ctx.falnr} | ${ctx.adm_date} | ${ctx.location_line} | ${FL(ctx.field_label)}`;
 
-/* keywords normalized */
-const KW = {
+/* keywords normalized + dedupe */
+let KW = {
+  HOLA:norm("hola"),
+  CHAO:norm("chao"),
   WAKE:norm(ctx.wake_word),
   STOP:norm(ctx.stop_word),
   INI:norm(ctx.ini_word),
@@ -343,9 +349,11 @@ const KW = {
   EVO:norm(ctx.evo_word),
   EPI:norm(ctx.epi_word),
   PAU:norm(ctx.pau_word),
-  HOLA:"hola",
-  CHAO:"chao",
 };
+
+/* Dedup: if WAKE==HOLA then ignore WAKE; if STOP==CHAO ignore STOP */
+if(KW.WAKE && KW.WAKE===KW.HOLA) KW.WAKE="";
+if(KW.STOP && KW.STOP===KW.CHAO) KW.STOP="";
 
 /* ===================== 2) voiceprint gate (NO setup touched) ===================== */
 (()=>{
@@ -386,9 +394,9 @@ const btnToggle=$("btnToggle");
 const btnSend=$("btnSend");
 const btnClear=$("btnClear");
 
-let dictActive=false;      // started
-let dictPaused=false;      // paused by PAUSAR
-let suspendByGif=false;    // true while gif open
+let dictActive=false;
+let dictPaused=false;
+let suspendByGif=false;
 let pauseTimer=null;
 const PAUSE_MS=1200;
 
@@ -411,11 +419,12 @@ function secKey(){ return sections._current || "anamnesis"; }
 function addSectionHeader(title){
   const t=String(title||"").trim();
   if(!t) return;
+
   txtEl.value=(txtEl.value||"")+`\n=== ${t.toUpperCase()} ===\n`;
 
   const nt=norm(t);
-  if(nt===KW.EPI || nt.includes(KW.EPI)) sections._current="epicrisis";
-  else if(nt===KW.EVO || nt.includes(KW.EVO)) sections._current="evolucion";
+  if(KW.EPI && (nt===KW.EPI || tokenHas(nt,KW.EPI))) sections._current="epicrisis";
+  else if(KW.EVO && (nt===KW.EVO || tokenHas(nt,KW.EVO))) sections._current="evolucion";
   else sections._current="anamnesis";
 
   saveText();
@@ -449,7 +458,7 @@ function stopDictation(){
   dictActive=false;
   dictPaused=false;
   btnToggle.textContent="Iniciar transcripción";
-  setStatus('<span class="ok">lista</span>',"chip-ok");
+  setStatus("listo.","chip-warn");
   if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer=null; }
   saveText();
   log("Transcripción detenida.");
@@ -489,7 +498,6 @@ function buildPayload(){
     location_line: ctx.location_line,
     timestamp: new Date().toISOString(),
 
-    // from SAP, dynamic (no hardcoded)
     section_titles: {
       anamnesis: ctx.ana_word,
       evolucion: ctx.evo_word,
@@ -514,12 +522,9 @@ function sendToSAP(){
   }
 
   const payload=buildPayload();
-
-  // keep your previous flow
   localStorage.setItem("medvoice.pending_payload", JSON.stringify(payload));
   localStorage.setItem("medvoice.json.last", JSON.stringify(payload));
 
-  // 1) optional backend save (as you had)
   (async()=>{
     try{
       const apiBase = (window.location.origin && window.location.origin !== "null")
@@ -538,7 +543,6 @@ function sendToSAP(){
     }
   })();
 
-  // 2) SAP submit page (chunking)
   try{
     window.location.href="/static/medvoice-submit.html";
   }catch(_e){
@@ -582,20 +586,24 @@ function speakES(text){
 }
 
 function openGif(fromVoice=true){
+  if(gifOpen) return;                 // evita redundancia
   gifOpen=true;
   overlay.classList.add("show");
   overlay.setAttribute("aria-hidden","false");
   modal.classList.remove("mysiss-listening");
   gifListening=false;
 
-  // while gif open: block dictation (no transcribe)
-  suspendByGif=true;
+  suspendByGif=true;                  // bloquea dictado
   setStatus('<span class="warn">asistente activo</span>',"chip-warn");
-  if(fromVoice) speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
+
+  if(fromVoice){
+    speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
+  }
   log("Asistente abierto.");
 }
 
 function closeGif(fromVoice=true){
+  if(!gifOpen) return;
   gifOpen=false;
   overlay.classList.remove("show");
   overlay.setAttribute("aria-hidden","true");
@@ -603,7 +611,10 @@ function closeGif(fromVoice=true){
   gifListening=false;
 
   suspendByGif=false;
-  setStatus(dictActive && !dictPaused ? '<span class="ok">escuchando…</span>' : "listo.", dictActive && !dictPaused ? "chip-ok" : "chip-warn");
+
+  if(dictActive && !dictPaused) setStatus('<span class="ok">escuchando…</span>',"chip-ok");
+  else setStatus("listo.","chip-warn");
+
   if(fromVoice) log("Asistente cerrado.");
 }
 
@@ -629,7 +640,7 @@ function answerClinical(qText){
   speakES("Entendido. Indique qué dato necesita: epicrisis, signos vitales, diagnósticos, medicación o laboratorios.");
 }
 
-/* keep click as optional manual open, but voice is primary */
+/* click sigue siendo opcional */
 gifBtn.addEventListener("click",()=>{ enableSR(); unlockAudio(); openGif(false); });
 closeBtn.addEventListener("click",()=>closeGif(false));
 overlay.addEventListener("click",(e)=>{ if(e.target===overlay) closeGif(false); });
@@ -653,80 +664,85 @@ let srEnabled=false;
 let backoffMs=400;
 let restartTimer=null;
 
-function isCommandPhrase(probe){
-  // blocks these from being transcribed by consuming them as commands
+/* comando = palabra completa (token) */
+function isCommandPhrase(probeNorm){
   return (
-    (KW.HOLA && probe.includes(KW.HOLA)) ||
-    (KW.CHAO && probe.includes(KW.CHAO)) ||
-    (KW.WAKE && probe.includes(KW.WAKE)) ||
-    (KW.STOP && probe.includes(KW.STOP)) ||
-    (KW.INI  && probe.includes(KW.INI )) ||
-    (KW.FIN  && probe.includes(KW.FIN )) ||
-    (KW.ENV  && probe.includes(KW.ENV )) ||
-    (KW.LIM  && probe.includes(KW.LIM )) ||
-    (KW.PAU  && probe.includes(KW.PAU )) ||
-    (KW.ANA  && probe.includes(KW.ANA )) ||
-    (KW.EVO  && probe.includes(KW.EVO )) ||
-    (KW.EPI  && probe.includes(KW.EPI ))
+    tokenHas(probeNorm,KW.HOLA) ||
+    tokenHas(probeNorm,KW.CHAO) ||
+    tokenHas(probeNorm,KW.WAKE) ||
+    tokenHas(probeNorm,KW.STOP) ||
+    tokenHas(probeNorm,KW.INI ) ||
+    tokenHas(probeNorm,KW.FIN ) ||
+    tokenHas(probeNorm,KW.ENV ) ||
+    tokenHas(probeNorm,KW.LIM ) ||
+    tokenHas(probeNorm,KW.PAU ) ||
+    tokenHas(probeNorm,KW.ANA ) ||
+    tokenHas(probeNorm,KW.EVO ) ||
+    tokenHas(probeNorm,KW.EPI )
   );
 }
 
-function handleCommands(probe){
+function handleCommands(probeNorm){
   const now=Date.now();
-  if(now-lastCmdAt<650) return true; // anti-spam
-  // greetings (hard)
-  if(!gifOpen && probe.includes(KW.HOLA)){
+  if(now-lastCmdAt<650) return true;
+
+  /* hola/chao (siempre) */
+  if(!gifOpen && tokenHas(probeNorm,KW.HOLA)){
     lastCmdAt=now; openGif(true); return true;
   }
-  if(gifOpen && probe.includes(KW.CHAO)){
+  if(gifOpen && tokenHas(probeNorm,KW.CHAO)){
     lastCmdAt=now;
     speakES("Hasta luego, doctor. Estoy disponible cuando me necesite.");
     setTimeout(()=>closeGif(true), 1200);
     return true;
   }
 
-  // wake/stop from SAP
-  if(!gifOpen && KW.WAKE && probe.includes(KW.WAKE)){
+  /* wake/stop desde SAP (si son distintos a hola/chao) */
+  if(!gifOpen && KW.WAKE && tokenHas(probeNorm,KW.WAKE)){
     lastCmdAt=now; openGif(true); return true;
   }
-  if(gifOpen && KW.STOP && probe.includes(KW.STOP)){
+  if(gifOpen && KW.STOP && tokenHas(probeNorm,KW.STOP)){
     lastCmdAt=now;
     speakES("Hasta luego, doctor. Estoy disponible cuando me necesite.");
     setTimeout(()=>closeGif(true), 1200);
     return true;
   }
 
-  // pause/resume/start/stop dictation
-  if(dictActive && !dictPaused && KW.PAU && probe.includes(KW.PAU)){
+  /* PAUSAR */
+  if(dictActive && !dictPaused && KW.PAU && tokenHas(probeNorm,KW.PAU)){
     lastCmdAt=now; pauseDictation(); return true;
   }
-  if(KW.INI && probe.includes(KW.INI)){
+
+  /* INICIAR: si estaba pausado -> reanuda; si no estaba activo -> inicia */
+  if(KW.INI && tokenHas(probeNorm,KW.INI)){
     lastCmdAt=now;
-    if(gifOpen) return true; // do not start dictation while assistant open
+    if(gifOpen) return true;
     if(dictActive && dictPaused) resumeDictation();
     else if(!dictActive) startDictation();
     return true;
   }
-  if(dictActive && KW.FIN && probe.includes(KW.FIN)){
+
+  /* FIN */
+  if(dictActive && KW.FIN && tokenHas(probeNorm,KW.FIN)){
     lastCmdAt=now; stopDictation(); return true;
   }
 
-  // actions
-  if(KW.ENV && probe.includes(KW.ENV)){
+  /* ENVIAR / LIMPIAR */
+  if(KW.ENV && tokenHas(probeNorm,KW.ENV)){
     lastCmdAt=now; sendToSAP(); return true;
   }
-  if(KW.LIM && probe.includes(KW.LIM)){
+  if(KW.LIM && tokenHas(probeNorm,KW.LIM)){
     lastCmdAt=now; clearText(); return true;
   }
 
-  // sections
-  if(KW.ANA && probe.includes(KW.ANA)){
+  /* Secciones */
+  if(KW.ANA && tokenHas(probeNorm,KW.ANA)){
     lastCmdAt=now; addSectionHeader(ctx.ana_word); return true;
   }
-  if(KW.EVO && probe.includes(KW.EVO)){
+  if(KW.EVO && tokenHas(probeNorm,KW.EVO)){
     lastCmdAt=now; addSectionHeader(ctx.evo_word); return true;
   }
-  if(KW.EPI && probe.includes(KW.EPI)){
+  if(KW.EPI && tokenHas(probeNorm,KW.EPI)){
     lastCmdAt=now; addSectionHeader(ctx.epi_word); return true;
   }
 
@@ -740,10 +756,7 @@ function createSR(){
   r.continuous=true;
   r.interimResults=true;
 
-  r.onstart=()=>{
-    backoffMs=400;
-    // do NOT spam log on every restart
-  };
+  r.onstart=()=>{ backoffMs=400; };
 
   r.onerror=(e)=>{
     if(e.error==="not-allowed"||e.error==="service-not-allowed"){
@@ -753,9 +766,7 @@ function createSR(){
     }
   };
 
-  r.onend=()=>{
-    scheduleRestart();
-  };
+  r.onend=()=>{ scheduleRestart(); };
 
   r.onresult=(event)=>{
     let finalChunk="", interimChunk="";
@@ -769,26 +780,26 @@ function createSR(){
     const finalText=finalChunk.trim();
     const interimText=interimChunk.trim();
 
-    // faster command reaction: check interim first
+    /* comandos: interim primero */
     const probeInterim=norm(interimText);
     if(probeInterim && isCommandPhrase(probeInterim)){
       handleCommands(probeInterim);
-      return; // consume commands so they are NOT transcribed
+      return;
     }
 
     const probeFinal=norm(finalText);
     if(probeFinal && isCommandPhrase(probeFinal)){
       handleCommands(probeFinal);
-      return; // consume
+      return;
     }
 
-    // if assistant open and not dictating -> answer from FINAL only
+    /* si gif abierto y NO dictando -> responde */
     if(gifOpen && !dictActive && finalText){
       answerClinical(finalText);
       return;
     }
 
-    // dictation only if started and not paused and assistant not open
+    /* dictado solo si inició y NO pausado y gif cerrado */
     if(dictActive && !dictPaused && !gifOpen && finalText){
       appendDictation(finalText);
     }
@@ -821,10 +832,7 @@ function enableSR(){
   try{ mainRec.start(); }catch(_e){ scheduleRestart(); }
 }
 
-/* IMPORTANT:
-   Browser requires user gesture at least once.
-   After first click/keydown, SR stays always-on via restart/backoff.
-*/
+/* 1 gesto requerido por el navegador (una sola vez) */
 document.addEventListener("click", ()=>{ unlockAudio(); enableSR(); }, { once:true });
 document.addEventListener("keydown",()=>{ unlockAudio(); enableSR(); }, { once:true });
 
