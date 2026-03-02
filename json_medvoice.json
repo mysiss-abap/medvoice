@@ -1,14 +1,20 @@
 {
-  "session_id": "sess_1772464955710",
+  "session_id": "sess_1772481416799",
   "doctor_id": "0700000008",
   "patnr": "1382",
   "falnr": "3125",
-  "field_label": "ANAMNESIS",
-  "timestamp": "2026-03-02T15:25:57.112Z",
-  "full_text": "motivo de la consulta dolor abdominal\n\n=== ENFERMEDAD ACTUAL ===\n\n=== ENFERMEDAD ACTUAL ===\npaciente que consulta por\ncuál clínico de aproximadamente 24 horas de evolución consistente en dolor abdominal\n\n=== EXAMEN FISICO ===\n\n=== EXAMEN FISICO ===\nsigno de hospitales\ntensión arterial 130/85 \nfrecuencia cardíaca 102 \nfrecuencia respeta respiratoria 18 \ntemperatura 38 grados centígrados\nterminar\n\n\n=== ENFERMEDAD ACTUAL ===",
+  "field_label": "ENFERMEDAD ACTUAL",
+  "location_line": "EP1HSPOC | MCGASTRO | HA-115OC | CH-115B",
+  "timestamp": "2026-03-02T19:59:48.927Z",
+  "section_titles": {
+    "anamnesis": "Enfermedad actual",
+    "evolucion": "Examen fisico",
+    "epicrisis": "EPICRISIS"
+  },
   "sections": {
-    "anamnesis": "y estaba funcionando ahí funcionó el chao Okay esa es una partecita que digamos que es algo que queremos A dónde queremos llegar pero lo que sí hemos hecho y hemos trabajado hasta momento es el tema de la transcripción de la consulta iniciar motivo de la consulta dolor abdominal",
-    "evolucion": "",
+    "anamnesis": "estoy con el paciente con Pablo el paciente refiere dolor abdominal el paciente manifiesta dolor abdominal bajo y desde hace 5 días",
+    "evolucion": "según revisión se constata que los puntos su parte bueno esta si no me lo sabe en un segundo terminar",
     "epicrisis": ""
-  }
+  },
+  "full_text": "estoy con el paciente con Pablo\nel paciente refiere dolor abdominal\n\n=== ENFERMEDAD ACTUAL ===\n\n=== ENFERMEDAD ACTUAL ===\nel paciente manifiesta dolor abdominal bajo y desde hace 5 días\n\n=== EXAMEN FISICO ===\n\n=== EXAMEN FISICO ===\nsegún revisión se constata que\n\nen un segundo\nterminar"
 }
