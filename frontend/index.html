@@ -11,7 +11,7 @@
   const url = new URL(window.location.href);
   const params = url.searchParams;
 
-  // 1) Guardar TODOS los parámetros que llegan desde SAP (sin suposiciones)
+  // Guardar TODOS los parámetros que llegan desde SAP (incluye IV_*)
   params.forEach((value, key) => {
     const v = (value || "").trim();
     if(!v) return;
@@ -19,50 +19,17 @@
     localStorage.setItem("medvoice." + key, v);
   });
 
-  // 2) NORMALIZAR (compatibilidad): si llegan nuevos nombres, también llenar los viejos
-  //    (y si llegan viejos, también llenar nuevos)
-  const mapPairs = [
-    ["iv_wake","wake_word"], ["wake","wake_word"],
-    ["iv_stop","stop_word"], ["stop","stop_word"],
-    ["iv_ini","ini_word"],   ["ini","ini_word"],
-    ["iv_fin","fin_word"],   ["fin","fin_word"],
-    ["iv_env","env_word"],   ["env","env_word"],
-    ["iv_lim","lim_word"],   ["lim","lim_word"],
-    ["iv_ana","ana_word"],   ["ana","ana_word"],
-    ["iv_evo","evo_word"],   ["evo","evo_word"],
-    ["iv_epi","epi_word"],   ["epi","epi_word"],
-    ["iv_location_line","location_line"], ["location_line","iv_location_line"],
-    ["iv_field_label","field_label"],     ["field_label","iv_field_label"],
-    ["iv_ip","ip"], ["ip","iv_ip"]
-  ];
-
-  function getAny(k){
-    return (sessionStorage.getItem("medvoice."+k) || localStorage.getItem("medvoice."+k) || "").trim();
-  }
-  function setBoth(k, v){
-    if(!v) return;
-    sessionStorage.setItem("medvoice."+k, v);
-    localStorage.setItem("medvoice."+k, v);
-  }
-
-  mapPairs.forEach(([a,b])=>{
-    const va = getAny(a);
-    const vb = getAny(b);
-    if(va && !vb) setBoth(b, va);
-    if(vb && !va) setBoth(a, vb);
-  });
-
-  // 3) Ocultar QS
+  // Ocultar QS
   try{ history.replaceState({}, document.title, "/static/index.html"); }catch(_e){}
 
-  // 4) Ruta según huella + ambiente
+  // Ruta según huella + ambiente
   const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1"
-                     || !!localStorage.getItem("medvoice.voiceprint_audio")
-                     || !!localStorage.getItem("medvoice.voiceprint_blob")
-                     || !!localStorage.getItem("medvoice.voiceprint_hash");
+    || !!localStorage.getItem("medvoice.voiceprint_audio")
+    || !!localStorage.getItem("medvoice.voiceprint_blob")
+    || !!localStorage.getItem("medvoice.voiceprint_hash");
 
   const hasNoise = localStorage.getItem("medvoice.has_noise_profile") === "1"
-                || !!localStorage.getItem("medvoice.noise_rms");
+    || !!localStorage.getItem("medvoice.noise_rms");
 
   const destination = (hasVoiceprint && hasNoise)
     ? "/static/medvoice-transcribe.html"
