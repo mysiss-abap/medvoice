@@ -328,8 +328,8 @@ const ctx = {
 const FL = (v)=>(String(v||"").trim()||"ANAMNESIS").toUpperCase();
 $("doctorId").textContent   = ctx.doctor_id || "—";
 $("doctorName").textContent = ctx.doctor_name;
-$("hdrLine1").textContent   = `Paciente ${ctx.patient_name} | Documento ${ctx.patient_doc}`;
-$("hdrLine2").textContent   = `${ctx.patnr} | Ep. ${ctx.falnr} | ${ctx.adm_date} | ${ctx.location_line}`;
+$("hdrLine1").textContent   = `${ctx.patient_name} | Documento ${ctx.patient_doc}`;
+$("hdrLine2").textContent   = `Paciente ${ctx.patnr} | Ep. ${ctx.falnr} | ${ctx.adm_date} | ${ctx.location_line}`;
 
 /* keywords normalized */
 const KW = {
