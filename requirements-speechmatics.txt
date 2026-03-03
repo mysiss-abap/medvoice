@@ -17,3 +17,4 @@ numpy==1.26.4
 
 # Audio processing
 librosa>=0.10.1
+

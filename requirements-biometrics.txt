@@ -1,4 +1,0 @@
-resemblyzer==0.1.4
-webrtcvad==2.0.10
-librosa==0.10.1
-scipy==1.12.0
