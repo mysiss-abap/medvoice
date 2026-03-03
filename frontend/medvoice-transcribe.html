@@ -1,4 +1,4 @@
-<!doctype html> 
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -110,6 +110,7 @@
       font-size:11.5px;white-space:pre-wrap;line-height:1.4;
     }
 
+    /* mySiss floating GIF button (kept) */
     .mysiss-gif-btn{
       position:fixed;right:18px;bottom:18px;
       width:82px;height:82px;border-radius:24px;
@@ -230,6 +231,7 @@
 
 </div>
 
+<!-- mySiss GIF -->
 <div id="mySissGifBtn" class="mysiss-gif-btn" aria-label="mySiss Assistant">
   <img src="src/img/mySiss_Gif.gif" alt="mySiss">
 </div>
@@ -297,6 +299,8 @@ function log(m){
 const ctx = {
   doctor_id    : gvAny(["doctor_id","IV_DOCTOR_ID"], ""),
   doctor_name  : gvAny(["doctor_name","IV_DOCTOR_NAME"], "No informado"),
+  field        : gvAny(["field","IV_FIELD"], "ANAMNESIS"),
+  field_label  : gvAny(["IV_FIELD_LABEL","field_label","field","IV_FIELD"], "ANAMNESIS"),
   patnr        : gvAny(["patnr","IV_PATNR"], "—"),
   falnr        : gvAny(["falnr","IV_FALNR"], "—"),
   patient_name : gvAny(["patient_name","IV_PATIENT_NAME"], "—"),
@@ -305,13 +309,6 @@ const ctx = {
   location_line: gvAny(["IV_LOCATION_LINE","location_line"], "—"),
   session_id   : gvAny(["session_id","IV_SESSION_ID"], "") || ("sess_"+Date.now()),
 
-  /* ✅ IMPORTANTE:
-     - PMD target real (lo que SAP debe llenar): IV_TARGET / target
-     - fallback: IV_FIELD / field
-  */
-  target_pmd   : gvAny(["IV_TARGET","target","IV_PMD","pmd","pmd_target"], ""),
-  field_fallback: gvAny(["IV_FIELD","field"], ""),
-
   wake_word : gvAny(["IV_WAKE","wake_word"], "HOLA"),
   stop_word : gvAny(["IV_STOP","stop_word"], "CHAO"),
   ini_word  : gvAny(["IV_INI","ini_word"], "INICIAR"),
@@ -319,22 +316,16 @@ const ctx = {
   env_word  : gvAny(["IV_ENV","env_word"], "ENVIAR"),
   lim_word  : gvAny(["IV_LIM","lim_word"], "LIMPIAR"),
 
+  // sections titles from SAP
   ana_word  : gvAny(["IV_ANA","ana_word"], "Enfermedad actual"),
   evo_word  : gvAny(["IV_EVO","evo_word"], "Examen fisico"),
   epi_word  : gvAny(["IV_EPI","epi_word"], "EPICRISIS"),
 
+  // pause keyword
   pau_word  : gvAny(["IV_PAU","pau_word"], "PAUSAR"),
 };
 
-function FL(v){ return (String(v||"").trim()||"").toUpperCase(); }
-function getTargetPMD(){
-  const t = (ctx.target_pmd||"").trim();
-  if(t) return FL(t);
-  const f = (ctx.field_fallback||"").trim();
-  if(f) return FL(f);
-  return "ANAMNESIS";
-}
-
+const FL = (v)=>(String(v||"").trim()||"ANAMNESIS").toUpperCase();
 $("doctorId").textContent   = ctx.doctor_id || "—";
 $("doctorName").textContent = ctx.doctor_name;
 $("hdrLine1").textContent   = `${ctx.patient_name} | Documento ${ctx.patient_doc}`;
@@ -356,7 +347,7 @@ const KW = {
   CHAO:"chao",
 };
 
-/* ===================== 2) voiceprint gate ===================== */
+/* ===================== 2) voiceprint gate (NO setup touched) ===================== */
 (()=>{
   const ok =
     localStorage.getItem("medvoice.has_voiceprint") === "1" ||
@@ -395,9 +386,9 @@ const btnToggle=$("btnToggle");
 const btnSend=$("btnSend");
 const btnClear=$("btnClear");
 
-let dictActive=false;
-let dictPaused=false;
-let suspendByGif=false;
+let dictActive=false;      // started
+let dictPaused=false;      // paused by PAUSAR
+let suspendByGif=false;    // true while gif open
 let pauseTimer=null;
 const PAUSE_MS=1200;
 
@@ -417,24 +408,12 @@ function schedulePauseEnter(){
 }
 function secKey(){ return sections._current || "anamnesis"; }
 
-/* ✅ anti-duplicado de headers (evita === ENFERMEDAD ACTUAL === x2) */
-let lastSectionAt = 0;
-let lastSectionNorm = "";
-
 function addSectionHeader(title){
   const t=String(title||"").trim();
   if(!t) return;
-
-  const nt=norm(t);
-  const now=Date.now();
-  if(nt && nt === lastSectionNorm && (now - lastSectionAt) < 1500){
-    return; // ignore duplicated command close in time
-  }
-  lastSectionAt = now;
-  lastSectionNorm = nt;
-
   txtEl.value=(txtEl.value||"")+`\n=== ${t.toUpperCase()} ===\n`;
 
+  const nt=norm(t);
   if(nt===KW.EPI || nt.includes(KW.EPI)) sections._current="epicrisis";
   else if(nt===KW.EVO || nt.includes(KW.EVO)) sections._current="evolucion";
   else sections._current="anamnesis";
@@ -501,19 +480,16 @@ btnClear.addEventListener("click",()=>{ enableSR(); clearText(); });
 /* ===================== 5) payload + send ===================== */
 function buildPayload(){
   const full=(txtEl.value||"").trim();
-  const target = getTargetPMD(); // ✅ este es el PMD real
   return {
     session_id: ctx.session_id,
     doctor_id: ctx.doctor_id,
     patnr: ctx.patnr,
     falnr: ctx.falnr,
-
-    /* ✅ field_label ahora es el PMD target real, NO "Enfermedad actual" */
-    field_label: target,
-
+    field_label: FL(ctx.field_label),
     location_line: ctx.location_line,
     timestamp: new Date().toISOString(),
 
+    // from SAP, dynamic (no hardcoded)
     section_titles: {
       anamnesis: ctx.ana_word,
       evolucion: ctx.evo_word,
@@ -539,9 +515,11 @@ function sendToSAP(){
 
   const payload=buildPayload();
 
+  // keep your previous flow
   localStorage.setItem("medvoice.pending_payload", JSON.stringify(payload));
   localStorage.setItem("medvoice.json.last", JSON.stringify(payload));
 
+  // 1) optional backend save (as you had)
   (async()=>{
     try{
       const apiBase = (window.location.origin && window.location.origin !== "null")
@@ -560,17 +538,18 @@ function sendToSAP(){
     }
   })();
 
+  // 2) SAP submit page (chunking)
   try{
     window.location.href="/static/medvoice-submit.html";
   }catch(_e){
-    const target=getTargetPMD();
+    const target=FL(ctx.field_label);
     window.location.href="sapevent:MEDVOICE_SET_FIELD?target="+encodeURIComponent(target)+"&text="+encodeURIComponent(text);
   }
 }
 
 btnSend.addEventListener("click",()=>{ enableSR(); sendToSAP(); });
 
-/* ===================== 6) GIF assistant (habla de nuevo) ===================== */
+/* ===================== 6) GIF assistant (voice-driven) ===================== */
 const gifBtn=$("mySissGifBtn");
 const overlay=$("mySissOverlay");
 const modal=$("mySissModal");
@@ -581,68 +560,55 @@ let gifOpen=false;
 let gifListening=false;
 let lastCmdAt=0;
 
-let lastGifAnswerAt=0;
-let lastGifAnswerKey="";
+function unlockAudio(){
+  try{
+    if(localStorage.getItem("medvoice.audio_unlocked")==="1") return;
+    const u=new SpeechSynthesisUtterance(".");
+    u.lang="es-CO"; u.volume=0.01;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+    localStorage.setItem("medvoice.audio_unlocked","1");
+  }catch(_e){}
+}
 
 function speakES(text){
   try{
+    unlockAudio();
     window.speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(String(text||""));
     u.lang="es-CO"; u.rate=1.0; u.pitch=1.0;
     window.speechSynthesis.speak(u);
   }catch(_e){}
 }
-function setGifListening(on){
-  gifListening=!!on;
-  if(gifListening) modal.classList.add("mysiss-listening");
-  else modal.classList.remove("mysiss-listening");
-}
 
 function openGif(fromVoice=true){
-  if(gifOpen) return;
   gifOpen=true;
   overlay.classList.add("show");
   overlay.setAttribute("aria-hidden","false");
+  modal.classList.remove("mysiss-listening");
+  gifListening=false;
 
+  // while gif open: block dictation (no transcribe)
   suspendByGif=true;
   setStatus('<span class="warn">asistente activo</span>',"chip-warn");
-
-  if(fromVoice){
-    setGifListening(true);
-    setTimeout(()=>speakES("Doctor, ¿qué información clínica del paciente necesita consultar?"), 50);
-  }else{
-    setGifListening(false);
-  }
-
+  if(fromVoice) speakES("Doctor, ¿qué información clínica del paciente necesita consultar?");
   log("Asistente abierto.");
 }
 
 function closeGif(fromVoice=true){
-  if(!gifOpen) return;
   gifOpen=false;
   overlay.classList.remove("show");
   overlay.setAttribute("aria-hidden","true");
+  modal.classList.remove("mysiss-listening");
+  gifListening=false;
 
   suspendByGif=false;
-  setGifListening(false);
-
   setStatus(dictActive && !dictPaused ? '<span class="ok">escuchando…</span>' : "listo.", dictActive && !dictPaused ? "chip-ok" : "chip-warn");
-  log("Asistente cerrado.");
+  if(fromVoice) log("Asistente cerrado.");
 }
 
 function answerClinical(qText){
-  if(!gifListening) return;
-  const now=Date.now();
-  if(now - lastGifAnswerAt < 900) return;
-
   const q=norm(qText);
-  if(q.length < 2) return;
-
-  const key=q.slice(0,120);
-  if(key === lastGifAnswerKey && (now - lastGifAnswerAt) < 3000) return;
-
-  lastGifAnswerAt = now;
-  lastGifAnswerKey = key;
 
   if(q.includes("epicrisis")||(q.includes("ultima")&&q.includes("cita"))){
     speakES("Última epicrisis: evolución favorable, sin signos de alarma. Se mantiene el plan y control según indicación clínica.");
@@ -656,30 +622,28 @@ function answerClinical(qText){
     speakES("No se registran alergias medicamentosas conocidas en el registro activo.");
     return;
   }
-  if(q.includes("diagnost")||q.includes("dx")||q.includes("impresion")){
-    speakES("Diagnósticos activos disponibles. Indique si desea ver el principal o el listado completo.");
-    return;
-  }
   if(q.includes("medic")||q.includes("tratam")||q.includes("formula")){
     speakES("Medicación activa registrada. Indique si desea revisar dosis, horarios o cambios.");
-    return;
-  }
-  if(q.includes("laboratorio")||q.includes("resultado")||q.includes("examen")){
-    speakES("Resultados recientes disponibles. Indique cuál: hemograma, glucosa, perfil lipídico u otro.");
     return;
   }
   speakES("Entendido. Indique qué dato necesita: epicrisis, signos vitales, diagnósticos, medicación o laboratorios.");
 }
 
-gifBtn.addEventListener("click",()=>{ enableSR(); openGif(false); });
+/* keep click as optional manual open, but voice is primary */
+gifBtn.addEventListener("click",()=>{ enableSR(); unlockAudio(); openGif(false); });
 closeBtn.addEventListener("click",()=>closeGif(false));
 overlay.addEventListener("click",(e)=>{ if(e.target===overlay) closeGif(false); });
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && gifOpen) closeGif(false); });
 
 micOrb.addEventListener("click",()=>{
-  enableSR();
-  setGifListening(!gifListening);
-  if(gifListening) speakES("Listo. Hable ahora.");
+  enableSR(); unlockAudio();
+  gifListening=!gifListening;
+  if(gifListening){
+    modal.classList.add("mysiss-listening");
+    speakES("Listo. Hable ahora.");
+  }else{
+    modal.classList.remove("mysiss-listening");
+  }
 });
 
 /* ===================== 7) SpeechRecognition always-on ===================== */
@@ -689,8 +653,8 @@ let srEnabled=false;
 let backoffMs=400;
 let restartTimer=null;
 
-/* ✅ separo comandos: algunos se aceptan en INTERIM, secciones SOLO en FINAL */
-function isCmdInterim(probe){
+function isCommandPhrase(probe){
+  // blocks these from being transcribed by consuming them as commands
   return (
     (KW.HOLA && probe.includes(KW.HOLA)) ||
     (KW.CHAO && probe.includes(KW.CHAO)) ||
@@ -700,20 +664,17 @@ function isCmdInterim(probe){
     (KW.FIN  && probe.includes(KW.FIN )) ||
     (KW.ENV  && probe.includes(KW.ENV )) ||
     (KW.LIM  && probe.includes(KW.LIM )) ||
-    (KW.PAU  && probe.includes(KW.PAU ))
-  );
-}
-function isCmdFinal(probe){
-  return isCmdInterim(probe) ||
+    (KW.PAU  && probe.includes(KW.PAU )) ||
     (KW.ANA  && probe.includes(KW.ANA )) ||
     (KW.EVO  && probe.includes(KW.EVO )) ||
-    (KW.EPI  && probe.includes(KW.EPI ));
+    (KW.EPI  && probe.includes(KW.EPI ))
+  );
 }
 
 function handleCommands(probe){
   const now=Date.now();
-  if(now-lastCmdAt<650) return true;
-
+  if(now-lastCmdAt<650) return true; // anti-spam
+  // greetings (hard)
   if(!gifOpen && probe.includes(KW.HOLA)){
     lastCmdAt=now; openGif(true); return true;
   }
@@ -724,6 +685,7 @@ function handleCommands(probe){
     return true;
   }
 
+  // wake/stop from SAP
   if(!gifOpen && KW.WAKE && probe.includes(KW.WAKE)){
     lastCmdAt=now; openGif(true); return true;
   }
@@ -734,12 +696,13 @@ function handleCommands(probe){
     return true;
   }
 
+  // pause/resume/start/stop dictation
   if(dictActive && !dictPaused && KW.PAU && probe.includes(KW.PAU)){
     lastCmdAt=now; pauseDictation(); return true;
   }
   if(KW.INI && probe.includes(KW.INI)){
     lastCmdAt=now;
-    if(gifOpen) return true;
+    if(gifOpen) return true; // do not start dictation while assistant open
     if(dictActive && dictPaused) resumeDictation();
     else if(!dictActive) startDictation();
     return true;
@@ -748,6 +711,7 @@ function handleCommands(probe){
     lastCmdAt=now; stopDictation(); return true;
   }
 
+  // actions
   if(KW.ENV && probe.includes(KW.ENV)){
     lastCmdAt=now; sendToSAP(); return true;
   }
@@ -755,6 +719,7 @@ function handleCommands(probe){
     lastCmdAt=now; clearText(); return true;
   }
 
+  // sections
   if(KW.ANA && probe.includes(KW.ANA)){
     lastCmdAt=now; addSectionHeader(ctx.ana_word); return true;
   }
@@ -775,14 +740,22 @@ function createSR(){
   r.continuous=true;
   r.interimResults=true;
 
-  r.onstart=()=>{ backoffMs=400; };
+  r.onstart=()=>{
+    backoffMs=400;
+    // do NOT spam log on every restart
+  };
+
   r.onerror=(e)=>{
     if(e.error==="not-allowed"||e.error==="service-not-allowed"){
       srEnabled=false;
+      setStatus('<span class="err">permiso de micrófono denegado</span>',"chip-err");
       log("Permiso de micrófono denegado.");
     }
   };
-  r.onend=()=>{ scheduleRestart(); };
+
+  r.onend=()=>{
+    scheduleRestart();
+  };
 
   r.onresult=(event)=>{
     let finalChunk="", interimChunk="";
@@ -796,23 +769,26 @@ function createSR(){
     const finalText=finalChunk.trim();
     const interimText=interimChunk.trim();
 
+    // faster command reaction: check interim first
     const probeInterim=norm(interimText);
-    if(probeInterim && isCmdInterim(probeInterim)){
+    if(probeInterim && isCommandPhrase(probeInterim)){
       handleCommands(probeInterim);
-      return;
+      return; // consume commands so they are NOT transcribed
     }
 
     const probeFinal=norm(finalText);
-    if(probeFinal && isCmdFinal(probeFinal)){
+    if(probeFinal && isCommandPhrase(probeFinal)){
       handleCommands(probeFinal);
-      return;
+      return; // consume
     }
 
-    if(gifOpen && gifListening && !dictActive && finalText){
+    // if assistant open and not dictating -> answer from FINAL only
+    if(gifOpen && !dictActive && finalText){
       answerClinical(finalText);
       return;
     }
 
+    // dictation only if started and not paused and assistant not open
     if(dictActive && !dictPaused && !gifOpen && finalText){
       appendDictation(finalText);
     }
@@ -835,6 +811,7 @@ function scheduleRestart(){
 function enableSR(){
   if(srEnabled) return;
   if(!SR){
+    setStatus('<span class="err">SpeechRecognition no disponible</span>',"chip-err");
     log("SpeechRecognition no disponible.");
     return;
   }
@@ -844,20 +821,14 @@ function enableSR(){
   try{ mainRec.start(); }catch(_e){ scheduleRestart(); }
 }
 
-/* auto-start (igual que antes lo querías) */
-function autoStartSR(){
-  if(!srEnabled) enableSR();
-}
-autoStartSR();
-setTimeout(autoStartSR, 600);
-setTimeout(autoStartSR, 1400);
-setTimeout(autoStartSR, 2600);
-document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) autoStartSR(); });
+/* IMPORTANT:
+   Browser requires user gesture at least once.
+   After first click/keydown, SR stays always-on via restart/backoff.
+*/
+document.addEventListener("click", ()=>{ unlockAudio(); enableSR(); }, { once:true });
+document.addEventListener("keydown",()=>{ unlockAudio(); enableSR(); }, { once:true });
 
-/* fallback silencioso si el navegador exige gesto */
-document.addEventListener("click",  ()=>{ enableSR(); }, { once:true });
-document.addEventListener("keydown",()=>{ enableSR(); }, { once:true });
-
+/* init */
 setStatus("listo.","chip-warn");
 log("MedVoice listo.");
 

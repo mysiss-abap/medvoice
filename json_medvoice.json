@@ -1,20 +1,20 @@
 {
-  "session_id": "sess_1772545678748",
+  "session_id": "sess_1772481416799",
   "doctor_id": "0700000008",
   "patnr": "1382",
   "falnr": "3125",
-  "field_label": "ANAMNESIS",
+  "field_label": "ENFERMEDAD ACTUAL",
   "location_line": "EP1HSPOC | MCGASTRO | HA-115OC | CH-115B",
-  "timestamp": "2026-03-03T13:50:16.890Z",
+  "timestamp": "2026-03-02T19:59:48.927Z",
   "section_titles": {
     "anamnesis": "Enfermedad actual",
     "evolucion": "Examen fisico",
     "epicrisis": "EPICRISIS"
   },
   "sections": {
-    "anamnesis": "motivo de consulta abdominal paciente que consulta por cuadro clínico de aproximadamente 24 horas",
-    "evolucion": "frecuencia arterial 130 sobre 85",
+    "anamnesis": "estoy con el paciente con Pablo el paciente refiere dolor abdominal el paciente manifiesta dolor abdominal bajo y desde hace 5 días",
+    "evolucion": "según revisión se constata que los puntos su parte bueno esta si no me lo sabe en un segundo terminar",
     "epicrisis": ""
   },
-  "full_text": "motivo de consulta abdominal\n\n=== ENFERMEDAD ACTUAL ===\npaciente que consulta por cuadro clínico de aproximadamente 24 horas\n\n=== EXAMEN FISICO ===\nfrecuencia arterial 130 sobre 85"
+  "full_text": "estoy con el paciente con Pablo\nel paciente refiere dolor abdominal\n\n=== ENFERMEDAD ACTUAL ===\n\n=== ENFERMEDAD ACTUAL ===\nel paciente manifiesta dolor abdominal bajo y desde hace 5 días\n\n=== EXAMEN FISICO ===\n\n=== EXAMEN FISICO ===\nsegún revisión se constata que\n\nen un segundo\nterminar"
 }

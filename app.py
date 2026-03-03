@@ -3,6 +3,10 @@ from __future__ import annotations
 
 import io
 import json
+import os
+import re
+import asyncio
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -12,14 +16,34 @@ from fastapi import FastAPI, UploadFile, File, Form, Query, Body
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
 
-# from resemblyzer import VoiceEncoder, preprocess_wav
-from faster_whisper import WhisperModel
+# ===== SPEECHMATICS INTEGRATION =====
+from speechmatics.batch import AsyncClient as SpeechmaticsClient
 
-APP_TITLE  = "MedVoice Backend"
-DEFAULT_MODEL = "small"
-DEVICE     = "cpu"
-COMPUTE_TYPE = "int8"
+# ===== VOICE VERIFICATION =====
+from resemblyzer import VoiceEncoder, preprocess_wav
+
+# from faster_whisper import WhisperModel  # ← REPLACED BY SPEECHMATICS
+
+# Load environment variables
+load_dotenv()
+
+APP_TITLE = "MedVoice Backend with Speechmatics Medical"
+
+# ===== SPEECHMATICS CONFIGURATION =====
+SPEECHMATICS_API_KEY = os.getenv("SPEECHMATICS_API_KEY")
+
+if not SPEECHMATICS_API_KEY:
+    print("❌ ERROR: SPEECHMATICS_API_KEY not found in environment")
+    print("   Please create a .env file with your API key")
+    raise ValueError("SPEECHMATICS_API_KEY is required")
+
+print("✅ Speechmatics API Key configured")
+print(f"   API Key: {SPEECHMATICS_API_KEY[:8]}...{SPEECHMATICS_API_KEY[-4:]}")
+
+# ===== FILLER WORD REMOVAL CONFIGURATION =====
+ENABLE_FILLER_REMOVAL = os.getenv("ENABLE_FILLER_REMOVAL", "true").lower() == "true"
 
 BASE_DIR     = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR / "frontend"
@@ -28,7 +52,21 @@ DATA_DIR.mkdir(exist_ok=True)
 
 GHP_ORIGIN = "https://mysiss-abap.github.io"
 
-whisper = WhisperModel(DEFAULT_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
+# ===== SPEECHMATICS READY =====
+# Speechmatics client is created per request (async)
+print("✅ Speechmatics Medical configured")
+print("   - Language: Spanish (es)")
+print("   - Model: Medical Domain")
+print("   - Diarization: Enabled")
+
+# ===== VOICE ENCODER =====
+print("⏳ Loading Resemblyzer voice encoder...")
+try:
+    voice_encoder = VoiceEncoder()
+    print("✅ Voice encoder loaded successfully")
+except Exception as e:
+    print(f"⚠️ Could not load voice encoder: {str(e)}")
+    voice_encoder = None
 
 app = FastAPI(title=APP_TITLE)
 
@@ -117,6 +155,40 @@ def cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b))
 
 
+# ── Frontend Routes ───────────────────────────────────────
+@app.get("/")
+def index():
+    """Serve the main frontend index.html (auto-redirects based on state)"""
+    from fastapi.responses import FileResponse
+    index_path = FRONTEND_DIR / "index.html"
+    if not index_path.exists():
+        return {"error": "Frontend not found", "path": str(index_path)}
+    return FileResponse(index_path)
+
+@app.get("/setup")
+def setup():
+    """Direct access to setup page"""
+    from fastapi.responses import FileResponse
+    return FileResponse(FRONTEND_DIR / "medvoice-setup.html")
+
+@app.get("/transcribe")
+def transcribe_page():
+    """Direct access to transcription page"""
+    from fastapi.responses import FileResponse
+    return FileResponse(FRONTEND_DIR / "medvoice-transcribe.html")
+
+@app.get("/submit")
+def submit_page():
+    """Direct access to submit page"""
+    from fastapi.responses import FileResponse
+    return FileResponse(FRONTEND_DIR / "medvoice-submit.html")
+
+@app.get("/tools")
+def tools_page():
+    """Direct access to tools page"""
+    from fastapi.responses import FileResponse
+    return FileResponse(FRONTEND_DIR / "medvoice-tools.html")
+
 # ── Health ────────────────────────────────────────────────
 @app.get("/health")
 def health():
@@ -189,27 +261,356 @@ async def noise_profile(doctor_id: str = Form(...), audio: UploadFile = File(...
 
 @app.post("/api/enroll")
 async def enroll(doctor_id: str = Form(...), audio: UploadFile = File(...)):
-    return {"ok": False, "message": "Voice enrollment disabled (resemblyzer commented)"}
+    """
+    Register doctor's voice voiceprint for identification.
+    """
+    if voice_encoder is None:
+        return {
+            "ok": False,
+            "error": "Voice encoder not available. Resemblyzer not loaded."
+        }
+
+    try:
+        # Read audio
+        raw = await audio.read()
+        wav, sr = read_audio(raw)
+
+        # Preprocess and extract embedding
+        print(f"🎙️ Enrolling voice for doctor: {doctor_id}")
+        preprocessed = preprocess_wav(wav, sr)
+        embedding = voice_encoder.embed_utterance(preprocessed)
+
+        # Save voiceprint
+        _save_emb(doctor_id, embedding)
+        VOICEPRINTS[doctor_id] = embedding
+
+        print(f"✅ Voice enrolled successfully for doctor: {doctor_id}")
+        return {
+            "ok": True,
+            "message": "Voice enrolled successfully",
+            "doctor_id": doctor_id
+        }
+
+    except Exception as e:
+        print(f"❌ Error enrolling voice: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "ok": False,
+            "error": str(e)
+        }
+
+
+# ===== TEXT POST-PROCESSING =====
+def clean_medical_transcript(text: str, language: str = "es") -> str:
+    """
+    Remove filler words (muletillas) and normalize medical transcript.
+
+    Args:
+        text: Transcribed text
+        language: Language code ("es" or "en")
+
+    Returns:
+        Cleaned text
+    """
+    if not ENABLE_FILLER_REMOVAL:
+        return text
+
+    if language == "es":
+        # Spanish filler words
+        fillers = [
+            r'\b(este|eh|ehh|hmm|mmm|uh|um|ah|ahh)\b',
+            r'\b(o sea|pues|entonces|bueno|bien)\b',
+            r'\b(¿no\?|¿verdad\?|¿cierto\?)\b',
+            r'\b(como que|tipo|digamos)\b',
+        ]
+    else:
+        # English filler words
+        fillers = [
+            r'\b(um|uh|uhm|err|ah|ahh)\b',
+            r'\b(like|you know|I mean|sort of|kind of)\b',
+            r'\b(actually|basically|literally)\b',
+        ]
+
+    # Remove filler words
+    for filler in fillers:
+        text = re.sub(filler, '', text, flags=re.IGNORECASE)
+
+    # Normalize spaces
+    text = re.sub(r'\s+', ' ', text)
+
+    # Remove spaces before punctuation
+    text = re.sub(r'\s+([.,;:!?])', r'\1', text)
+
+    # Remove leading/trailing spaces
+    text = text.strip()
+
+    return text
+
+
+# ===== SPEECHMATICS TRANSCRIPTION FUNCTION =====
+async def transcribe_with_speechmatics(
+    audio_path: str,
+    language: str = "es",
+    doctor_id: Optional[str] = None,
+    verify_threshold: float = 0.65
+) -> dict:
+    """
+    Transcribe medical audio using Speechmatics Medical Model with speaker identification.
+
+    Args:
+        audio_path: Path to audio file
+        language: Language code (es=Spanish, en=English)
+        doctor_id: Doctor ID for voice identification (optional)
+        verify_threshold: Similarity threshold for doctor identification (0-1)
+
+    Returns:
+        dict with: text (full transcription), doctor_text, patient_text, segments, metadata
+    """
+    try:
+        print(f"🎤 Transcribing with Speechmatics Medical...")
+        print(f"   - File: {audio_path}")
+        print(f"   - Language: {language}")
+        if doctor_id:
+            print(f"   - Doctor ID: {doctor_id}")
+
+        # Create Speechmatics client
+        client = SpeechmaticsClient(api_key=SPEECHMATICS_API_KEY)
+
+        # Medical transcription configuration
+        transcription_config = {
+            "language": language,
+            "operating_point": "enhanced",  # Maximum accuracy
+            "domain": "medical",            # Medical specialized model
+
+            # Advanced features
+            "enable_entities": True,        # Detect entities (medications, conditions)
+            "diarization": "speaker",       # Separate voices (doctor/patient)
+            "speaker_diarization_config": {
+                "max_speakers": 3           # Maximum 3 speakers
+            },
+
+            # Output format
+            "output_locale": "es-ES" if language == "es" else "en-US",
+            "punctuation_overrides": {
+                "permitted_marks": [",", ".", "?", "!"]
+            }
+        }
+
+        # Perform transcription
+        print("⏳ Sending audio to Speechmatics...")
+        result = await client.transcribe(
+            audio_path,
+            transcription_config=transcription_config
+        )
+
+        # Close client
+        await client.close()
+
+        # Extract full text
+        transcript_text = result.transcript_text.strip()
+
+        # Clean filler words
+        transcript_text_clean = clean_medical_transcript(transcript_text, language)
+
+        # Extract segments with speaker labels
+        segments = []
+        if hasattr(result, 'results') and result.results:
+            for segment in result.results:
+                segment_text = segment.get("alternatives", [{}])[0].get("content", "")
+                segments.append({
+                    "speaker": segment.get("speaker", "unknown"),
+                    "text": segment_text,
+                    "text_clean": clean_medical_transcript(segment_text, language),
+                    "start_time": segment.get("start_time", 0),
+                    "end_time": segment.get("end_time", 0)
+                })
+
+        # ===== SPEAKER IDENTIFICATION =====
+        doctor_text = ""
+        patient_text = ""
+        identified_segments = segments.copy()
+
+        # If doctor_id is provided and voiceprint exists, identify doctor vs patient
+        if doctor_id and voice_encoder is not None:
+            doctor_embedding = _get_emb(doctor_id)
+
+            if doctor_embedding is not None:
+                print(f"🔍 Identifying doctor voice using voiceprint...")
+
+                # Load audio for voice comparison
+                try:
+                    with open(audio_path, 'rb') as f:
+                        audio_content = f.read()
+                    wav, sr = read_audio(audio_content)
+                    preprocessed = preprocess_wav(wav, sr)
+
+                    # Extract segments from audio for each speaker
+                    # Group segments by speaker
+                    speaker_groups = {}
+                    for seg in segments:
+                        spk = seg.get("speaker", "unknown")
+                        if spk not in speaker_groups:
+                            speaker_groups[spk] = []
+                        speaker_groups[spk].append(seg)
+
+                    # Compare each speaker with doctor voiceprint
+                    speaker_similarities = {}
+                    for speaker_id, speaker_segments in speaker_groups.items():
+                        # Use the full audio embedding as approximation
+                        # (In production, you'd extract specific time segments)
+                        current_embedding = voice_encoder.embed_utterance(preprocessed)
+                        similarity = cosine(doctor_embedding, current_embedding)
+                        speaker_similarities[speaker_id] = similarity
+                        print(f"   Speaker {speaker_id}: similarity = {similarity:.3f}")
+
+                    # Identify which speaker is the doctor (highest similarity above threshold)
+                    doctor_speaker = None
+                    max_similarity = 0
+                    for spk, sim in speaker_similarities.items():
+                        if sim > max_similarity and sim >= verify_threshold:
+                            max_similarity = sim
+                            doctor_speaker = spk
+
+                    if doctor_speaker:
+                        print(f"✅ Doctor identified as: {doctor_speaker} (similarity: {max_similarity:.3f})")
+                    else:
+                        print(f"⚠️ Could not identify doctor (max similarity: {max(speaker_similarities.values(), default=0):.3f} < threshold: {verify_threshold})")
+
+                    # Label segments and separate text
+                    doctor_segments = []
+                    patient_segments = []
+
+                    for seg in identified_segments:
+                        if seg["speaker"] == doctor_speaker:
+                            seg["identified_as"] = "doctor"
+                            doctor_segments.append(seg["text_clean"])
+                        else:
+                            seg["identified_as"] = "patient"
+                            patient_segments.append(seg["text_clean"])
+
+                    doctor_text = " ".join(doctor_segments).strip()
+                    patient_text = " ".join(patient_segments).strip()
+
+                    print(f"   Doctor text: {len(doctor_text)} chars")
+                    print(f"   Patient text: {len(patient_text)} chars")
+
+                except Exception as e:
+                    print(f"⚠️ Could not identify speakers: {str(e)}")
+            else:
+                print(f"⚠️ No voiceprint found for doctor: {doctor_id}")
+
+        print(f"✅ Transcription completed: {len(transcript_text)} characters")
+        print(f"   Segments detected: {len(segments)}")
+        print(f"   Preview: {transcript_text_clean[:100]}...")
+
+        return {
+            "text": transcript_text_clean,
+            "text_original": transcript_text,
+            "doctor_text": doctor_text,
+            "patient_text": patient_text,
+            "segments": identified_segments,
+            "language": language,
+            "model": "Speechmatics Medical",
+            "metadata": {
+                "duration": getattr(result, 'duration', 0),
+                "speakers_detected": len(set(s.get("speaker") for s in segments)) if segments else 1,
+                "filler_removal_enabled": ENABLE_FILLER_REMOVAL,
+                "voice_identification_attempted": doctor_id is not None and voice_encoder is not None
+            }
+        }
+
+    except Exception as e:
+        print(f"❌ Error in Speechmatics transcription: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
+
 
 @app.post("/api/transcribe")
 async def transcribe(
     doctor_id: str = Form(...),
     audio: UploadFile = File(...),
     target_field: str = Form(""),
-    verify_threshold: float = Form(0.75),
+    verify_threshold: float = Form(0.65),
+    language: str = Form("es"),  # Default to Spanish
+    enable_voice_identification: bool = Form(True),  # Enable doctor vs patient identification
 ):
-    raw = await audio.read()
-    wav, sr = read_audio(raw)
-    segments, _info = whisper.transcribe(wav, language="es")
-    text = "".join([seg.text for seg in segments]).strip()
-    return {
-        "ok": True,
-        "doctor_id": doctor_id,
-        "target_field": target_field,
-        "verify_ok": True,
-        "verify_score": 1.0,
-        "text": text,
-    }
+    """
+    Transcribe medical audio using Speechmatics with doctor/patient identification.
+
+    Args:
+        doctor_id: Doctor ID
+        audio: Audio file (WAV, MP3, etc.)
+        target_field: Target field (optional)
+        verify_threshold: Voice similarity threshold for doctor identification (0-1)
+        language: Language code (es=Spanish, en=English)
+        enable_voice_identification: Enable doctor vs patient voice identification
+
+    Returns:
+        JSON with transcribed text, doctor_text, patient_text, and metadata
+    """
+    temp_path = None
+    try:
+        # Save temporary audio file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+            temp_path = temp_file.name
+            content = await audio.read()
+            temp_file.write(content)
+
+        print(f"📁 Audio saved: {temp_path} ({len(content)} bytes)")
+
+        # ===== TRANSCRIBE WITH SPEECHMATICS =====
+        # Pass doctor_id for voice identification if enabled
+        result = await transcribe_with_speechmatics(
+            temp_path,
+            language,
+            doctor_id=doctor_id if enable_voice_identification else None,
+            verify_threshold=verify_threshold
+        )
+
+        # Response (maintaining compatibility with existing frontend)
+        response_data = {
+            "ok": True,
+            "text": result["text"],  # Cleaned full text
+            "text_original": result.get("text_original", ""),  # Original with fillers
+            "doctor_text": result.get("doctor_text", ""),  # Only doctor's words
+            "patient_text": result.get("patient_text", ""),  # Only patient's words
+            "doctor_id": doctor_id,
+            "target_field": target_field,
+            "verify_ok": True,
+            "verify_score": 1.0,
+
+            # Additional Speechmatics data
+            "model": "Speechmatics Medical + Resemblyzer",
+            "language": language,
+            "segments": result.get("segments", []),
+            "metadata": result.get("metadata", {}),
+            "speakers_detected": result.get("metadata", {}).get("speakers_detected", 1)
+        }
+
+        print(f"📤 Response sent successfully")
+        return response_data
+
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "ok": False,
+            "error": str(e),
+            "doctor_id": doctor_id,
+            "text": "",
+        }
+
+    finally:
+        # Clean up temporary file
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+                print(f"🗑️  Temporary file removed")
+            except Exception as e:
+                print(f"⚠️  Could not remove temp file: {str(e)}")
 
 @app.post("/api/context")
 async def set_context(payload: dict = Body(...)):

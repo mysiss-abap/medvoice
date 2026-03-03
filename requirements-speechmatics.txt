@@ -1,0 +1,19 @@
+# Speechmatics SDK (latest available version)
+speechmatics-batch>=0.4.5
+python-dotenv>=1.0.0
+
+# Voice verification
+resemblyzer>=0.1.4
+
+# Dependencias originales del proyecto
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+pydantic==2.6.4
+requests==2.31.0
+aiofiles==23.2.1
+soundfile==0.13.1
+numpy==1.26.4
+
+# Audio processing
+librosa>=0.10.1
