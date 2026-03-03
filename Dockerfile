@@ -10,7 +10,11 @@ RUN apt-get update && apt-get install -y \
 COPY requirements-speechmatics.txt .
 
 RUN pip install --upgrade pip setuptools wheel
+
 RUN pip install -r requirements-speechmatics.txt
+
+# 🔴 agregar esto por seguridad
+RUN pip install setuptools
 
 COPY . .
 
