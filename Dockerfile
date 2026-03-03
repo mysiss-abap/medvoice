@@ -9,15 +9,16 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements-speechmatics.txt .
 
-RUN pip install --upgrade pip setuptools wheel
+# ✅ Pip + wheel OK, pero SETUPTOOLS PINNED (incluye pkg_resources)
+RUN pip install --upgrade pip wheel && \
+    pip install "setuptools==70.3.0"
 
 RUN pip install -r requirements-speechmatics.txt
 
-# 🔴 agregar esto por seguridad
-RUN pip install setuptools
+# ✅ Re-forzar setuptools al final (por si alguna lib lo cambió)
+RUN pip install --force-reinstall "setuptools==70.3.0"
 
 COPY . .
 
 EXPOSE 8000
-
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
