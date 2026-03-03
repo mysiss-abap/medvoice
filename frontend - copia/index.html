@@ -11,7 +11,7 @@
   const url = new URL(window.location.href);
   const params = url.searchParams;
 
-  // Guardar TODOS los parámetros que llegan desde SAP
+  // Guardar TODOS los parámetros que llegan desde SAP (incluye IV_*)
   params.forEach((value, key) => {
     const v = (value || "").trim();
     if(!v) return;
@@ -23,8 +23,13 @@
   try{ history.replaceState({}, document.title, "/static/index.html"); }catch(_e){}
 
   // Ruta según huella + ambiente
-  const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1";
-  const hasNoise = localStorage.getItem("medvoice.has_noise_profile") === "1" || !!localStorage.getItem("medvoice.noise_rms");
+  const hasVoiceprint = localStorage.getItem("medvoice.has_voiceprint") === "1"
+    || !!localStorage.getItem("medvoice.voiceprint_audio")
+    || !!localStorage.getItem("medvoice.voiceprint_blob")
+    || !!localStorage.getItem("medvoice.voiceprint_hash");
+
+  const hasNoise = localStorage.getItem("medvoice.has_noise_profile") === "1"
+    || !!localStorage.getItem("medvoice.noise_rms");
 
   const destination = (hasVoiceprint && hasNoise)
     ? "/static/medvoice-transcribe.html"
