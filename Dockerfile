@@ -13,7 +13,7 @@ COPY requirements-speechmatics.txt .
 RUN pip install --upgrade pip wheel && \
     pip install "setuptools==70.3.0"
 
-RUN pip install -r requirements-speechmatics.txt
+RUN pip install -r requirements.txt
 
 # ✅ Re-forzar setuptools al final (por si alguna lib lo cambió)
 RUN pip install --force-reinstall "setuptools==70.3.0"
