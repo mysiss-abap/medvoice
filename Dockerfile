@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-speechmatics.txt .
+COPY requirements.txt .
 
 # ✅ Pip + wheel OK, pero SETUPTOOLS PINNED (incluye pkg_resources)
 RUN pip install --upgrade pip wheel && \
