@@ -1,5 +1,3 @@
-en que punto se implementa eso 
-no entiendo nada 
 # app.py
 from __future__ import annotations
 
