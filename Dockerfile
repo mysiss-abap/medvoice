@@ -9,16 +9,17 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements.txt .
 
-# ✅ Pip + wheel OK, pero SETUPTOOLS PINNED (incluye pkg_resources)
-RUN pip install --upgrade pip wheel && \
-    pip install "setuptools==70.3.0"
+# herramientas base
+RUN pip install --upgrade pip wheel setuptools
 
+# instalar dependencias
 RUN pip install -r requirements.txt
 
-# ✅ Re-forzar setuptools al final (por si alguna lib lo cambió)
-RUN pip install --force-reinstall "setuptools==70.3.0"
+# asegurar pkg_resources
+RUN pip install setuptools
 
 COPY . .
 
 EXPOSE 8000
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["uvicorn","app:app","--host","0.0.0.0","--port","8000"]
