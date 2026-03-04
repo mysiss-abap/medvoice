@@ -18,6 +18,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
+# ===== LOCAL WHISPER (FALLBACK) =====
+from faster_whisper import WhisperModel
+
 # ===== SPEECHMATICS INTEGRATION =====
 from speechmatics.batch import AsyncClient as SpeechmaticsClient
 
@@ -31,16 +34,31 @@ load_dotenv()
 
 APP_TITLE = "MedVoice Backend with Speechmatics Medical"
 
-# ===== SPEECHMATICS CONFIGURATION =====
-SPEECHMATICS_API_KEY = os.getenv("SPEECHMATICS_API_KEY")
+# ===== SPEECHMATICS CONFIGURATION (OPTIONAL) =====
+SPEECHMATICS_API_KEY = os.getenv("SPEECHMATICS_API_KEY", "").strip()
+SPEECHMATICS_ENABLED = bool(SPEECHMATICS_API_KEY)
 
-if not SPEECHMATICS_API_KEY:
-    print("❌ ERROR: SPEECHMATICS_API_KEY not found in environment")
-    print("   Please create a .env file with your API key")
-    raise ValueError("SPEECHMATICS_API_KEY is required")
+if SPEECHMATICS_ENABLED:
+    print("✅ Speechmatics enabled")
+    print(f"   API Key: {SPEECHMATICS_API_KEY[:8]}...{SPEECHMATICS_API_KEY[-4:]}")
+else:
+    print("⚠️ Speechmatics disabled (no API key). Using local Whisper fallback.")
 
-print("✅ Speechmatics API Key configured")
-print(f"   API Key: {SPEECHMATICS_API_KEY[:8]}...{SPEECHMATICS_API_KEY[-4:]}")
+# ===== WHISPER LOCAL CONFIGURATION =====
+# Default model for local runs: "small" (good balance). Emergency: "tiny".
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small").strip()      # tiny / base / small / medium / large-v3
+WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu").strip()      # cpu / cuda
+WHISPER_COMPUTE = os.getenv("WHISPER_COMPUTE", "int8").strip()   # int8 / float16 (cuda) / float32
+
+print(f"⏳ Loading Whisper local model: {WHISPER_MODEL} ({WHISPER_DEVICE}, {WHISPER_COMPUTE})")
+try:
+    whisper_local = WhisperModel(WHISPER_MODEL, device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE)
+    whisper_tiny  = WhisperModel("tiny", device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE)
+    print("✅ Whisper local models ready")
+except Exception as e:
+    print(f"❌ Could not load Whisper models: {str(e)}")
+    whisper_local = None
+    whisper_tiny  = None
 
 # ===== FILLER WORD REMOVAL CONFIGURATION =====
 ENABLE_FILLER_REMOVAL = os.getenv("ENABLE_FILLER_REMOVAL", "true").lower() == "true"
@@ -347,6 +365,75 @@ def clean_medical_transcript(text: str, language: str = "es") -> str:
 
     return text
 
+async def transcribe_with_whisper_local(audio_path: str, language: str = "es") -> dict:
+    if whisper_local is None:
+        raise Exception("Whisper local model not available")
+
+    segments, info = whisper_local.transcribe(
+        audio_path,
+        language=language if language in ("es", "en") else None,
+        vad_filter=True,
+        beam_size=5
+    )
+
+    text = " ".join(seg.text.strip() for seg in segments).strip()
+    text_clean = clean_medical_transcript(text, language)
+    return {
+        "text": text_clean,
+        "text_original": text,
+        "model": f"Whisper Local ({WHISPER_MODEL})",
+        "language": language,
+        "segments": []
+    }
+
+
+async def transcribe_with_whisper_tiny(audio_path: str, language: str = "es") -> dict:
+    if whisper_tiny is None:
+        raise Exception("Whisper tiny model not available")
+
+    segments, info = whisper_tiny.transcribe(
+        audio_path,
+        language=language if language in ("es", "en") else None,
+        vad_filter=True,
+        beam_size=3
+    )
+
+    text = " ".join(seg.text.strip() for seg in segments).strip()
+    text_clean = clean_medical_transcript(text, language)
+    return {
+        "text": text_clean,
+        "text_original": text,
+        "model": "Whisper Tiny (Emergency)",
+        "language": language,
+        "segments": []
+    }
+
+async def transcribe_with_fallback(
+    audio_path: str,
+    language: str = "es",
+    doctor_id: Optional[str] = None,
+    verify_threshold: float = 0.65
+) -> dict:
+    # 1) Try Speechmatics if enabled
+    if SPEECHMATICS_ENABLED:
+        try:
+            return await transcribe_with_speechmatics(
+                audio_path,
+                language=language,
+                doctor_id=doctor_id,
+                verify_threshold=verify_threshold
+            )
+        except Exception as e:
+            print(f"⚠️ Speechmatics failed -> fallback to Whisper local. Reason: {str(e)}")
+
+    # 2) Whisper local
+    try:
+        return await transcribe_with_whisper_local(audio_path, language=language)
+    except Exception as e:
+        print(f"⚠️ Whisper local failed -> fallback to Whisper tiny. Reason: {str(e)}")
+
+    # 3) Whisper tiny emergency
+    return await transcribe_with_whisper_tiny(audio_path, language=language)
 
 # ===== SPEECHMATICS TRANSCRIPTION FUNCTION =====
 async def transcribe_with_speechmatics(
@@ -562,9 +649,9 @@ async def transcribe(
 
         # ===== TRANSCRIBE WITH SPEECHMATICS =====
         # Pass doctor_id for voice identification if enabled
-        result = await transcribe_with_speechmatics(
+        result = await transcribe_with_fallback(
             temp_path,
-            language,
+            language=language,
             doctor_id=doctor_id if enable_voice_identification else None,
             verify_threshold=verify_threshold
         )
@@ -582,7 +669,7 @@ async def transcribe(
             "verify_score": 1.0,
 
             # Additional Speechmatics data
-            "model": "Speechmatics Medical + Resemblyzer",
+            "model": result.get("model", "transcriber"),
             "language": language,
             "segments": result.get("segments", []),
             "metadata": result.get("metadata", {}),
