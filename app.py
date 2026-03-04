@@ -48,7 +48,7 @@ ENABLE_FILLER_REMOVAL = os.getenv("ENABLE_FILLER_REMOVAL", "true").lower() == "t
 BASE_DIR     = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 DATA_DIR     = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 GHP_ORIGIN = "https://mysiss-abap.github.io"
 
@@ -203,31 +203,36 @@ def api_health():
 @app.post("/api/save-json")
 async def save_json(payload: dict = Body(...)):
     """
-    Rutas destino:
-      B) C:\\MedVoice\\json_medvoice.json
-    Crea directorios si no existen. Backup siempre en data/.
+    Guarda SIEMPRE en:
+      C:\MedVoice\data\json_medvoice.json
+    y además hace backup en:
+      <tu_proyecto>\data\json_medvoice.json  (mismo path si estás en C:\MedVoice)
     """
-    targets = [
-        Path(r"C:\MedVoice\json_medvoice.json"),
-    ]
     json_str = json.dumps(payload, ensure_ascii=False, indent=2)
+
+    # 1) Ruta exacta que tú pediste en Windows
+    target_main = Path(r"C:\MedVoice\data\json_medvoice.json")
+
     saved: list[str] = []
     errors: list[dict] = []
 
-    for tp in targets:
-        try:
-            tp.parent.mkdir(parents=True, exist_ok=True)
-            tp.write_text(json_str, encoding="utf-8")
-            saved.append(str(tp))
-        except Exception as exc:
-            errors.append({"path": str(tp), "error": str(exc)})
-
-    # Backup en servidor siempre
+    # Guardar en C:\MedVoice\data\json_medvoice.json
     try:
-        (DATA_DIR / "json_medvoice.json").write_text(json_str, encoding="utf-8")
-        saved.append(str(DATA_DIR / "json_medvoice.json"))
-    except Exception:
-        pass
+        target_main.parent.mkdir(parents=True, exist_ok=True)
+        target_main.write_text(json_str, encoding="utf-8")
+        saved.append(str(target_main))
+    except Exception as exc:
+        errors.append({"path": str(target_main), "error": str(exc)})
+
+    # 2) Backup en carpeta data del proyecto (normalmente es el mismo)
+    try:
+        backup = DATA_DIR / "json_medvoice.json"
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        backup.write_text(json_str, encoding="utf-8")
+        if str(backup) not in saved:
+            saved.append(str(backup))
+    except Exception as exc:
+        errors.append({"path": str(DATA_DIR / "json_medvoice.json"), "error": str(exc)})
 
     if saved:
         return {"ok": True, "saved": saved, "errors": errors}
