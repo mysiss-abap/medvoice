@@ -164,11 +164,12 @@
    - medvoice.has_voiceprint     → "1" when voiceprint saved
    - medvoice.voiceprint_created_at → ISO timestamp
 ============================================================ */
+
 (function(){ try{ history.replaceState({}, document.title, "/static/medvoice-setup.html"); }catch(_e){} })();
 
-console.log("isSecureContext (onload):", window.isSecureContext);
-console.log("location.href:", location.href);
-console.log("protocol:", location.protocol);
+console.log("isSecureContext:", window.isSecureContext);
+console.log("origin:", location.origin);
+console.log("href:", location.href);
 
 function readValue(key, fallback){
   return (sessionStorage.getItem("medvoice."+key) || localStorage.getItem("medvoice."+key) || fallback || "").trim();
