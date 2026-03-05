@@ -617,12 +617,20 @@ function sendToSAP(){
   })();
 
   try{
-    window.location.href="/static/medvoice-submit.html";
-    setStatus('<span class="ok">enviando…</span>',"chip-ok");
-    log("Enviando a SAP (submit).");
+
+    const json = JSON.stringify(payload);
+
+    window.location.href =
+      "sapevent:MEDVOICE_SUBMIT_JSON?payload=" +
+      encodeURIComponent(json);
+
+    setStatus('<span class="ok">enviando a SAP…</span>',"chip-ok");
+    log("JSON enviado a SAP.");
+
   }catch(_e){
-    const target = encodeURIComponent(ctx.pmd_target || "PMD");
-    window.location.href="sapevent:MEDVOICE_SET_FIELD?target="+target+"&text="+encodeURIComponent(text);
+
+    log("Error enviando a SAP: "+_e);
+
   }
 }
 btnSend.addEventListener("click",()=>{ enableSR(); sendToSAP(); });
