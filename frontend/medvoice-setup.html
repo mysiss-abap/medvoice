@@ -187,12 +187,25 @@ function log(msg){
 function stopStream(stream){ try{ stream && stream.getTracks().forEach(t=>t.stop()); }catch(_e){} }
 
 async function getMic(){
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
-    throw new Error("Sin soporte de micrófono");
 
-  console.log("isSecureContext (before getUserMedia):", window.isSecureContext);
+  log("UA: " + navigator.userAgent);
+  log("isSecureContext: " + window.isSecureContext);
+  log("protocol: " + location.protocol);
 
-  return navigator.mediaDevices.getUserMedia({audio:true});
+  if(!navigator.mediaDevices){
+    log("navigator.mediaDevices = NULL");
+  }else{
+    log("navigator.mediaDevices = OK");
+  }
+
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    log("getUserMedia disponible");
+    return navigator.mediaDevices.getUserMedia({audio:true});
+  }
+
+  log("getUserMedia NO disponible en este motor.");
+  throw new Error("Sin soporte de micrófono");
+
 }
 
 function blobToBase64(blob){
