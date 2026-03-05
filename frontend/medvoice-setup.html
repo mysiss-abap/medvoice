@@ -62,7 +62,7 @@
     .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
     button{border:0;cursor:pointer;padding:9px 16px;border-radius:9px;font-weight:900;font-size:13px}
     .btn-primary{background:var(--sap-blue);color:#fff}
-    .btn-ghost{background:#fff;color:var(--sap-blue);border:1px solid var(--sap-blue)}
+    /*.btn-ghost{background:#fff;color:var(--sap-blue);border:1px solid var(--sap-blue)}*/
     .btn-primary:disabled{opacity:.6;cursor:not-allowed}
 
     /* Log: fixed compact height, internal scroll */
@@ -291,9 +291,12 @@ let voiceAutoStop=null, voiceReadyToSave=false, voiceModalShown=false;
 const voiceStatusEl   = document.getElementById("voiceStatus");
 const btnVoiceAction  = document.getElementById("btnVoiceAction");
 
-document.getElementById("btnSkip").addEventListener("click", ()=>{
-  window.location.href = "/static/medvoice-transcribe.html";
-});
+const btnSkip = document.getElementById("btnSkip");
+if(btnSkip){
+  btnSkip.addEventListener("click", ()=>{
+    window.location.href = "/static/medvoice-transcribe.html";
+  });
+}
 
 btnVoiceAction.addEventListener("click", async ()=>{
 
