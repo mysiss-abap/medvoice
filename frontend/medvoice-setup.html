@@ -166,6 +166,10 @@
 ============================================================ */
 (function(){ try{ history.replaceState({}, document.title, "/static/medvoice-setup.html"); }catch(_e){} })();
 
+console.log("isSecureContext (onload):", window.isSecureContext);
+console.log("location.href:", location.href);
+console.log("protocol:", location.protocol);
+
 function readValue(key, fallback){
   return (sessionStorage.getItem("medvoice."+key) || localStorage.getItem("medvoice."+key) || fallback || "").trim();
 }
@@ -185,6 +189,9 @@ function stopStream(stream){ try{ stream && stream.getTracks().forEach(t=>t.stop
 async function getMic(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
     throw new Error("Sin soporte de micrófono");
+
+  console.log("isSecureContext (before getUserMedia):", window.isSecureContext);
+
   return navigator.mediaDevices.getUserMedia({audio:true});
 }
 
