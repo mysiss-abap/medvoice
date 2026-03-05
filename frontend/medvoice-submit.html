@@ -3,73 +3,270 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MedVoice | Submit</title>
-  <style>html,body{margin:0;height:100%;background:#fff;}</style>
+  <title>MedVoice | Enviar a SAP</title>
+  <style>
+    :root{
+      --sap-blue:#0a6ed1; --sap-blue-2:#0854a0; --sap-bg:#f7f7f7; --sap-card:#fff;
+      --sap-text:#1d2d3e; --sap-muted:#6a6d70; --sap-border:#d9d9d9;
+      --ok:#107e3e; --warn:#e9730c; --err:#bb0000;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      background:var(--sap-bg);
+      font-family:Segoe UI, Arial, sans-serif;
+      color:var(--sap-text);
+      overflow:hidden;
+    }
+    header{
+      background:linear-gradient(90deg,var(--sap-blue),var(--sap-blue-2));
+      color:#fff;
+      padding:10px 0;
+    }
+    .head-inner{ max-width:980px;margin:0 auto;padding:0 14px; }
+    .head-grid{
+      display:grid;
+      grid-template-columns:220px 1fr;
+      align-items:center;
+      gap:8px;
+    }
+    .brand .app-name{font-size:20px;font-weight:800;line-height:1}
+    .brand .app-sub{font-size:12px;opacity:.9;margin-top:3px;font-weight:600}
+
+    .wrap{
+      max-width:980px;
+      margin:14px auto;
+      padding:0 14px;
+      height:calc(100vh - 70px);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .card{
+      background:var(--sap-card);
+      border:1px solid var(--sap-border);
+      border-radius:12px;
+      box-shadow:0 1px 3px rgba(0,0,0,.05);
+      padding:14px 16px;
+    }
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    .label{font-size:13px;color:var(--sap-muted)}
+    .label b{color:var(--sap-text)}
+    .btns{display:flex;gap:8px;flex-wrap:wrap;}
+    .btn{
+      border:1px solid var(--sap-blue);background:var(--sap-blue);color:#fff;
+      border-radius:9px;padding:9px 14px;font-size:13px;
+      cursor:pointer;transition:.15s;user-select:none;font-weight:900;
+    }
+    .btn:hover{filter:brightness(.95);}
+    .btn:disabled{opacity:.55;cursor:not-allowed;}
+    .btn-ghost{background:#fff;color:var(--sap-blue);border-color:var(--sap-blue);}
+    .btn-warn{background:var(--warn);border-color:var(--warn);}
+    .btn-danger{background:var(--err);border-color:var(--err);}
+
+    .status{margin-top:8px;font-size:12px;color:var(--sap-muted);}
+    .ok{color:var(--ok);font-weight:900}
+    .warn{color:var(--warn);font-weight:900}
+    .err{color:var(--err);font-weight:900}
+
+    textarea{
+      border:1px solid var(--sap-border);border-radius:9px;
+      padding:10px;font-size:13.5px;outline:none;background:#fff;
+      width:100%;height:260px;
+      resize:none;line-height:1.5;
+      overflow:auto;white-space:pre-wrap;
+      margin-top:10px;
+    }
+    textarea:focus{border-color:var(--sap-blue);}
+
+    pre{
+      margin:10px 0 0 0;
+      padding:10px;
+      border:1px solid var(--sap-border);
+      border-radius:10px;
+      background:#fff;
+      overflow:auto;
+      max-height:210px;
+      font-family:Consolas,ui-monospace,Menlo,monospace;
+      font-size:11.5px;
+      white-space:pre-wrap;
+    }
+  </style>
 </head>
 <body>
+
+<header>
+  <div class="head-inner">
+    <div class="head-grid">
+      <div class="brand">
+        <div class="app-name">MedVoice</div>
+        <div class="app-sub">Confirmación de envío</div>
+      </div>
+      <div class="label" style="color:#fff;opacity:.92;text-align:right">
+        <b style="color:#fff">Popup SAP</b> — cierre por <code>sapevent:done</code> / <code>sapevent:cancel</code>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="row">
+      <div class="label">
+        <b>Sesión:</b> <span id="sess">—</span>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <b>Médico:</b> <span id="doc">—</span>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <b>Paciente:</b> <span id="pat">—</span>
+      </div>
+    </div>
+    <div class="status" id="statusEl">Estado: listo.</div>
+  </div>
+
+  <div class="card">
+    <div class="btns">
+      <button class="btn" id="btnSend">Enviar a SAP (cerrar popup)</button>
+      <button class="btn btn-ghost" id="btnBack">Volver</button>
+      <button class="btn btn-danger" id="btnCancel">Cancelar</button>
+    </div>
+
+    <textarea id="txt" placeholder="Texto completo que se devolverá a SAP…"></textarea>
+
+    <div class="label" style="margin-top:10px">
+      <b>JSON (se guarda en backend como <code>/app/data/json_medvoice.json</code>):</b>
+    </div>
+    <pre id="jsonPreview">{}</pre>
+  </div>
+
+</div>
+
 <script>
-(function(){
-  function readValue(key, fallback=""){
-    return (sessionStorage.getItem("medvoice."+key) || localStorage.getItem("medvoice."+key) || fallback || "").trim();
-  }
+(()=>{"use strict";
 
-  function redirectBack(){
-    window.location.replace("/static/medvoice-transcribe.html");
-  }
+const $ = (id)=>document.getElementById(id);
 
-  const raw = (localStorage.getItem("medvoice.pending_payload") || "").trim();
-  if(!raw){
-    redirectBack();
-    return;
-  }
+function setStatus(html){
+  $("statusEl").innerHTML = "Estado: " + html;
+}
 
-  let payloadObj = null;
-  try{ payloadObj = JSON.parse(raw); }catch(_e){
-    localStorage.setItem("medvoice.last_submit_error", "invalid_pending_payload");
-    redirectBack();
-    return;
-  }
+function loadPayload(){
+  const a = localStorage.getItem("medvoice.pending_payload") || "";
+  const b = localStorage.getItem("medvoice.json.last") || "";
+  const raw = (a.trim() ? a : b);
 
-  const sessionId = payloadObj.session_id || readValue("session_id", `sess_${Date.now()}`);
-  const jsonText = JSON.stringify(payloadObj);
-  const encoded = encodeURIComponent(jsonText);
-
-  const apiParam = readValue("api", "").toUpperCase();
-  const forceFallback = apiParam === "MEDVOICE_SET_FIELD";
-
-  function fire(url){ window.location.href = url; }
-
-  function sendAsSetField(){
-    const target = payloadObj.field_label || readValue("field_label", "ANAMNESIS");
-    const fullText = payloadObj.full_text || "";
-    localStorage.setItem("medvoice.last_payload_json", jsonText);
-    fire("sapevent:MEDVOICE_SET_FIELD?target=" + encodeURIComponent(target) + "&text=" + encodeURIComponent(fullText));
+  if(!raw.trim()){
+    return { payload:null, raw:"" };
   }
 
   try{
-    if(forceFallback){
-      sendAsSetField();
-    }else if(encoded.length > 1500){
-      const chunkSize = 1200;
-      const total = Math.ceil(encoded.length / chunkSize);
-      for(let i=0;i<total;i++){
-        const part = i + 1;
-        const slice = encoded.slice(i*chunkSize, (i+1)*chunkSize);
-        fire("sapevent:MEDVOICE_SUBMIT_JSON_CHUNK?session_id=" + encodeURIComponent(sessionId) + "&part=" + part + "&total=" + total + "&payload=" + slice);
-      }
-      fire("sapevent:MEDVOICE_SUBMIT_JSON_COMMIT?session_id=" + encodeURIComponent(sessionId));
-    }else{
-      fire("sapevent:MEDVOICE_SUBMIT_JSON?session_id=" + encodeURIComponent(sessionId) + "&payload=" + encoded);
-    }
+    return { payload: JSON.parse(raw), raw };
+  }catch(e){
+    return { payload:null, raw };
+  }
+}
 
-    localStorage.removeItem("medvoice.pending_payload");
-  }catch(_e){
-    sendAsSetField();
-    localStorage.removeItem("medvoice.pending_payload");
+function getApiBase(){
+  // En tu servidor real, origin normalmente es http://IP:8000
+  if(window.location.origin && window.location.origin !== "null"){
+    return window.location.origin;
+  }
+  return "http://127.0.0.1:8000";
+}
+
+async function saveJsonToBackend(payload){
+  const apiBase = getApiBase();
+  const resp = await fetch(apiBase + "/api/save-json", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await resp.json().catch(()=>null);
+  if(!resp.ok || !data || !data.ok){
+    const msg = data ? JSON.stringify(data) : ("HTTP " + resp.status);
+    throw new Error(msg);
+  }
+  return data;
+}
+
+function closeDone(fullText){
+  // Esto es lo que tu ABAP espera: action='done' y query param text
+  window.location.href = "sapevent:done?text=" + encodeURIComponent(fullText || "");
+}
+
+function closeCancel(){
+  window.location.href = "sapevent:cancel";
+}
+
+/* ---- init ---- */
+const { payload, raw } = loadPayload();
+
+if(!payload){
+  setStatus('<span class="err">no hay payload válido en localStorage</span>');
+  $("jsonPreview").textContent = raw ? raw : "{}";
+  $("txt").value = (localStorage.getItem("medvoice.last_transcript_text") || "").trim();
+} else {
+  const sess = (payload.meta && payload.meta.session_id) ? payload.meta.session_id : "—";
+  const doc  = (payload.context && payload.context.doctor) ? (payload.context.doctor.name || payload.context.doctor.id || "—") : "—";
+  const pat  = (payload.context && payload.context.patient) ? (payload.context.patient.name || payload.context.patient.patnr || "—") : "—";
+  $("sess").textContent = sess;
+  $("doc").textContent  = doc;
+  $("pat").textContent  = pat;
+
+  $("txt").value = (payload.full_text || "").trim();
+  $("jsonPreview").textContent = JSON.stringify(payload, null, 2);
+  setStatus('<span class="ok">payload cargado</span>');
+}
+
+/* ---- buttons ---- */
+$("btnBack").addEventListener("click", ()=>{
+  // vuelve al transcribe
+  try{ window.location.href = "/static/medvoice-transcribe.html"; }catch(_e){}
+});
+
+$("btnCancel").addEventListener("click", ()=>{
+  setStatus('<span class="warn">cancelado</span>');
+  closeCancel();
+});
+
+$("btnSend").addEventListener("click", async ()=>{
+  const fullText = ($("txt").value || "").trim();
+  if(!fullText){
+    setStatus('<span class="warn">sin texto para enviar</span>');
+    return;
   }
 
-  setTimeout(redirectBack, 250);
-})();
-</script>
+  // arma payload si no existe (por si entraste directo)
+  let pl = payload;
+  if(!pl){
+    pl = {
+      meta:{ session_id:"sess_"+Date.now(), timestamp:new Date().toISOString(), source:"SAP_PMD_MEDVOICE", pmd_target:"" },
+      context:{ doctor:{id:"",name:""}, patient:{patnr:"",name:"",doc:""}, encounter:{falnr:"",adm_date:"",location_line:""} },
+      structure:{ sections:[] },
+      full_text: fullText
+    };
+  } else {
+    pl.full_text = fullText;
+    if(pl.meta) pl.meta.timestamp = new Date().toISOString();
+  }
+
+  try{
+    setStatus('<span class="warn">guardando JSON en backend…</span>');
+    const res = await saveJsonToBackend(pl);
+
+    // (opcional) mantener local
+    localStorage.setItem("medvoice.json.last", JSON.stringify(pl));
+
+    setStatus('<span class="ok">ok. cerrando popup y devolviendo texto a SAP…</span>');
+    closeDone(fullText);
+
+  }catch(err){
+    setStatus('<span class="err">error guardando JSON: ' + String(err && err.message ? err.message : err) + '</span>');
+  }
+});
+
+})();</script>
+
 </body>
 </html>

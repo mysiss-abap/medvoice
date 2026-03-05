@@ -1,20 +1,76 @@
 {
-  "session_id": "sess_1772541838598",
-  "doctor_id": "TEST001",
-  "patnr": "—",
-  "falnr": "—",
-  "field_label": "ANAMNESIS",
-  "location_line": "—",
-  "timestamp": "2026-03-03T12:49:37.530Z",
-  "section_titles": {
-    "anamnesis": "Enfermedad actual",
-    "evolucion": "Examen fisico",
-    "epicrisis": "EPICRISIS"
+  "meta": {
+    "session_id": "sess_1772660521196",
+    "timestamp": "2026-03-04T21:45:49.808Z",
+    "source": "SAP_PMD_MEDVOICE",
+    "pmd_target": ""
   },
-  "sections": {
-    "anamnesis": "tras realizar la evaluación médica tras realizar la evaluación clínica realizar la evaluación clínica completa que incluyó interrogatorio médico exploración física y análisis de laboratorio se obtuvieron los siguientes hallazgos el paciente presenta síntomas de fatiga persistente aumento de la sed y micción frecuente los estudios de laboratorio revelan niveles elevados de glucosa en sangre en ayunas 162 mg y hemoglobina glucosilada de 7. 8% con base los resultados clínicos y de laboratorio se establecen diagnóstico de diabetes mellitus mellitos y poros",
-    "evolucion": "",
-    "epicrisis": ""
+  "context": {
+    "doctor": {
+      "id": "0700000000",
+      "name": "Dr. Médico Especialista"
+    },
+    "patient": {
+      "patnr": "1382",
+      "name": "CARLOS OBANDO PINZON",
+      "doc": "1122578956"
+    },
+    "encounter": {
+      "falnr": "3125",
+      "adm_date": "27.02.2019",
+      "location_line": "EP1HSPOC | MCGASTRO | HA-115OC | CH-115B"
+    }
   },
-  "full_text": "realizar la evaluación clínica completa que incluyó interrogatorio médico exploración física y análisis de laboratorio se obtuvieron los siguientes hallazgos\nel paciente presenta síntomas de fatiga persistente aumento de la sed y micción frecuente los estudios de laboratorio revelan niveles elevados de glucosa en sangre en ayunas 162 mg y hemoglobina glucosilada de 7. 8%\ncon base los resultados clínicos y de laboratorio se establecen diagnóstico de diabetes mellitus y tipo dos"
+  "structure": {
+    "sections": [
+      {
+        "key": "anamnesis",
+        "title": "ANAMNESIS",
+        "blocks": [
+          {
+            "key": "enfermedad_actual",
+            "title": "Enfermedad actual",
+            "text": "quisiera registrar el paciente Julián Ramírez está sufriendo de una cefalea Crónica por tomarse cinco días de aguardiente"
+          },
+          {
+            "key": "examen_fisico",
+            "title": "Examen fisico",
+            "text": ""
+          }
+        ]
+      },
+      {
+        "key": "evolucion",
+        "title": "EVOLUCION",
+        "blocks": [
+          {
+            "key": "subjetivo",
+            "title": "Subjetivo",
+            "text": ""
+          },
+          {
+            "key": "objetivo",
+            "title": "Objetivo",
+            "text": ""
+          },
+          {
+            "key": "analisis",
+            "title": "Analisis",
+            "text": ""
+          },
+          {
+            "key": "plan",
+            "title": "Plan",
+            "text": ""
+          }
+        ]
+      },
+      {
+        "key": "epicrisis",
+        "title": "EPICRISIS",
+        "text": ""
+      }
+    ]
+  },
+  "full_text": "quisiera registrar el paciente Julián Ramírez está sufriendo de una cefalea Crónica por tomarse cinco días de aguardiente\n\n=== ENFERMEDAD ACTUAL ===\n\n=== EXAMEN FISICO ==="
 }
