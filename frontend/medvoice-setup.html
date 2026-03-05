@@ -368,6 +368,16 @@ btnVoiceAction.addEventListener("click", async ()=>{
 
 /* INIT */
 log("Configuración lista.");
+// === DIAGNÓSTICO PARA SABER QUÉ MOTOR ESTÁ USANDO SAP ===
+try{
+  log("UA: " + navigator.userAgent);
+  log("isSecureContext: " + window.isSecureContext);
+  log("protocol: " + location.protocol);
+  log("mediaDevices: " + (!!navigator.mediaDevices));
+  log("getUserMedia: " + (!!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)));
+} catch(e){
+  log("Diagnóstico error: " + (e && e.message ? e.message : e));
+}
 runAmbientAuto();
 </script>
 </body>
